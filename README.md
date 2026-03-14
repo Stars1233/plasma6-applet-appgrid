@@ -3,7 +3,7 @@
 A modern fullscreen application launcher for KDE Plasma, inspired by macOS Launchpad and COSMIC.
 
 ![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-6.0+-blue)
-![License](https://img.shields.io/badge/License-GPL--2.0+-green)
+![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
 
 ## Screenshots
 
@@ -97,28 +97,6 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**:
 - **Grid dimensions** — Columns and rows
 - **Sort order** — Alphabetical or most used
 - **Background** — Blur, opacity, and corner radius
-
-## Project Structure
-
-```
-AppGrid/
-├── CMakeLists.txt              # Build system
-├── PKGBUILD                    # Arch Linux package
-├── src/
-│   ├── appgridplugin.cpp/h     # Plasma::Applet plugin
-│   └── appmodel.cpp/h          # App data model and filter proxy
-└── package/
-    ├── metadata.json            # KPackage/plugin metadata
-    └── contents/
-        ├── config/
-        │   ├── main.xml         # Configuration schema (kcfg)
-        │   └── config.qml       # Configuration model
-        └── ui/
-            ├── main.qml              # PlasmoidItem entry point
-            ├── CompactRepresentation.qml  # Panel icon
-            ├── ConfigGeneral.qml     # Icon configuration page
-            └── GridWindow.qml        # App grid window
-```
 
 ## License
 
