@@ -15,6 +15,8 @@ A modern fullscreen application launcher for KDE Plasma, inspired by macOS Launc
 
 ![Quick Commands](images/quick-commands.png)
 
+![Settings](images/settings.png)
+
 ## Features
 
 - **Fullscreen app grid** — All installed applications in a clean, visual grid with Wayland layer-shell support
@@ -92,13 +94,26 @@ Or add it as a new widget: right-click the panel → **Add Widgets** → search 
 
 ## Configuration
 
-Right-click the AppGrid panel icon → **Configure AppGrid** → **General**:
+Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 
-- **Panel icon** — Choose a custom icon or drag-and-drop an image file
-- **Icon size** — Small, medium, or large grid icons
-- **Grid dimensions** — Columns and rows
-- **Sort order** — Alphabetical or most used
-- **Background** — Blur, opacity, and corner radius
+![Settings](images/settings.png)
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Icon** | Panel icon or custom image | `start-here-kde-symbolic` |
+| **Display mode** | **Fullscreen overlay** covers the entire screen with a blurred background, similar to macOS Launchpad. **Centered popup** opens a floating window in the center of the screen that dismisses when clicking outside or losing focus. *This setting is temporary for testing both implementations — one will be chosen as the default in a future release.* | Centered popup |
+| **Icons per row** | Number of columns in the grid | 7 |
+| **Visible rows** | Number of rows visible before scrolling | 4 |
+| **Icon size** | Small, medium, or large | Large |
+| **Sort order** | **Alphabetical** sorts apps A–Z. **Most Used** sorts by launch frequency, so your most opened apps appear first. | Most Used |
+| **Show scrollbars** | Show scrollbars in grid and search views | Off |
+| **Enable background blur** | Blur effect behind the launcher | On |
+| **Shake icons on open** | Subtle icon animation when launcher opens | On |
+| **Show labels on power/session buttons** | Text labels on sleep, restart, shut down, etc. | Off |
+| **Expand search to bookmarks, files, and websites** | Use additional KRunner plugins for search | On |
+| **Background opacity** | Opacity of the launcher background (0–100%) | 85% |
+| **Corner radius** | Override the default corner radius (in pixels) | 24 px (off by default) |
+| **Hidden Applications** | Apps hidden from the grid via right-click → Hide | — |
 
 ## Credits
 
