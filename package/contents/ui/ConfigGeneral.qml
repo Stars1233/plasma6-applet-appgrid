@@ -273,6 +273,38 @@ KCMUtils.SimpleKCM {
             }
         }
 
+        // --- Reset ---
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.Button {
+            Kirigami.FormData.label: ""
+            icon.name: "edit-undo"
+            text: i18n("Reset to Defaults")
+            onClicked: {
+                configGeneral.cfg_icon = "start-here-kde-symbolic"
+                configGeneral.cfg_useCustomButtonImage = false
+                configGeneral.cfg_customButtonImage = ""
+                gridColumns.value = 7
+                gridRows.value = 4
+                iconSize.currentIndex = 2
+                sortMode.currentIndex = 1
+                configGeneral.cfg_displayMode = 1
+                overrideRadius.checked = false
+                cornerRadius.value = 24
+                showScrollbars.checked = false
+                backgroundOpacity.value = 85
+                enableBlur.checked = true
+                searchAll.checked = true
+                startWithFavorites.checked = false
+                shakeOnOpen.checked = true
+                hoverAnimation.currentIndex = 1
+                showActionLabels.checked = false
+                showRecentApps.checked = true
+                useExtraRunners.checked = true
+            }
+        }
+
         // --- Hidden applications ---
 
         Item {

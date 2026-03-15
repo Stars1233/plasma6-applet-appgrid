@@ -225,6 +225,33 @@ KCMUtils.SimpleKCM {
             onClicked: KCMUtils.KCMLauncher.openSystemSettings("kcm_plasmasearch")
         }
 
+        // --- Reset ---
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.Button {
+            Kirigami.FormData.label: ""
+            icon.name: "edit-undo"
+            text: i18n("Reset to Defaults")
+            onClicked: {
+                configGeneral.cfg_icon = "start-here-kde-symbolic"
+                configGeneral.cfg_useCustomButtonImage = false
+                configGeneral.cfg_customButtonImage = ""
+                gridColumns.value = 7
+                gridRows.value = 4
+                iconSize.currentIndex = 2
+                sortMode.currentIndex = 1
+                showScrollbars.checked = false
+                searchAll.checked = true
+                startWithFavorites.checked = false
+                shakeOnOpen.checked = true
+                hoverAnimation.currentIndex = 1
+                showActionLabels.checked = false
+                showRecentApps.checked = true
+                useExtraRunners.checked = true
+            }
+        }
+
         // --- Hidden applications ---
 
         Item {

@@ -66,14 +66,10 @@ Kirigami.ShadowedRectangle {
                                           + Kirigami.Units.smallSpacing * 2
 
     // -- Panel sizing --
-    // Native popup: use icon-based cell size (avoids circular layout dependency)
-    // Custom Window: use actual grid cell size (Window provides fixed container)
-    readonly property real panelWidth: nativePopup
-        ? (estCellWidth * columns + Kirigami.Units.largeSpacing * 4)
-        : (appGrid.cellWidth * columns + Kirigami.Units.largeSpacing * 4)
-    readonly property real panelHeight: nativePopup
-        ? (estCellHeight * rows + Kirigami.Units.largeSpacing * 4 + Kirigami.Units.gridUnit * 5)
-        : (appGrid.cellHeight * rows + Kirigami.Units.largeSpacing * 4 + Kirigami.Units.gridUnit * 5)
+    // Always use icon-based cell estimates to avoid circular dependency
+    // (panel width → grid cellWidth → grid width → panel width).
+    readonly property real panelWidth: estCellWidth * columns + Kirigami.Units.largeSpacing * 4
+    readonly property real panelHeight: estCellHeight * rows + Kirigami.Units.largeSpacing * 4 + Kirigami.Units.gridUnit * 5
 
     width: Math.min(panelWidth, Screen.width * 0.9)
     height: Math.min(panelHeight, Screen.height * 0.9)
