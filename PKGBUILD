@@ -1,6 +1,6 @@
 # Maintainer: Jason Scurtu <jscurtu@gmail.com>
 pkgname=appgrid
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="A modern fullscreen application launcher for KDE Plasma"
 arch=('x86_64')
@@ -24,6 +24,10 @@ makedepends=(
     'gettext'
 )
 source=()
+
+pkgver() {
+    grep -oP 'project\(AppGrid VERSION \K[0-9]+\.[0-9]+\.[0-9]+' "$startdir/CMakeLists.txt"
+}
 
 build() {
     cmake -B build -S "$startdir" \
