@@ -95,7 +95,7 @@ jobs:
             kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
             kf6-kwindowsystem-devel layer-shell-qt-devel \
             plasma-workspace-devel \
-            rpm-build
+            gettext rpm-build
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -162,7 +162,7 @@ jobs:
             kf6-kwindowsystem-devel \
             layer-shell-qt6-devel \
             plasma6-workspace-devel \
-            rpm-build
+            gettext-tools rpm-build
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -230,7 +230,7 @@ jobs:
             libkf6windowsystem-dev \
             liblayershellqtinterface-dev \
             plasma-workspace-dev \
-            dpkg-dev
+            gettext dpkg-dev
 
       - name: Checkout
         uses: actions/checkout@v5
