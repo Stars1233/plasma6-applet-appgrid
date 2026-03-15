@@ -148,6 +148,12 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 
 > **Note:** The **AppGrid (Panel)** variant shares most settings but does not include display mode, background blur, opacity, or corner radius options — those are managed by Plasma's native popup.
 
+## FAQ
+
+**Why isn't there a `.plasmoid` file I can install from the KDE Store?**
+
+AppGrid uses a C++ backend for app discovery, window management, blur effects, and session actions. The `.plasmoid` format only supports pure QML plasmoids — it has no mechanism to install the compiled plugin (`.so`) to the system plugin path where Plasma expects it. This is the same reason KDE's own C++ plasmoids (Kickoff, Kicker, etc.) are only distributed via system packages. AppGrid provides packages for Arch, Fedora, openSUSE, Ubuntu, and Debian.
+
 ## Credits
 
 - **Jason Scurtu** — Author
