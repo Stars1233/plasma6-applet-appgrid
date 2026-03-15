@@ -9,6 +9,8 @@ AppGrid ships as two plasmoids that share a common codebase:
 
 Both variants share the same app grid, search, categories, quick commands, and configuration — pick whichever fits your workflow. Requires version 1.2+.
 
+> **Note:** AppGrid is still a very new project and may contain bugs or not work as expected on all setups. If you run into any issues, please [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) and report back.
+
 ![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-6.0+-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
 
