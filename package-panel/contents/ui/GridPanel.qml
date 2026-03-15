@@ -182,6 +182,7 @@ Kirigami.ShadowedRectangle {
             else
                 appsModel.recentApps = []
         }
+        appGrid.clearShuffles()
         appGrid.contentY = appGrid.originY
         appGrid.currentIndex = -1
         appGrid.recentIndex = -1
@@ -422,36 +423,54 @@ Kirigami.ShadowedRectangle {
         }
 
         // -- App grid --
-        PlasmaComponents.ScrollView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
-            PlasmaComponents.ScrollBar.vertical.policy: panel.scrollBarPolicy
             visible: !panel.isSearching && !panel.isPrefixMode
 
-            AppGridView {
-                id: appGrid
-                model: !panel.isSearching ? panel.appsModel : null
-                appsModel: panel.appsModel
-                columns: panel.columns
+            PlasmaComponents.ScrollView {
+                anchors.fill: parent
+                PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
+                PlasmaComponents.ScrollBar.vertical.policy: panel.scrollBarPolicy
+
+                AppGridView {
+                    id: appGrid
+                    model: !panel.isSearching ? panel.appsModel : null
+                    appsModel: panel.appsModel
+                    columns: panel.columns
+                    iconSize: panel.gridIconSize
+                    searchField: searchBar.field
+                    showRecentApps: Plasmoid.configuration.showRecentApps !== false
+                    shuffleOverlayParent: shuffleOverlay
+                    onOriginYChanged: {
+                        if (panel._needsScrollToTop) {
+                            contentY = originY
+                            panel._needsScrollToTop = false
+                        }
+                    }
+                    onLaunched: function(index) { panel.launchApp(index) }
+                    onRecentLaunched: function(storageId) {
+                        if (panel.appsModel) {
+                            panel.appsModel.launchByStorageId(storageId)
+                            panel.closeRequested()
+                        }
+                    }
+                    onContextMenuRequested: function(index, storageId, desktopFile) {
+                        contextMenu.showForApp(index, storageId, desktopFile)
+                    }
+                    onShuffleAnimRequested: function(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex) {
+                        shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)
+                    }
+                }
+            }
+
+            ShuffleOverlay {
+                id: shuffleOverlay
+                anchors.fill: parent
+                z: 10
                 iconSize: panel.gridIconSize
-                searchField: searchBar.field
-                showRecentApps: Plasmoid.configuration.showRecentApps !== false
-                onOriginYChanged: {
-                    if (panel._needsScrollToTop) {
-                        contentY = originY
-                        panel._needsScrollToTop = false
-                    }
-                }
-                onLaunched: function(index) { panel.launchApp(index) }
-                onRecentLaunched: function(storageId) {
-                    if (panel.appsModel) {
-                        panel.appsModel.launchByStorageId(storageId)
-                        panel.closeRequested()
-                    }
-                }
-                onContextMenuRequested: function(index, storageId, desktopFile) {
-                    contextMenu.showForApp(index, storageId, desktopFile)
+                onSwapFinished: function(fromIndex, toIndex, fromIcon, toIcon) {
+                    appGrid.applySwap(fromIndex, toIndex, fromIcon, toIcon)
                 }
             }
         }

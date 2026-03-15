@@ -22,7 +22,13 @@ Item {
     property real iconSize: Kirigami.Units.iconSizes.huge
     signal clicked(var mouse)
 
-    // 0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin
+    // Visual icon override for shuffle animation (set externally by the grid)
+    property string displayIcon: ""
+
+    // Emitted when shuffle animation wants to swap with another icon
+    signal shuffleRequested()
+
+    // 0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin, 5=Shuffle
     readonly property int hoverAnimation: Plasmoid.configuration.hoverAnimation
 
     function shake() {
@@ -34,6 +40,7 @@ Item {
         else if (hoverAnimation === 2) growAnim.start()
         else if (hoverAnimation === 3) bounceAnim.start()
         else if (hoverAnimation === 4) spinAnim.start()
+        else if (hoverAnimation === 5) shuffleRequested()
     }
 
     ColumnLayout {
@@ -49,7 +56,7 @@ Item {
             Kirigami.Icon {
                 id: delegateIcon
                 anchors.fill: parent
-                source: root.appIcon || "application-x-executable"
+                source: root.displayIcon || root.appIcon || "application-x-executable"
                 active: delegateMouse.containsMouse || root.isCurrentItem
                 transformOrigin: Item.Center
             }

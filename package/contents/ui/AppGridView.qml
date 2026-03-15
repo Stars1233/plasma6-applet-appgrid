@@ -31,6 +31,75 @@ GridView {
     // Emitted when the user right-clicks an app.
     signal contextMenuRequested(int index, string storageId, string desktopFile)
 
+    // --- Shuffle animation state ---
+    // Maps proxy index -> icon name override for visual-only icon swaps.
+    property var iconSwaps: ({})
+    signal shufflesUpdated()
+
+    // Emitted when a shuffle animation should play. The overlay handles the visuals.
+    signal shuffleAnimRequested(real fromX, real fromY, real toX, real toY,
+                                string fromIcon, string toIcon,
+                                int fromIndex, int toIndex)
+
+    // Reference to the overlay container (set by GridPanel)
+    property Item shuffleOverlayParent: null
+
+    function shuffleIcon(fromIndex) {
+        if (count < 2) return
+
+        // Build list of visible indices (excluding the hovered one)
+        var firstVisible = indexAt(contentX, contentY)
+        var lastVisible = indexAt(contentX + width - 1, contentY + height - 1)
+        if (firstVisible < 0) firstVisible = 0
+        if (lastVisible < 0) lastVisible = count - 1
+
+        var candidates = []
+        for (var i = firstVisible; i <= lastVisible; i++) {
+            if (i !== fromIndex && itemAtIndex(i))
+                candidates.push(i)
+        }
+        if (candidates.length === 0) return
+
+        var otherIndex = candidates[Math.floor(Math.random() * candidates.length)]
+
+        var fromData = appsModel ? appsModel.get(fromIndex) : null
+        var otherData = appsModel ? appsModel.get(otherIndex) : null
+        if (!fromData || !otherData) return
+
+        var fromIcon = iconSwaps[fromIndex] !== undefined ? iconSwaps[fromIndex] : (fromData.iconName || "application-x-executable")
+        var otherIcon = iconSwaps[otherIndex] !== undefined ? iconSwaps[otherIndex] : (otherData.iconName || "application-x-executable")
+
+        var fromItem = itemAtIndex(fromIndex)
+        var otherItem = itemAtIndex(otherIndex)
+        if (!fromItem || !otherItem || !shuffleOverlayParent) {
+            applySwap(fromIndex, otherIndex, fromIcon, otherIcon)
+            return
+        }
+
+        var fromPos = fromItem.mapToItem(shuffleOverlayParent, fromItem.width / 2 - gridView.iconSize / 2, 0)
+        var otherPos = otherItem.mapToItem(shuffleOverlayParent, otherItem.width / 2 - gridView.iconSize / 2, 0)
+
+        shuffleAnimRequested(fromPos.x, fromPos.y, otherPos.x, otherPos.y,
+                             fromIcon, otherIcon, fromIndex, otherIndex)
+    }
+
+    function applySwap(fromIndex, otherIndex, fromIcon, otherIcon) {
+        var newSwaps = Object.assign({}, iconSwaps)
+        newSwaps[fromIndex] = otherIcon
+        newSwaps[otherIndex] = fromIcon
+        iconSwaps = newSwaps
+        shufflesUpdated()
+    }
+
+    function clearShuffles() {
+        iconSwaps = {}
+        shufflesUpdated()
+    }
+
+    function getDisplayIcon(index) {
+        return iconSwaps[index] !== undefined ? iconSwaps[index] : ""
+    }
+
     clip: true
     cacheBuffer: Kirigami.Units.gridUnit * 4
     cellWidth: Math.floor(width / columns)
@@ -137,82 +206,22 @@ GridView {
         if (currentIndex >= 0) recentIndex = -1
     }
 
-    header: Column {
+    header: RecentAppsHeader {
         width: gridView.width
         height: gridView.showRecents ? implicitHeight : 0
         visible: gridView.showRecents
-        spacing: Kirigami.Units.smallSpacing
+        appsModel: gridView.appsModel
+        cellWidth: gridView.cellWidth
+        cellHeight: gridView.cellHeight
+        iconSize: gridView.iconSize
+        currentRecentIndex: gridView.recentIndex
+        gridHasFocus: gridView.activeFocus
+        onRecentLaunched: function(storageId) { gridView.recentLaunched(storageId) }
 
-        PlasmaComponents.Label {
-            leftPadding: Kirigami.Units.largeSpacing
-            text: i18n("Recently Used")
-            font.bold: true
-            opacity: 0.7
+        Connections {
+            target: gridView
+            function onShakeAllIcons() { gridView.headerItem.shakeAll() }
         }
-
-        Flow {
-            width: parent.width
-
-            Repeater {
-                model: gridView.showRecents ? gridView.appsModel.recentApps : []
-                delegate: Item {
-                    id: recentDelegate
-                    required property string modelData
-                    required property int index
-                    readonly property var appData: gridView.appsModel ? gridView.appsModel.getByStorageId(modelData) : ({})
-                    width: gridView.cellWidth
-                    height: gridView.cellHeight
-                    visible: appData.name !== undefined
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: gridView.cellWidth - Kirigami.Units.smallSpacing * 2
-                        height: gridView.cellHeight - Kirigami.Units.smallSpacing * 2
-                        radius: Kirigami.Units.cornerRadius
-                        color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                       Kirigami.Theme.highlightColor.g,
-                                       Kirigami.Theme.highlightColor.b, 0.2)
-                        border.width: 1
-                        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                              Kirigami.Theme.highlightColor.g,
-                                              Kirigami.Theme.highlightColor.b, 0.6)
-                        visible: gridView.recentIndex === recentDelegate.index && gridView.activeFocus
-                    }
-
-                    AppIconDelegate {
-                        id: recentIcon
-                        anchors.fill: parent
-                        appName: recentDelegate.appData.name || ""
-                        appIcon: recentDelegate.appData.iconName || "application-x-executable"
-                        isCurrentItem: gridView.recentIndex === recentDelegate.index
-                        iconSize: gridView.iconSize
-                        onClicked: gridView.recentLaunched(recentDelegate.modelData)
-                    }
-
-                    Connections {
-                        target: gridView
-                        function onShakeAllIcons() { recentIcon.shake() }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: parent.width
-            implicitHeight: 1
-            color: Qt.rgba(Kirigami.Theme.textColor.r,
-                           Kirigami.Theme.textColor.g,
-                           Kirigami.Theme.textColor.b, 0.15)
-        }
-
-        PlasmaComponents.Label {
-            leftPadding: Kirigami.Units.largeSpacing
-            text: i18n("All Apps")
-            font.bold: true
-            opacity: 0.7
-        }
-
-        Item { width: 1; height: Kirigami.Units.smallSpacing }
     }
 
     highlight: Item {
@@ -242,6 +251,7 @@ GridView {
             anchors.fill: parent
             appName: model.name || ""
             appIcon: model.iconName || "application-x-executable"
+            displayIcon: gridView.getDisplayIcon(model.index)
             appGenericName: model.genericName || ""
             isCurrentItem: gridView.currentIndex === model.index
             iconSize: gridView.iconSize
@@ -253,11 +263,15 @@ GridView {
                     gridView.launched(model.index)
                 }
             }
+            onShuffleRequested: gridView.shuffleIcon(model.index)
         }
 
         Connections {
             target: gridView
             function onShakeAllIcons() { iconDelegate.shake() }
+            function onShufflesUpdated() {
+                iconDelegate.displayIcon = gridView.getDisplayIcon(model.index)
+            }
         }
     }
 }

@@ -39,7 +39,7 @@
       <default>false</default>
     </entry>
     <entry name="hoverAnimation" type="Int">
-      <label>Icon hover animation (0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin).</label>
+      <label>Icon hover animation (0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin, 5=Shuffle).</label>
       <default>1</default>
     </entry>
     <entry name="showActionLabels" type="Bool">

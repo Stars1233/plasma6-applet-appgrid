@@ -199,7 +199,7 @@ KCMUtils.SimpleKCM {
         QQC2.ComboBox {
             id: hoverAnimation
             Kirigami.FormData.label: i18n("Icon animation:")
-            model: [i18n("None"), i18n("Shake"), i18n("Grow"), i18n("Bounce"), i18n("Spin")]
+            model: [i18n("None"), i18n("Shake"), i18n("Grow"), i18n("Bounce"), i18n("Spin"), i18n("Shuffle")]
         }
 
         QQC2.CheckBox {
