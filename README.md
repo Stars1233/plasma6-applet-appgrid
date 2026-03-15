@@ -4,7 +4,7 @@ A modern application launcher for KDE Plasma, inspired by macOS Launchpad, COSMI
 
 AppGrid ships as two plasmoids that share a common codebase:
 
-- **AppGrid** — a standalone window launcher that opens as a fullscreen overlay or centered popup, with its own blur, opacity, and corner radius settings.
+- **AppGrid** — a standalone window launcher with its own blur, opacity, and corner radius settings.
 - **AppGrid (Panel)** — a native Plasma panel popup that opens anchored to the panel icon, just like Kickoff. For those who prefer the traditional style.
 
 Both variants share the same app grid, search, categories, quick commands, and configuration — pick whichever fits your workflow. Requires version 1.2+.
@@ -18,7 +18,7 @@ Both variants share the same app grid, search, categories, quick commands, and c
 
 ## Why AppGrid?
 
-KDE Plasma ships with Kickoff and Kicker as its default application launchers. While they are feature-rich, I find them difficult to navigate and slower to use for everyday app launching. I've always preferred the simplicity of how COSMIC, macOS Launchpad, and Pantheon handle application launching — a clean, fullscreen grid where everything is visible at a glance. Since nothing like that existed for Plasma, I decided to build one that fits my workflow.
+KDE Plasma ships with Kickoff and Kicker as its default application launchers. While they are feature-rich, I find them difficult to navigate and slower to use for everyday app launching. I've always preferred the simplicity of how COSMIC, macOS Launchpad, and Pantheon handle application launching — a clean grid where everything is visible at a glance. Since nothing like that existed for Plasma, I decided to build one that fits my workflow.
 
 ## Screenshots
 
@@ -32,7 +32,7 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 
 ## Features
 
-- **Two plasmoid variants** — fullscreen/centered popup launcher, or a native Plasma panel popup (like Kickoff)
+- **Two plasmoid variants** — standalone window launcher, or a native Plasma panel popup (like Kickoff)
 - Favorites tab — right-click any app to add it, with optional start-on-favorites mode
 - Category filtering and KRunner search integration
 - Quick commands — terminal, shell commands, file browser (type `?` for help)
@@ -108,7 +108,7 @@ kquitapp6 plasmashell && kstart plasmashell
 Or add it as a new widget: right-click the panel → **Add Widgets** → search for **AppGrid**.
 
 There are two variants:
-- **AppGrid** — opens as a fullscreen overlay or centered popup window
+- **AppGrid** — opens as a standalone window
 - **AppGrid (Panel)** — opens as a native Plasma popup anchored to the panel icon, like Kickoff
 
 ### Keyboard shortcuts
