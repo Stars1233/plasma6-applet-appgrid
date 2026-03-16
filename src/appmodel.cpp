@@ -250,7 +250,6 @@ void AppModel::loadApplications()
             appEntry.icon = service->icon();
             appEntry.desktopFile = service->entryPath();
             appEntry.genericName = service->genericName();
-            appEntry.exec = service->exec();
             appEntry.storageId = storageId;
 
             if (systemMode)

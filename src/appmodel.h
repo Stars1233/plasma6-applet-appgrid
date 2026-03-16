@@ -18,7 +18,6 @@ struct AppEntry {
     QString desktopFile;
     QString category;
     QString genericName;
-    QString exec;
     QString storageId;
 };
 
