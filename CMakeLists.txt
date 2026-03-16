@@ -132,12 +132,12 @@ message(STATUS "AppGrid DEV_EXTRA_CATEGORIES=${DEV_EXTRA_CATEGORIES}")
 
 # Generate DevFlags.qml from template
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/DevFlags.qml.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/DevFlags.qml.in
     ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/DevFlags.qml
     @ONLY
 )
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/DevFlags.qml.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/DevFlags.qml.in
     ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/ui/DevFlags.qml
     @ONLY
 )
