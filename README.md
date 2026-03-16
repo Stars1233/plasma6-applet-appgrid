@@ -9,7 +9,7 @@ AppGrid ships as two plasmoids that share a common codebase:
 
 Both variants share the same app grid, search, categories, quick commands, and configuration — pick whichever fits your workflow. Requires version 1.2+.
 
-> **Note:** AppGrid is still a very new project and may contain bugs or not work as expected on all setups. If you run into any issues, please [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) and report back.
+> **Note:** Starting with the 1.5.x release, AppGrid is considered feature complete. The focus going forward will be on stability, polish, and community-requested improvements. AppGrid is still a young project and may contain bugs or not work as expected on all setups. A big thank you to everyone who has been testing, reporting issues, and providing feedback — it has been invaluable in shaping the project. If you run into any issues, please [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) and report back.
 
 ![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-6.0+-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
@@ -58,6 +58,8 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 - kservice
 - ki18n
 - kio
+- krunner
+- layer-shell-qt
 
 ### Build
 - cmake
@@ -67,36 +69,27 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 - libplasma
 - kpackage
 - kio
+- kcoreaddons
+- krunner
+- kwindowsystem
+- layer-shell-qt
+- gettext
 
 ## Installation
 
 ### Pre-built packages
 
-Pre-built packages for Fedora, openSUSE, Ubuntu, and Debian are available on the [Releases](https://github.com/xarbit/plasma6-applet-appgrid/releases) page.
+Pre-built packages for Fedora, openSUSE, Ubuntu, and Debian are available on the [Releases](https://github.com/xarbit/plasma6-applet-appgrid/releases) page. These are auto-generated and provided as is — I'm not a packager, and they may not follow all distro packaging standards. Ideally, distribution maintainers would pick up AppGrid for their official repositories. If you're a packager and want to maintain AppGrid for your distro, please reach out so I can link to your package and eventually retire these from the CI pipeline.
 
-### Arch Linux (AUR)
+### Arch Linux (AUR) — officially supported
+
+The AUR package is maintained by the author and is the only officially supported package at this time.
 
 ```bash
 yay -S plasma6-applets-appgrid
 ```
 
-Or with any other AUR helper, or manually:
-
-```bash
-git clone https://aur.archlinux.org/plasma6-applets-appgrid.git
-cd plasma6-applets-appgrid
-makepkg -si
-```
-
 ## Building from source
-
-### Arch Linux
-
-```bash
-makepkg -si
-```
-
-### Manual
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
@@ -186,6 +179,15 @@ By default, AppGrid uses a simplified built-in category mapping that groups apps
 
 Disclaimer:
 This project uses [Claude Code](https://claude.ai/claude-code) as an AI pair programmer and AI assistant. To be clear: this is **not** vibe-coded — it is context engineered and reviewed. Nevertheless, if AI-assisted code gives you the ick, this might not be the launcher for you.
+
+## Contributing
+
+Contributions are welcome! Here's how you can help:
+
+- **Bug reports** — [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) with steps to reproduce, your Plasma version, and any relevant screenshots
+- **Translations** — translation files are in `po/`. Add or improve translations for your language and submit a pull request
+- **Packaging** — if you maintain packages for a Linux distribution and want to package AppGrid, please reach out
+- **Code** — fork the repo, create a feature branch, and submit a pull request. Please keep changes focused and test on both plasmoid variants (AppGrid Center and AppGrid Panel)
 
 ## License
 
