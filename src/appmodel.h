@@ -147,6 +147,7 @@ public:
     Q_INVOKABLE bool isFavorite(const QString &storageId) const;
     Q_INVOKABLE void toggleFavorite(const QString &storageId);
     Q_INVOKABLE bool isRecent(const QString &storageId) const;
+    Q_INVOKABLE void moveFavorite(const QString &storageId, int toIndex);
     Q_INVOKABLE QVariantMap getByStorageId(const QString &storageId) const;
     Q_INVOKABLE bool isNewApp(const QString &storageId) const;
     Q_INVOKABLE void markAllKnown();

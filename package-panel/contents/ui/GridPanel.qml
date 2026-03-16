@@ -195,6 +195,8 @@ Kirigami.ShadowedRectangle {
             else
                 appsModel.recentApps = []
         }
+        appGrid.editMode = false
+        appGrid.selectedSwapIndex = -1
         appGrid.clearShuffles()
         appGrid.contentY = appGrid.originY
         appGrid.currentIndex = -1
@@ -347,6 +349,8 @@ Kirigami.ShadowedRectangle {
             devExtraCategories: devFlags.extraCategories
             onFavoritesToggled: function(active) {
                 categoryBar.favoritesActive = active
+                if (!active)
+                    appGrid.editMode = false
                 if (panel.appsModel) {
                     panel.appsModel.showFavoritesOnly = active
                     if (active)
@@ -488,6 +492,10 @@ Kirigami.ShadowedRectangle {
                     onShuffleAnimRequested: function(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex) {
                         shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)
                     }
+                    onFavoritesOrderChanged: {
+                        if (panel.appsModel)
+                            Plasmoid.configuration.favoriteApps = panel.appsModel.favoriteApps
+                    }
                 }
             }
 
@@ -500,6 +508,64 @@ Kirigami.ShadowedRectangle {
                     appGrid.applySwap(fromIndex, toIndex, fromIcon, toIcon)
                 }
             }
+
+            // Edit mode help text
+            Rectangle {
+                anchors.bottom: editModeBtn.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottomMargin: Kirigami.Units.smallSpacing
+                z: 20
+                visible: appGrid.editMode
+                width: helpLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                height: helpLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
+                               Kirigami.Theme.backgroundColor.g,
+                               Kirigami.Theme.backgroundColor.b, 0.9)
+
+                PlasmaComponents.Label {
+                    id: helpLabel
+                    anchors.centerIn: parent
+                    text: appGrid.selectedSwapIndex < 0
+                          ? i18n("Click an icon to select it, then click another to swap positions")
+                          : i18n("Now click another icon to swap, or click again to deselect")
+                    font: Kirigami.Theme.smallFont
+                }
+            }
+
+            // Edit mode button — visible only in favorites tab
+            Rectangle {
+                id: editModeBtn
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Kirigami.Units.smallSpacing
+                z: 20
+                visible: categoryBar.favoritesActive
+                width: editBtn.implicitWidth + Kirigami.Units.smallSpacing * 2
+                height: editBtn.implicitHeight + Kirigami.Units.smallSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
+                               Kirigami.Theme.backgroundColor.g,
+                               Kirigami.Theme.backgroundColor.b, 0.9)
+
+                PlasmaComponents.ToolButton {
+                    id: editBtn
+                    anchors.centerIn: parent
+                    icon.name: appGrid.editMode ? "dialog-ok-apply" : "document-edit"
+                    checked: appGrid.editMode
+                    onClicked: {
+                        appGrid.editMode = !appGrid.editMode
+                        appGrid.selectedSwapIndex = -1
+                        if (!appGrid.editMode)
+                            appGrid.favoritesOrderChanged()
+                    }
+
+                    PlasmaComponents.ToolTip.text: appGrid.editMode ? i18n("Done") : i18n("Reorder favorites")
+                    PlasmaComponents.ToolTip.visible: hovered
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                }
+            }
+
         }
     }
 

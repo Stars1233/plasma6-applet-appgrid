@@ -28,6 +28,11 @@ Item {
     // Emitted when shuffle animation wants to swap with another icon
     signal shuffleRequested()
 
+    // -- Edit/reorder mode --
+    property bool editMode: false
+    property bool isSelected: false
+    signal removeRequested()
+
     // 0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin, 5=Shuffle
     readonly property int hoverAnimation: Plasmoid.configuration.hoverAnimation
 
@@ -88,19 +93,72 @@ Item {
         }
     }
 
+    // Remove from favorites button (edit mode) — top-level so it captures clicks above delegateMouse
+    MouseArea {
+        id: removeBtn
+        visible: root.editMode
+        width: Kirigami.Units.iconSizes.smallMedium
+        height: width
+        x: Kirigami.Units.smallSpacing
+        y: Kirigami.Units.smallSpacing
+        z: 100
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.removeRequested()
+
+        Kirigami.Icon {
+            anchors.fill: parent
+            source: "remove-symbolic"
+        }
+
+        PlasmaComponents.ToolTip.text: i18n("Remove from Favorites")
+        PlasmaComponents.ToolTip.visible: removeBtn.containsMouse
+        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+    }
+
+    // Selection highlight border
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius
+        color: "transparent"
+        border.width: 2
+        border.color: Kirigami.Theme.highlightColor
+        visible: root.isSelected
+    }
+
     MouseArea {
         id: delegateMouse
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onEntered: root.playAnimation()
-        onClicked: function(mouse) { root.clicked(mouse) }
+
+        onEntered: {
+            if (!root.editMode)
+                root.playAnimation()
+        }
+
+        onClicked: function(mouse) {
+            root.clicked(mouse)
+        }
 
         Accessible.name: root.appName + (root.isNew ? ", " + i18n("new") : "")
         Accessible.role: Accessible.Button
         Accessible.description: root.appGenericName
         Accessible.focusable: true
+    }
+
+    // Wiggle animation for edit mode
+    SequentialAnimation {
+        id: wiggleAnim
+        loops: Animation.Infinite
+        running: root.editMode
+        NumberAnimation { target: delegateIcon; property: "rotation"; from: -2; to: 2; duration: 150; easing.type: Easing.InOutQuad }
+        NumberAnimation { target: delegateIcon; property: "rotation"; from: 2; to: -2; duration: 150; easing.type: Easing.InOutQuad }
+        onRunningChanged: {
+            if (!running) delegateIcon.rotation = 0
+        }
     }
 
     // --- Shake animation ---

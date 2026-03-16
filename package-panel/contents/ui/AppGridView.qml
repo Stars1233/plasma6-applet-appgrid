@@ -31,6 +31,9 @@ GridView {
     // Emitted when the user right-clicks an app.
     signal contextMenuRequested(int index, string storageId, string desktopFile)
 
+    // Emitted when favorites order changes via drag reorder.
+    signal favoritesOrderChanged()
+
     // --- Shuffle animation state ---
     // Maps proxy index -> icon name override for visual-only icon swaps.
     property var iconSwaps: ({})
@@ -100,6 +103,11 @@ GridView {
         return iconSwaps[index] !== undefined ? iconSwaps[index] : ""
     }
 
+    // Whether edit/reorder mode is active
+    property bool editMode: false
+    // Index of currently selected item for swap (-1 = none)
+    property int selectedSwapIndex: -1
+
     clip: true
     cacheBuffer: Kirigami.Units.gridUnit * 4
     cellWidth: Math.floor(width / columns)
@@ -110,6 +118,14 @@ GridView {
     keyNavigationEnabled: true
     currentIndex: -1
     highlightFollowsCurrentItem: true
+
+    // Smooth transitions when items move during drag reorder
+    move: Transition {
+        NumberAnimation { properties: "x,y"; duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+    }
+    moveDisplaced: Transition {
+        NumberAnimation { properties: "x,y"; duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+    }
 
     // Search field to return focus to when typing text
     property Item searchField: null
@@ -256,14 +272,43 @@ GridView {
             isCurrentItem: gridView.currentIndex === model.index
             iconSize: gridView.iconSize
             isNew: gridView.appsModel ? gridView.appsModel.isNewApp(model.storageId || "") : false
+            editMode: gridView.editMode
+            isSelected: gridView.editMode && gridView.selectedSwapIndex === model.index
             onClicked: function(mouse) {
                 if (mouse.button === Qt.RightButton) {
                     gridView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")
+                    return
+                }
+                if (gridView.editMode) {
+                    if (gridView.selectedSwapIndex < 0) {
+                        // First click: select this icon
+                        gridView.selectedSwapIndex = model.index
+                    } else if (gridView.selectedSwapIndex === model.index) {
+                        // Click selected again: deselect
+                        gridView.selectedSwapIndex = -1
+                    } else {
+                        // Click a different icon: swap positions
+                        var fromIndex = gridView.selectedSwapIndex
+                        gridView.selectedSwapIndex = -1
+                        var selectedData = gridView.appsModel.get(fromIndex)
+                        if (selectedData && gridView.appsModel) {
+                            gridView.appsModel.moveFavorite(selectedData.storageId, model.index)
+                            gridView.favoritesOrderChanged()
+                        }
+                    }
                 } else {
                     gridView.launched(model.index)
                 }
             }
             onShuffleRequested: gridView.shuffleIcon(model.index)
+            onRemoveRequested: {
+                if (gridView.appsModel) {
+                    gridView.appsModel.toggleFavorite(model.storageId || "")
+                    gridView.favoritesOrderChanged()
+                    if (gridView.selectedSwapIndex === model.index)
+                        gridView.selectedSwapIndex = -1
+                }
+            }
         }
 
         Connections {

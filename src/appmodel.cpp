@@ -639,6 +639,13 @@ void AppFilterModel::recordLaunch(const QString &storageId)
 
 bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
+    // In favorites mode, sort by position in favoriteApps list
+    if (m_showFavoritesOnly) {
+        const auto leftSid = left.data(AppModel::StorageIdRole).toString();
+        const auto rightSid = right.data(AppModel::StorageIdRole).toString();
+        return m_favoriteApps.indexOf(leftSid) < m_favoriteApps.indexOf(rightSid);
+    }
+
     if (m_sortMode == MostUsed) {
         const auto leftSid = left.data(AppModel::StorageIdRole).toString();
         const auto rightSid = right.data(AppModel::StorageIdRole).toString();
@@ -650,6 +657,18 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
     const auto leftName = left.data(AppModel::NameRole).toString();
     const auto rightName = right.data(AppModel::NameRole).toString();
     return QString::localeAwareCompare(leftName, rightName) < 0;
+}
+
+void AppFilterModel::moveFavorite(const QString &storageId, int toIndex)
+{
+    if (!m_favoriteApps.contains(storageId))
+        return;
+    m_favoriteApps.removeAll(storageId);
+    if (toIndex < 0) toIndex = 0;
+    if (toIndex > m_favoriteApps.size()) toIndex = m_favoriteApps.size();
+    m_favoriteApps.insert(toIndex, storageId);
+    invalidate();
+    emit favoriteAppsChanged();
 }
 
 void AppFilterModel::launch(int proxyIndex)
