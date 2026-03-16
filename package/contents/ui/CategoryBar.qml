@@ -176,7 +176,7 @@ RowLayout {
     PlasmaComponents.ToolButton {
         id: favButtonLeft
         visible: categoryBar.favoritesFirst
-        icon.name: "folder-favorites"
+        icon.name: "bookmarks-bookmarked"
         checked: categoryBar.favoritesActive
         onClicked: categoryBar.favoritesToggled(!categoryBar.favoritesActive)
 
@@ -296,7 +296,7 @@ RowLayout {
     PlasmaComponents.ToolButton {
         id: favButtonRight
         visible: !categoryBar.favoritesFirst
-        icon.name: "folder-favorites"
+        icon.name: "bookmarks-bookmarked"
         checked: categoryBar.favoritesActive
         onClicked: categoryBar.favoritesToggled(!categoryBar.favoritesActive)
 
