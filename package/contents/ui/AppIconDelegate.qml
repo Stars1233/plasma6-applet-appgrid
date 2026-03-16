@@ -55,7 +55,7 @@ Item {
         spacing: Kirigami.Units.smallSpacing
 
         Item {
-            Layout.alignment: Qt.AlignHCenter
+            Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
             implicitWidth: root.iconSize
             implicitHeight: root.iconSize
 
@@ -85,6 +85,8 @@ Item {
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            verticalAlignment: Text.AlignTop
             text: root.appName
             font: Kirigami.Theme.smallFont
             elide: Text.ElideRight

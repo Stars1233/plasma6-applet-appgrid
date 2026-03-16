@@ -33,8 +33,9 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 ## Features
 
 - **Two plasmoid variants** — standalone window launcher, or a native Plasma panel popup (like Kickoff)
-- Favorites tab — right-click any app to add it, with optional start-on-favorites mode
-- Category filtering with scrollable category bar and Alt+key mnemonic navigation
+- Favorites tab — right-click any app to add it, with optional start-on-favorites mode and reorderable positions
+- Category filtering with scrollable category bar, mouse wheel support, and Alt+key mnemonic navigation
+- Option to hide the category bar for a minimal look
 - **Two category modes** — simplified built-in categories for a clean look, or system categories that respect KDE Menu Editor changes
 - KDE Menu Editor integration — right-click categories to edit them (system categories mode)
 - KRunner search integration with configurable search scope (all apps or active tab)
@@ -146,6 +147,7 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 | **Visible rows** | Number of rows visible before scrolling | 4 |
 | **Icon size** | Small, medium, or large | Large |
 | **Sort order** | **Alphabetical** sorts apps A–Z. **Most Used** sorts by launch frequency, so your most opened apps appear first. | Most Used |
+| **Show category bar** | Show or hide the category filter bar. When hidden, all apps are shown. | On |
 | **Search all apps** | Search covers all apps regardless of the active category or favorites tab | On |
 | **Start with favorites tab** | Open the launcher showing only your favorited apps instead of all apps | Off |
 | **Use system categories** | Use KDE menu system categories instead of simplified built-in mapping. Supports KDE Menu Editor for renaming and organizing categories. | Off |
@@ -167,6 +169,10 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 **Why isn't there a `.plasmoid` file I can install from the KDE Store?**
 
 AppGrid uses a C++ backend for app discovery, window management, blur effects, and session actions. The `.plasmoid` format only supports pure QML plasmoids — it has no mechanism to install the compiled plugin (`.so`) to the system plugin path where Plasma expects it. This is the same reason KDE's own C++ plasmoids (Kickoff, Kicker, etc.) are only distributed via system packages. AppGrid provides packages for Arch, Fedora, openSUSE, Ubuntu, and Debian.
+
+**How do I reorder my favorites?**
+
+Switch to the favorites tab, then click the edit button (pencil icon) in the bottom-right corner. Icons will start wiggling. Click an icon to select it, then click another to swap their positions. You can also remove favorites by clicking the remove button on each icon. Click the done button (checkmark). Your order is saved automatically.
 
 **What are the two category modes?**
 
