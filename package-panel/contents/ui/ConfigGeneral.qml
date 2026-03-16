@@ -26,6 +26,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_iconSize: iconSize.currentIndex
     property alias cfg_sortMode: sortMode.currentIndex
     property alias cfg_showScrollbars: showScrollbars.checked
+    property alias cfg_showCategoryBar: showCategoryBar.checked
     property alias cfg_searchAll: searchAll.checked
     property alias cfg_startWithFavorites: startWithFavorites.checked
     property alias cfg_shakeOnOpen: shakeOnOpen.checked
@@ -182,19 +183,26 @@ KCMUtils.SimpleKCM {
         Item { Kirigami.FormData.isSection: true }
 
         QQC2.CheckBox {
-            id: searchAll
+            id: showCategoryBar
             Kirigami.FormData.label: i18n("Behavior:")
+            text: i18n("Show category bar")
+        }
+
+        QQC2.CheckBox {
+            id: searchAll
             text: i18n("Search all apps regardless of active tab")
         }
 
         QQC2.CheckBox {
             id: startWithFavorites
             text: i18n("Start with favorites tab")
+            enabled: showCategoryBar.checked
         }
 
         QQC2.CheckBox {
             id: useSystemCategories
             text: i18n("Use system categories (supports KDE Menu Editor)")
+            enabled: showCategoryBar.checked
         }
 
         QQC2.ComboBox {
@@ -273,6 +281,7 @@ KCMUtils.SimpleKCM {
                 iconSize.currentIndex = 2
                 sortMode.currentIndex = 1
                 showScrollbars.checked = false
+                showCategoryBar.checked = true
                 searchAll.checked = true
                 startWithFavorites.checked = false
                 shakeOnOpen.checked = true

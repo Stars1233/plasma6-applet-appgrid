@@ -32,6 +32,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_showScrollbars: showScrollbars.checked
     property alias cfg_backgroundOpacity: backgroundOpacity.value
     property alias cfg_enableBlur: enableBlur.checked
+    property alias cfg_showCategoryBar: showCategoryBar.checked
     property alias cfg_searchAll: searchAll.checked
     property alias cfg_startWithFavorites: startWithFavorites.checked
     property alias cfg_shakeOnOpen: shakeOnOpen.checked
@@ -190,19 +191,26 @@ KCMUtils.SimpleKCM {
         Item { Kirigami.FormData.isSection: true }
 
         QQC2.CheckBox {
-            id: searchAll
+            id: showCategoryBar
             Kirigami.FormData.label: i18n("Behavior:")
+            text: i18n("Show category bar")
+        }
+
+        QQC2.CheckBox {
+            id: searchAll
             text: i18n("Search all apps regardless of active tab")
         }
 
         QQC2.CheckBox {
             id: startWithFavorites
             text: i18n("Start with favorites tab")
+            enabled: showCategoryBar.checked
         }
 
         QQC2.CheckBox {
             id: useSystemCategories
             text: i18n("Use system categories (supports KDE Menu Editor)")
+            enabled: showCategoryBar.checked
         }
 
         QQC2.ComboBox {
@@ -326,6 +334,7 @@ KCMUtils.SimpleKCM {
                 showScrollbars.checked = false
                 backgroundOpacity.value = 85
                 enableBlur.checked = true
+                showCategoryBar.checked = true
                 searchAll.checked = true
                 startWithFavorites.checked = false
                 shakeOnOpen.checked = true

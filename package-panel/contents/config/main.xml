@@ -90,6 +90,10 @@
       <label>List of known application storage IDs for new-app detection.</label>
       <default></default>
     </entry>
+    <entry name="showCategoryBar" type="Bool">
+      <label>Whether to show the category filter bar.</label>
+      <default>true</default>
+    </entry>
     <entry name="useSystemCategories" type="Bool">
       <label>Whether to use KDE menu system categories instead of the simplified built-in mapping.</label>
       <default>false</default>

@@ -26,6 +26,8 @@ Kirigami.ShadowedRectangle {
     // -- Derived properties --
     readonly property var appsModel: Plasmoid ? Plasmoid.appsModel : null
     readonly property bool isSearching: searchBar.text.length > 0
+    readonly property bool showCatBar: (Plasmoid.configuration.showCategoryBar !== false)
+                                       && !panel.isSearching && !panel.isPrefixMode
     readonly property int columns: Plasmoid.configuration.gridColumns || 7
     readonly property int rows: Plasmoid.configuration.gridRows || 4
     readonly property int scrollBarPolicy: Plasmoid.configuration.showScrollbars
@@ -172,7 +174,8 @@ Kirigami.ShadowedRectangle {
         categoryBar.closeCategoryMenu()
         powerButtons.closeMenus()
         searchBar.text = ""
-        var startFav = Plasmoid.configuration.startWithFavorites || false
+        var catBarEnabled = Plasmoid.configuration.showCategoryBar !== false
+        var startFav = catBarEnabled && (Plasmoid.configuration.startWithFavorites || false)
         categoryBar.favoritesActive = startFav
         if (appsModel) {
             appsModel.searchText = ""
@@ -334,12 +337,12 @@ Kirigami.ShadowedRectangle {
             color: Qt.rgba(Kirigami.Theme.textColor.r,
                            Kirigami.Theme.textColor.g,
                            Kirigami.Theme.textColor.b, 0.15)
-            visible: !panel.isSearching && !panel.isPrefixMode
+            visible: panel.showCatBar
         }
 
         CategoryBar {
             id: categoryBar
-            visible: !panel.isSearching && !panel.isPrefixMode
+            visible: panel.showCatBar
             appsModel: panel.appsModel
             devExtraCategories: devFlags.extraCategories
             onFavoritesToggled: function(active) {
@@ -358,7 +361,7 @@ Kirigami.ShadowedRectangle {
             color: Qt.rgba(Kirigami.Theme.textColor.r,
                            Kirigami.Theme.textColor.g,
                            Kirigami.Theme.textColor.b, 0.15)
-            visible: !panel.isSearching && !panel.isPrefixMode
+            visible: panel.showCatBar
         }
 
         // -- Prefix mode view --
