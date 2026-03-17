@@ -341,7 +341,7 @@ KCMUtils.SimpleKCM {
                 sortMode.currentIndex = 1
                 overrideRadius.checked = false
                 cornerRadius.value = 24
-                showDividers.checked = true
+                showDividers.checked = false
                 showScrollbars.checked = false
                 backgroundOpacity.value = 85
                 enableBlur.checked = true
