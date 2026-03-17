@@ -20,7 +20,7 @@ ListView {
     signal contextMenuRequested(int index, string storageId, string desktopFile)
 
     clip: true
-    currentIndex: -1
+    currentIndex: count > 0 ? 0 : -1
     highlightMoveDuration: 0
 
     Keys.onReturnPressed: if (currentIndex >= 0) listView.launched(currentIndex)
@@ -95,7 +95,7 @@ ListView {
             id: resultDelegate
             width: listView.width
             height: Kirigami.Units.iconSizes.huge + Kirigami.Units.smallSpacing * 2
-            highlighted: listView.activeFocus && listView.currentIndex === model.index
+            highlighted: listView.currentIndex === model.index
 
             contentItem: RowLayout {
                 spacing: Kirigami.Units.largeSpacing
