@@ -449,6 +449,10 @@ Kirigami.ShadowedRectangle {
                         searchField: searchBar.field
                         interactive: false
                         onLaunched: function(index) { panel.launchApp(index) }
+                        onContextMenuRequested: function(index, storageId, desktopFile) {
+                            if (storageId)
+                                contextMenu.showForApp(index, storageId, desktopFile)
+                        }
                         onNavigatedPastEnd: {
                             if (panel.hasRunnerResults)
                                 panel.focusRunnerResults(0)
@@ -637,11 +641,24 @@ Kirigami.ShadowedRectangle {
                             MouseArea {
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 cursorShape: Qt.PointingHandCursor
                                 onEntered: runnerResults.currentIndex = model.index
-                                onClicked: {
-                                    if (Plasmoid.runRunnerResult(model.index))
-                                        panel.closeRequested()
+                                onClicked: function(mouse) {
+                                    if (mouse.button === Qt.RightButton) {
+                                        // Show context menu for application results
+                                        var urls = model.urls
+                                        if (urls && urls.length > 0) {
+                                            var url = urls[0].toString()
+                                            if (url.endsWith(".desktop")) {
+                                                var storageId = url.split("/").pop()
+                                                contextMenu.showForApp(-1, storageId, url.replace("file://", ""))
+                                            }
+                                        }
+                                    } else {
+                                        if (Plasmoid.runRunnerResult(model.index))
+                                            panel.closeRequested()
+                                    }
                                 }
                             }
                         }

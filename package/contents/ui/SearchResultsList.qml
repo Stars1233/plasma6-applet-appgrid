@@ -18,6 +18,7 @@ ListView {
     property PlasmaComponents.TextField searchField: null
 
     signal launched(int index)
+    signal contextMenuRequested(int index, string storageId, string desktopFile)
     signal navigatedPastEnd()
     signal navigatedPastStart()
 
@@ -178,9 +179,15 @@ ListView {
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
             onEntered: listView.currentIndex = model.index
-            onClicked: listView.launched(model.index)
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.RightButton)
+                    listView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")
+                else
+                    listView.launched(model.index)
+            }
 
             Accessible.name: (model.index < 9 ? i18nd("dev.xarbit.appgrid", "Alt+%1: ", model.index + 1) : "") + (model.name || "")
             Accessible.role: Accessible.Button
