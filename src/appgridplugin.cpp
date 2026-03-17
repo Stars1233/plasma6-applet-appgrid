@@ -5,8 +5,10 @@
 
 #include "appgridplugin.h"
 
+#include <KIO/ApplicationLauncherJob>
 #include <KIO/OpenUrlJob>
 #include <KRunner/ResultsModel>
+#include <KService>
 #include <KTerminalLauncherJob>
 #include <KWindowEffects>
 #include <LayerShellQt/window.h>
@@ -228,6 +230,40 @@ QStringList AppGridPlugin::availableShells()
         }
     }
     return shells;
+}
+
+QVariantList AppGridPlugin::appActions(const QString &storageId)
+{
+    QVariantList result;
+    auto service = KService::serviceByStorageId(storageId);
+    if (!service)
+        return result;
+
+    const auto actions = service->actions();
+    for (const auto &action : actions) {
+        if (action.text().isEmpty())
+            continue;
+        QVariantMap map;
+        map[QStringLiteral("text")] = action.text();
+        map[QStringLiteral("icon")] = action.icon();
+        map[QStringLiteral("name")] = action.name();
+        result.append(map);
+    }
+    return result;
+}
+
+void AppGridPlugin::launchAppAction(const QString &storageId, int actionIndex)
+{
+    auto service = KService::serviceByStorageId(storageId);
+    if (!service)
+        return;
+
+    const auto actions = service->actions();
+    if (actionIndex < 0 || actionIndex >= actions.size())
+        return;
+
+    auto *job = new KIO::ApplicationLauncherJob(actions.at(actionIndex));
+    job->start();
 }
 
 void AppGridPlugin::openMenuEditor(const QString &menuPath)

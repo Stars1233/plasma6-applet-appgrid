@@ -19,12 +19,30 @@ PlasmaComponents.Menu {
     property string popupDesktopFile: ""
     property bool popupIsFavorite: false
 
+    property var popupActions: []
+
     function showForApp(index, storageId, desktopFile) {
         popupIndex = index
         popupStorageId = storageId
         popupDesktopFile = desktopFile
         popupIsFavorite = appsModel ? appsModel.isFavorite(storageId) : false
+        popupActions = Plasmoid.appActions(storageId) || []
         popup()
+    }
+
+    // -- Application-defined actions (jumplist) --
+    Repeater {
+        model: contextMenu.popupActions
+        delegate: PlasmaComponents.MenuItem {
+            required property var modelData
+            required property int index
+            icon.name: modelData.icon || ""
+            text: modelData.text
+            onClicked: {
+                Plasmoid.launchAppAction(contextMenu.popupStorageId, index)
+                contextMenu.close()
+            }
+        }
     }
 
     PlasmaComponents.MenuItem {

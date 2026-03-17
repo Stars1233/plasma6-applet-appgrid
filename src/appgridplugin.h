@@ -87,6 +87,12 @@ public:
     /** Run a KRunner result by model index. Returns true if the UI should close. */
     Q_INVOKABLE bool runRunnerResult(int index);
 
+    /** Returns application-defined actions (jumplist) for the given storageId. */
+    Q_INVOKABLE QVariantList appActions(const QString &storageId);
+
+    /** Launch a specific app action by storageId and action index. */
+    Q_INVOKABLE void launchAppAction(const QString &storageId, int actionIndex);
+
     /** Launch KDE Menu Editor, optionally navigating to @p menuPath (e.g. "Education"). */
     Q_INVOKABLE void openMenuEditor(const QString &menuPath = QString());
 
