@@ -26,6 +26,8 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 
 ![App Grid](images/launcher-main.png)
 
+![App Grid Dark](images/launcher-main-dark.png)
+
 ![Search](images/search.png)
 
 ![Quick Commands](images/quick-commands.png)

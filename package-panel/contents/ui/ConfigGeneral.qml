@@ -25,6 +25,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_gridRows: gridRows.value
     property alias cfg_iconSize: iconSize.currentIndex
     property alias cfg_sortMode: sortMode.currentIndex
+    property alias cfg_showDividers: showDividers.checked
     property alias cfg_showScrollbars: showScrollbars.checked
     property alias cfg_showCategoryBar: showCategoryBar.checked
     property alias cfg_searchAll: searchAll.checked
@@ -230,8 +231,13 @@ KCMUtils.SimpleKCM {
         }
 
         QQC2.CheckBox {
-            id: showScrollbars
+            id: showDividers
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Appearance:")
+            text: i18nd("dev.xarbit.appgrid", "Show divider lines")
+        }
+
+        QQC2.CheckBox {
+            id: showScrollbars
             text: i18nd("dev.xarbit.appgrid", "Show scrollbars")
         }
 
@@ -280,6 +286,7 @@ KCMUtils.SimpleKCM {
                 gridRows.value = 4
                 iconSize.currentIndex = 2
                 sortMode.currentIndex = 1
+                showDividers.checked = false
                 showScrollbars.checked = false
                 showCategoryBar.checked = true
                 searchAll.checked = true
