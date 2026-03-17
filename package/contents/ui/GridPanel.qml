@@ -87,7 +87,7 @@ Kirigami.ShadowedRectangle {
     radius: nativePopup ? 0
             : (Plasmoid.configuration.overrideRadius
                ? Plasmoid.configuration.cornerRadius
-               : Kirigami.Units.cornerRadius * 2)
+               : Kirigami.Units.cornerRadius)
 
     readonly property real bgOpacity: Plasmoid.configuration.backgroundOpacity / 100
     color: nativePopup ? "transparent"
