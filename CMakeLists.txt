@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 cmake_minimum_required(VERSION 3.20)
-project(AppGrid VERSION 1.6.0 LANGUAGES CXX)
+project(AppGrid VERSION 1.6.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -67,9 +67,14 @@ set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
 
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/package/metadata.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/metadata.json.in
     ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata.json
-    COPYONLY
+    @ONLY
+)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/metadata.json.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/package/metadata.json
+    @ONLY
 )
 
 install(TARGETS dev.xarbit.appgrid DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
@@ -89,9 +94,14 @@ set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})
 
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/metadata.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/metadata-panel.json.in
     ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata-panel.json
-    COPYONLY
+    @ONLY
+)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/metadata-panel.json.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/metadata.json
+    @ONLY
 )
 
 # Copy shared QML components into the popup package at build time
