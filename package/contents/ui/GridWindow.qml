@@ -67,6 +67,8 @@ Window {
     // Grid lifecycle
     // -----------------------------------------------------------------------
 
+    readonly property bool animationsEnabled: Kirigami.Units.longDuration > 0
+
     function showGrid() {
         if (!windowConfigured) {
             Plasmoid.configureWindow(root)
@@ -77,11 +79,24 @@ Window {
         visible = true
         applyBlur()
         requestActivate()
-        openAnim.start()
+        if (animationsEnabled) {
+            openAnim.start()
+        } else {
+            panel.scale = 1.0
+            panel.opacity = 1.0
+            if (Plasmoid.configuration.shakeOnOpen)
+                panel.shakeAllIcons()
+        }
     }
 
     function closeGrid() {
-        closeAnim.start()
+        if (animationsEnabled) {
+            closeAnim.start()
+        } else {
+            root.visible = false
+            panel.scale = 1.15
+            panel.opacity = 0.0
+        }
     }
 
     Shortcut {
@@ -137,12 +152,12 @@ Window {
         id: openAnim
         NumberAnimation {
             target: panel; property: "scale"
-            from: 1.15; to: 1.0; duration: 150
+            from: 1.15; to: 1.0; duration: Kirigami.Units.longDuration
             easing.type: Easing.OutCubic
         }
         NumberAnimation {
             target: panel; property: "opacity"
-            from: 0.0; to: 1.0; duration: 120
+            from: 0.0; to: 1.0; duration: Kirigami.Units.longDuration
             easing.type: Easing.OutCubic
         }
         onFinished: {
@@ -155,12 +170,12 @@ Window {
         id: closeAnim
         NumberAnimation {
             target: panel; property: "scale"
-            from: 1.0; to: 1.12; duration: 120
+            from: 1.0; to: 1.12; duration: Kirigami.Units.shortDuration
             easing.type: Easing.InCubic
         }
         NumberAnimation {
             target: panel; property: "opacity"
-            from: 1.0; to: 0.0; duration: 120
+            from: 1.0; to: 0.0; duration: Kirigami.Units.shortDuration
             easing.type: Easing.InCubic
         }
         onFinished: {
