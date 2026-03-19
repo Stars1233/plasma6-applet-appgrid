@@ -80,7 +80,8 @@ Window {
         "animations/GlideAnimation.qml",      // 6
         "animations/BuzzAnimation.qml",       // 7
         "animations/TwistAnimation.qml",      // 8
-        "animations/SlamAnimation.qml"        // 9
+        "animations/SlamAnimation.qml",       // 9
+        "animations/GrowUpAnimation.qml"      // 10
     ]
     readonly property int animStyle: {
         var idx = Plasmoid.configuration.openAnimation
@@ -105,6 +106,7 @@ Window {
                 panel.scale = 1.0
                 panel.rotation = 0
                 panel.anchors.verticalCenterOffset = 0
+                panel.transformOrigin = Item.Center
             })
         }
     }

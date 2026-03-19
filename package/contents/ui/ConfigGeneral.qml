@@ -259,7 +259,7 @@ KCMUtils.SimpleKCM {
         QQC2.ComboBox {
             id: openAnimation
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Open/close animation:")
-            model: [i18nd("dev.xarbit.appgrid", "None"), i18nd("dev.xarbit.appgrid", "Fade"), i18nd("dev.xarbit.appgrid", "Scale"), i18nd("dev.xarbit.appgrid", "Pop"), i18nd("dev.xarbit.appgrid", "Slide Up"), i18nd("dev.xarbit.appgrid", "Slide Down"), i18nd("dev.xarbit.appgrid", "Glide"), i18nd("dev.xarbit.appgrid", "Buzz"), i18nd("dev.xarbit.appgrid", "Twist"), i18nd("dev.xarbit.appgrid", "Slam")]
+            model: [i18nd("dev.xarbit.appgrid", "None"), i18nd("dev.xarbit.appgrid", "Fade"), i18nd("dev.xarbit.appgrid", "Scale"), i18nd("dev.xarbit.appgrid", "Pop"), i18nd("dev.xarbit.appgrid", "Slide Up"), i18nd("dev.xarbit.appgrid", "Slide Down"), i18nd("dev.xarbit.appgrid", "Glide"), i18nd("dev.xarbit.appgrid", "Buzz"), i18nd("dev.xarbit.appgrid", "Twist"), i18nd("dev.xarbit.appgrid", "Slam"), i18nd("dev.xarbit.appgrid", "Grow Up")]
         }
 
         QQC2.CheckBox {
