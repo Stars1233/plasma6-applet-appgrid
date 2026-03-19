@@ -24,7 +24,7 @@
     </entry>
     <entry name="showDividers" type="Bool">
       <label>Whether to show divider lines between UI sections.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="showSessionButtons" type="Bool">
       <label>Whether to show power and session buttons (sleep, restart, shut down, lock, etc.).</label>

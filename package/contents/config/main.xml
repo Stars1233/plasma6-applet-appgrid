@@ -28,7 +28,7 @@
     </entry>
     <entry name="showDividers" type="Bool">
       <label>Whether to show divider lines between UI sections.</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="openAnimation" type="Int">
       <label>Open/close animation style (0=None, 1=Fade, 2=Scale, 3=Pop, 4=Slide Up, 5=Glide, 6=Buzz, 7=Twist, 8=Slam).</label>
