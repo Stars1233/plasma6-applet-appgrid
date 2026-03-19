@@ -104,12 +104,31 @@ Window {
             item.closeFinished.connect(function() {
                 root.visible = false
                 panel.opacity = 0.0
+                dimOverlay.opacity = 0.0
                 panel.scale = 1.0
                 panel.rotation = 0
                 panel.anchors.verticalCenterOffset = 0
                 panel.transformOrigin = Item.Center
             })
         }
+    }
+
+    // Dim overlay fade animations
+    NumberAnimation {
+        id: dimFadeIn
+        target: dimOverlay
+        property: "opacity"
+        from: 0; to: 1
+        duration: Kirigami.Units.longDuration
+        easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+        id: dimFadeOut
+        target: dimOverlay
+        property: "opacity"
+        from: 1; to: 0
+        duration: Kirigami.Units.longDuration
+        easing.type: Easing.InCubic
     }
 
     Timer {
@@ -151,6 +170,7 @@ Window {
         if (!animationsEnabled || animStyle === 0) {
             // No animation — show instantly
             panel.opacity = 1.0
+            dimOverlay.opacity = 1.0
             visible = true
             requestActivate()
             applyBlur()
@@ -158,7 +178,9 @@ Window {
                 panel.shakeAllIcons()
         } else {
             panel.opacity = 0.0
+            dimOverlay.opacity = 0.0
             visible = true
+            dimFadeIn.start()
             if (animLoader.item.blurBeforeAnimation)
                 applyBlur()
             requestActivate()
@@ -171,10 +193,12 @@ Window {
         deactivateGuard.stop()
         Plasmoid.setBlurBehind(root, false, 0, 0, 0, 0, 0)
         if (animationsEnabled && animStyle !== 0 && animLoader.item) {
+            dimFadeOut.start()
             animLoader.item.close()
         } else {
             root.visible = false
             panel.opacity = 0.0
+            dimOverlay.opacity = 0.0
         }
     }
 
@@ -197,14 +221,23 @@ Window {
     }
 
     // -----------------------------------------------------------------------
-    // Background (click to close in fullscreen mode)
+    // Background (dim overlay + click to close)
     // -----------------------------------------------------------------------
 
-    MouseArea {
+    Rectangle {
+        id: dimOverlay
         anchors.fill: parent
-        onClicked: {
-            if (root.appletInterface)
-                root.appletInterface.closeWindow()
+        color: Plasmoid.configuration.dimBackground !== false
+               ? Qt.rgba(0, 0, 0, 0.35)
+               : "transparent"
+        opacity: 0
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                if (root.appletInterface)
+                    root.appletInterface.closeWindow()
+            }
         }
     }
 

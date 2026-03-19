@@ -62,6 +62,8 @@ add_library(dev.xarbit.appgrid SHARED
     src/appgridplugin.h
     src/appmodel.cpp
     src/appmodel.h
+    src/appfiltermodel.cpp
+    src/appfiltermodel.h
 )
 set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
@@ -89,6 +91,8 @@ add_library(dev.xarbit.appgrid.panel SHARED
     src/appgridplugin.h
     src/appmodel.cpp
     src/appmodel.h
+    src/appfiltermodel.cpp
+    src/appfiltermodel.h
 )
 set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})

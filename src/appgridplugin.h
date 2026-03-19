@@ -10,6 +10,7 @@
 #include <QRect>
 
 #include "appmodel.h"
+#include "appfiltermodel.h"
 
 class QScreen;
 class QWindow;
@@ -107,10 +108,10 @@ class AppGridPlugin : public Plasma::Applet {
 public:
     AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args);
 
-    AppFilterModel *appsModel();
-    QAbstractItemModel *runnerModel();
-    KRunner::ResultsModel *runnerSourceModel();
-    UnifiedSearchModel *searchModel();
+    AppFilterModel *appsModel() const;
+    QAbstractItemModel *runnerModel() const;
+    KRunner::ResultsModel *runnerSourceModel() const;
+    UnifiedSearchModel *searchModel() const;
     bool isWayland() const;
 
     // --- Window management ---

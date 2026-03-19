@@ -158,6 +158,7 @@ GridView {
     property bool showRecentApps: true
     property bool startWithFavorites: false
     property bool favoritesActive: false
+    property bool showDividers: true
 
     // Show recently used apps in the grid header.
     //
@@ -180,7 +181,7 @@ GridView {
             return favoritesActive
 
         // Most Used without startWithFavorites → recents disabled
-        if (appsModel.sortMode !== 0)
+        if (appsModel.sortMode === 1)
             return false
 
         return !favoritesActive
@@ -285,6 +286,7 @@ GridView {
         currentRecentIndex: gridView.recentIndex
         gridHasFocus: gridView.activeFocus
         favoritesActive: gridView.favoritesActive
+        showDividers: gridView.showDividers
         onRecentLaunched: function(storageId) { gridView.recentLaunched(storageId) }
         onContextMenuRequested: function(storageId, desktopFile) {
             gridView.contextMenuRequested(-1, storageId, desktopFile)

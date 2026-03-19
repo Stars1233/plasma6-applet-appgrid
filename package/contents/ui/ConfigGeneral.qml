@@ -33,6 +33,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_backgroundOpacity: backgroundOpacity.value
     property alias cfg_openAnimation: openAnimation.currentIndex
     property alias cfg_enableBlur: enableBlur.checked
+    property alias cfg_dimBackground: dimBackground.checked
     property alias cfg_openOnActiveScreen: openOnActiveScreen.checked
     property alias cfg_showCategoryBar: showCategoryBar.checked
     property alias cfg_searchAll: searchAll.checked
@@ -44,6 +45,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_showRecentApps: showRecentApps.checked
     property alias cfg_useExtraRunners: useExtraRunners.checked
     property alias cfg_useSystemCategories: useSystemCategories.checked
+    property alias cfg_hideEmptyCategories: hideEmptyCategories.checked
     property string cfg_terminalShell: Plasmoid.configuration.terminalShell
     property var cfg_hiddenApps: Plasmoid.configuration.hiddenApps
 
@@ -176,7 +178,7 @@ KCMUtils.SimpleKCM {
         QQC2.ComboBox {
             id: sortMode
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Sort order:")
-            model: [i18nd("dev.xarbit.appgrid", "Alphabetical"), i18nd("dev.xarbit.appgrid", "Most Used")]
+            model: [i18nd("dev.xarbit.appgrid", "Alphabetical"), i18nd("dev.xarbit.appgrid", "Most Used"), i18nd("dev.xarbit.appgrid", "By Category")]
         }
 
         // --- Appearance ---
@@ -208,12 +210,18 @@ KCMUtils.SimpleKCM {
         QQC2.CheckBox {
             id: showRecentApps
             text: i18nd("dev.xarbit.appgrid", "Show recently used applications")
-            enabled: sortMode.currentIndex === 0 || startWithFavorites.checked
+            enabled: sortMode.currentIndex !== 1 || startWithFavorites.checked
         }
 
         QQC2.CheckBox {
             id: useSystemCategories
             text: i18nd("dev.xarbit.appgrid", "Use system categories (supports KDE Menu Editor)")
+            enabled: showCategoryBar.checked
+        }
+
+        QQC2.CheckBox {
+            id: hideEmptyCategories
+            text: i18nd("dev.xarbit.appgrid", "Hide empty categories")
             enabled: showCategoryBar.checked
         }
 
@@ -261,6 +269,11 @@ KCMUtils.SimpleKCM {
         QQC2.CheckBox {
             id: enableBlur
             text: i18nd("dev.xarbit.appgrid", "Enable background blur")
+        }
+
+        QQC2.CheckBox {
+            id: dimBackground
+            text: i18nd("dev.xarbit.appgrid", "Dim background behind launcher")
         }
 
         QQC2.ComboBox {
@@ -356,6 +369,7 @@ KCMUtils.SimpleKCM {
                 backgroundOpacity.value = 85
                 openAnimation.currentIndex = 2
                 enableBlur.checked = true
+                dimBackground.checked = false
                 openOnActiveScreen.checked = true
                 showCategoryBar.checked = true
                 searchAll.checked = true
@@ -367,6 +381,7 @@ KCMUtils.SimpleKCM {
                 showRecentApps.checked = true
                 useExtraRunners.checked = true
                 useSystemCategories.checked = false
+                hideEmptyCategories.checked = true
                 configGeneral.cfg_terminalShell = ""
                 terminalShell.currentIndex = 0
             }

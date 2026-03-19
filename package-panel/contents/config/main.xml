@@ -106,6 +106,10 @@
       <label>Whether to use KDE menu system categories instead of the simplified built-in mapping.</label>
       <default>false</default>
     </entry>
+    <entry name="hideEmptyCategories" type="Bool">
+      <label>Whether to hide categories with no applications from the category bar.</label>
+      <default>true</default>
+    </entry>
     <entry name="terminalShell" type="String">
       <label>Shell to use for t: terminal commands (e.g. /bin/bash, /bin/zsh). Empty uses /bin/sh.</label>
       <default></default>

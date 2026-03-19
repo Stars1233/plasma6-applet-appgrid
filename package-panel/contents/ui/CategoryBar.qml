@@ -18,7 +18,7 @@ RowLayout {
     property var appsModel: null
     property bool favoritesActive: false
     property bool devExtraCategories: false
-    readonly property bool favoritesFirst: Plasmoid.configuration.startWithFavorites || false
+    property bool favoritesFirst: false
 
     // Mnemonic map: uppercase letter → { type: "all"|"favorites"|"category", name: string }
     property var mnemonicMap: ({})
@@ -34,13 +34,27 @@ RowLayout {
     ]
 
     signal favoritesToggled(bool active)
-    signal categorySelected()
+    signal categorySelected(string name)
 
-    // Rebuilds the category list from the model
+    // Set when sort mode is By Category
+    property bool isSortByCategory: false
+    // When true, selecting a category emits the signal but does not filter the model
+    property bool scrollOnlyMode: false
+    property string scrollOnlySelected: ""
+
+    property bool hideEmptyCategories: true
+
+    // Rebuilds the category list from the model, optionally hiding empty categories
     function refreshCategories() {
-        var cats = categoryBar.appsModel ? categoryBar.appsModel.categories() : []
+        var cats;
+        if (hideEmptyCategories && categoryBar.appsModel)
+            cats = categoryBar.appsModel.nonEmptyCategories().sort()
+        else
+            cats = categoryBar.appsModel ? categoryBar.appsModel.categories() : []
+
         if (categoryBar.devExtraCategories)
             cats = cats.concat(categoryBar.testCategories)
+
         categoryList = cats
     }
 
@@ -115,15 +129,25 @@ RowLayout {
             categoryBar.favoritesToggled(false)
         if (categoryBar.appsModel)
             categoryBar.appsModel.filterCategory = ""
-        categorySelected()
+        scrollOnlySelected = ""
+        categorySelected("")
     }
 
     function selectCategory(name) {
-        if (categoryBar.favoritesActive)
-            categoryBar.favoritesToggled(false)
-        if (categoryBar.appsModel)
-            categoryBar.appsModel.filterCategory = name
-        categorySelected()
+        if (isSortByCategory) {
+            // By Category mode: turn off favorites, never filter, scroll instead
+            if (categoryBar.favoritesActive)
+                categoryBar.favoritesToggled(false)
+            if (categoryBar.appsModel)
+                categoryBar.appsModel.filterCategory = ""
+            scrollOnlySelected = name
+        } else {
+            if (categoryBar.favoritesActive)
+                categoryBar.favoritesToggled(false)
+            if (categoryBar.appsModel)
+                categoryBar.appsModel.filterCategory = name
+        }
+        categorySelected(name)
     }
 
     // Scroll the flickable so the currently selected category button is visible
@@ -165,6 +189,7 @@ RowLayout {
     Connections {
         target: categoryBar.appsModel
         function onCategoriesChanged() { categoryBar.refreshCategories(); categoryBar.rebuildMnemonics() }
+        function onHiddenAppsChanged() { categoryBar.refreshCategories(); categoryBar.rebuildMnemonics() }
     }
 
     Layout.fillWidth: true
@@ -186,15 +211,18 @@ RowLayout {
         Accessible.role: Accessible.Button
     }
 
-    // -- "All" button (always visible, pinned) --
+    // -- "All" button (hidden in scrollOnly/ByCategory mode) --
     PlasmaComponents.ToolButton {
         id: allButton
+        visible: !categoryBar.isSortByCategory
         text: categoryBar.mnemonicText(i18nd("dev.xarbit.appgrid", "All"))
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
         leftPadding: Kirigami.Units.largeSpacing
         rightPadding: Kirigami.Units.largeSpacing
         checked: !categoryBar.favoritesActive
-                 && (!categoryBar.appsModel || categoryBar.appsModel.filterCategory === "")
+                 && (scrollOnlyMode
+                     ? scrollOnlySelected === ""
+                     : (!categoryBar.appsModel || categoryBar.appsModel.filterCategory === ""))
         onClicked: {
             categoryBar.selectAll()
             catFlick.contentX = 0
@@ -262,8 +290,9 @@ RowLayout {
                     text: categoryBar.mnemonicText(modelData)
                     font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
                     checked: !categoryBar.favoritesActive
-                             && categoryBar.appsModel
-                             && categoryBar.appsModel.filterCategory === modelData
+                             && (scrollOnlyMode
+                                 ? scrollOnlySelected === modelData
+                                 : (categoryBar.appsModel && categoryBar.appsModel.filterCategory === modelData))
                     onClicked: {
                         categoryBar.selectCategory(modelData)
                         categoryBar.scrollToSelected()

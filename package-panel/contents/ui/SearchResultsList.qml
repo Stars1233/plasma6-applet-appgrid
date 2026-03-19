@@ -17,6 +17,7 @@ ListView {
 
     property PlasmaComponents.TextField searchField: null
     property real iconSize: Kirigami.Units.iconSizes.huge
+    property bool showDividers: true
 
     signal launched(int index)
     signal contextMenuRequested(int index, string storageId, string desktopFile)
@@ -91,7 +92,7 @@ ListView {
         Kirigami.Separator {
             width: parent.width
             visible: model.isSectionBoundary
-            opacity: Plasmoid.configuration.showDividers !== false ? 1 : 0
+            opacity: listView.showDividers ? 1 : 0
         }
 
         PlasmaComponents.ItemDelegate {

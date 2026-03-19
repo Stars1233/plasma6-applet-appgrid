@@ -22,15 +22,30 @@ Kirigami.ShadowedRectangle {
     // Dev/testing flags (populated at build time from BUILDFLAGS)
     DevFlags { id: devFlags }
 
-    // -- Derived properties --
+    // -- Configuration (single source of truth for all config reads) --
     readonly property var appsModel: Plasmoid ? Plasmoid.appsModel : null
-    readonly property bool isSearching: searchBar.text.length > 0
-    readonly property bool showCatBar: (Plasmoid.configuration.showCategoryBar !== false)
-                                       && !panel.isSearching && !panel.isPrefixMode
     readonly property int columns: Plasmoid.configuration.gridColumns || 7
     readonly property int rows: Plasmoid.configuration.gridRows || 4
-    readonly property int scrollBarPolicy: Plasmoid.configuration.showScrollbars
+    readonly property int sortMode: Plasmoid.configuration.sortMode || 0
+    readonly property bool cfgShowCategoryBar: Plasmoid.configuration.showCategoryBar !== false
+    readonly property bool cfgStartWithFavorites: Plasmoid.configuration.startWithFavorites !== false
+    readonly property bool cfgShowRecentApps: Plasmoid.configuration.showRecentApps !== false
+    readonly property bool cfgShowDividers: Plasmoid.configuration.showDividers !== false
+    readonly property bool cfgShowScrollbars: Plasmoid.configuration.showScrollbars !== false
+    readonly property int scrollBarPolicy: cfgShowScrollbars
                                            ? PlasmaComponents.ScrollBar.AsNeeded : PlasmaComponents.ScrollBar.AlwaysOff
+
+    // -- Sort helpers --
+    readonly property bool isSortByCategory: sortMode === 2
+
+    // -- View state --
+    readonly property bool isSearching: searchBar.text.length > 0
+    readonly property bool isFavoritesActive: categoryBar.favoritesActive
+    readonly property bool showCatBar: cfgShowCategoryBar && !isSearching && !isPrefixMode
+    readonly property bool showCategoryGrid: isSortByCategory && !isFavoritesActive
+                                             && !isSearching && !isPrefixMode
+    readonly property bool showAppGrid: !isSearching && !isPrefixMode && !showCategoryGrid
+    readonly property bool showSearchResults: isSearching && !isPrefixMode
 
     // -- Icon size mapping (0=Small/medium, 1=Medium/large, 2=Large/huge) --
     readonly property real gridIconSize: {
@@ -100,10 +115,9 @@ Kirigami.ShadowedRectangle {
 
     border.width: nativePopup ? 0 : 1
     border.color: nativePopup ? "transparent"
-                  : Qt.rgba(Kirigami.Theme.textColor.r,
-                            Kirigami.Theme.textColor.g,
-                            Kirigami.Theme.textColor.b,
-                            0.15)
+                  : Kirigami.ColorUtils.linearInterpolation(
+                        Kirigami.Theme.backgroundColor,
+                        Kirigami.Theme.textColor, 0.2)
 
     shadow.size: nativePopup ? 0 : Kirigami.Units.gridUnit
     shadow.color: nativePopup ? "transparent" : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
@@ -134,27 +148,24 @@ Kirigami.ShadowedRectangle {
         return list
     }
 
-    Component.onCompleted: {
-        if (appsModel) {
-            appsModel.hiddenApps = Plasmoid.configuration.hiddenApps || []
-            appsModel.favoriteApps = Plasmoid.configuration.favoriteApps || []
-            appsModel.maxRecentApps = columns
-            appsModel.recentApps = Plasmoid.configuration.recentApps || []
-            appsModel.sortMode = Plasmoid.configuration.sortMode || 0
-            appsModel.launchCounts = launchCountsToMap(Plasmoid.configuration.launchCounts)
-            appsModel.knownApps = Plasmoid.configuration.knownApps || []
-            if (appsModel.knownApps.length === 0)
-                appsModel.markAllKnown()
-        }
+    // Sync model properties from config — called on init and reset
+    function syncModelFromConfig() {
+        if (!appsModel) return
+        appsModel.hiddenApps = Plasmoid.configuration.hiddenApps || []
+        appsModel.favoriteApps = Plasmoid.configuration.favoriteApps || []
+        appsModel.maxRecentApps = columns
+        appsModel.sortMode = sortMode
+        appsModel.useSystemCategories = Plasmoid.configuration.useSystemCategories !== false
+        appsModel.launchCounts = launchCountsToMap(Plasmoid.configuration.launchCounts)
+        appsModel.knownApps = Plasmoid.configuration.knownApps || []
+        appsModel.recentApps = cfgShowRecentApps
+            ? (Plasmoid.configuration.recentApps || []) : []
+        if (appsModel.knownApps.length === 0)
+            appsModel.markAllKnown()
     }
 
+    Component.onCompleted: syncModelFromConfig()
     onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
-
-    Binding {
-        target: panel.appsModel
-        property: "useSystemCategories"
-        value: Plasmoid.configuration.useSystemCategories || false
-    }
 
     Connections {
         target: panel.appsModel
@@ -175,27 +186,21 @@ Kirigami.ShadowedRectangle {
         categoryBar.closeCategoryMenu()
         powerButtons.closeMenus()
         searchBar.text = ""
-        var catBarEnabled = Plasmoid.configuration.showCategoryBar !== false
-        var startFav = catBarEnabled && (Plasmoid.configuration.startWithFavorites || false)
+
+        // Restore starting tab
+        var startFav = cfgShowCategoryBar && cfgStartWithFavorites
         categoryBar.favoritesActive = startFav
+        categoryBar.scrollOnlySelected = ""
+
+        // Sync model from config and reset filter state
+        syncModelFromConfig()
         if (appsModel) {
             appsModel.searchText = ""
             appsModel.filterCategory = ""
             appsModel.showFavoritesOnly = startFav
-            appsModel.hiddenApps = Plasmoid.configuration.hiddenApps || []
-            appsModel.favoriteApps = Plasmoid.configuration.favoriteApps || []
-            appsModel.maxRecentApps = columns
-            appsModel.sortMode = Plasmoid.configuration.sortMode || 0
-            appsModel.useSystemCategories = Plasmoid.configuration.useSystemCategories || false
-            appsModel.launchCounts = launchCountsToMap(Plasmoid.configuration.launchCounts)
-            appsModel.knownApps = Plasmoid.configuration.knownApps || []
-            if (appsModel.knownApps.length === 0)
-                appsModel.markAllKnown()
-            if (Plasmoid.configuration.showRecentApps !== false)
-                appsModel.recentApps = Plasmoid.configuration.recentApps || []
-            else
-                appsModel.recentApps = []
         }
+
+        // Reset grid state
         appGrid.editMode = false
         appGrid.selectedSwapIndex = -1
         appGrid.clearShuffles()
@@ -203,6 +208,7 @@ Kirigami.ShadowedRectangle {
         appGrid.currentIndex = -1
         appGrid.recentIndex = -1
         searchResultsList.contentY = searchResultsList.originY
+        categoryGridView.contentY = 0
         _needsScrollToTop = true
         searchBar.field.forceActiveFocus()
     }
@@ -363,7 +369,7 @@ Kirigami.ShadowedRectangle {
         Kirigami.Separator {
             Layout.fillWidth: true
             visible: panel.showCatBar
-            opacity: Plasmoid.configuration.showDividers !== false ? 1 : 0
+            opacity: panel.cfgShowDividers ? 1 : 0
         }
 
         CategoryBar {
@@ -371,24 +377,45 @@ Kirigami.ShadowedRectangle {
             visible: panel.showCatBar
             appsModel: panel.appsModel
             devExtraCategories: devFlags.extraCategories
+            favoritesFirst: panel.cfgStartWithFavorites
+            isSortByCategory: panel.isSortByCategory
+            scrollOnlyMode: panel.showCategoryGrid
+            hideEmptyCategories: Plasmoid.configuration.hideEmptyCategories !== false
             onFavoritesToggled: function(active) {
-                categoryBar.favoritesActive = active
-                if (!active)
-                    appGrid.editMode = false
+                // Update model state BEFORE UI state so bindings see the
+                // correct proxy data when showCategoryGrid re-evaluates.
                 if (panel.appsModel) {
                     panel.appsModel.showFavoritesOnly = active
-                    if (active)
-                        panel.appsModel.filterCategory = ""
+                    panel.appsModel.filterCategory = ""
+                }
+                categoryBar.favoritesActive = active
+                if (!active) {
+                    appGrid.editMode = false
+                    if (panel.isSortByCategory) {
+                        categoryBar.scrollOnlySelected = ""
+                        categoryGridView.contentY = 0
+                    }
                 }
                 searchBar.field.forceActiveFocus()
             }
-            onCategorySelected: searchBar.field.forceActiveFocus()
+            onCategorySelected: function(name) {
+                searchBar.field.forceActiveFocus()
+                if (panel.isSortByCategory) {
+                    if (name !== "") {
+                        Qt.callLater(function() {
+                            categoryGridView.scrollToCategory(name)
+                        })
+                    } else {
+                        categoryGridView.contentY = 0
+                    }
+                }
+            }
         }
 
         Kirigami.Separator {
             Layout.fillWidth: true
             visible: panel.showCatBar
-            opacity: Plasmoid.configuration.showDividers !== false ? 1 : 0
+            opacity: panel.cfgShowDividers ? 1 : 0
         }
 
         // -- Prefix mode view --
@@ -412,12 +439,13 @@ Kirigami.ShadowedRectangle {
             Layout.fillHeight: true
             PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
             PlasmaComponents.ScrollBar.vertical.policy: panel.scrollBarPolicy
-            visible: panel.isSearching && !panel.isPrefixMode
+            visible: panel.showSearchResults
 
             SearchResultsList {
                 id: searchResultsList
                 model: panel.isSearching ? Plasmoid.searchModel : null
                 iconSize: panel.gridIconSize
+                showDividers: panel.cfgShowDividers
                 searchField: searchBar.field
                 onLaunched: function(index) { panel.launchSearchResult(index) }
                 onContextMenuRequested: function(index, storageId, desktopFile) {
@@ -427,11 +455,46 @@ Kirigami.ShadowedRectangle {
             }
         }
 
+        // -- Category grid (By Category sort) --
+        PlasmaComponents.ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
+            PlasmaComponents.ScrollBar.vertical.policy: panel.scrollBarPolicy
+            visible: panel.showCategoryGrid
+
+            CategoryGridView {
+                id: categoryGridView
+                appsModel: panel.appsModel
+                groupedApps: panel.showCategoryGrid && panel.appsModel
+                    ? panel.appsModel.groupedByCategory : []
+                cellWidth: appGrid.cellWidth
+                cellHeight: appGrid.cellHeight
+                iconSize: panel.gridIconSize
+                showDividers: panel.cfgShowDividers
+                showRecents: panel.cfgShowRecentApps
+                             && panel.appsModel
+                             && panel.appsModel.recentApps.length > 0
+                             && !panel.isFavoritesActive
+                             && !panel.cfgStartWithFavorites
+                onLaunched: function(proxyIndex) { panel.launchApp(proxyIndex) }
+                onRecentLaunched: function(storageId) {
+                    if (panel.appsModel) {
+                        panel.appsModel.launchByStorageId(storageId)
+                        panel.closeRequested()
+                    }
+                }
+                onContextMenuRequested: function(proxyIndex, storageId, desktopFile) {
+                    contextMenu.showForApp(proxyIndex, storageId, desktopFile)
+                }
+            }
+        }
+
         // -- App grid --
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            visible: !panel.isSearching && !panel.isPrefixMode
+            visible: panel.showAppGrid
 
             PlasmaComponents.ScrollView {
                 anchors.fill: parent
@@ -445,9 +508,10 @@ Kirigami.ShadowedRectangle {
                     columns: panel.columns
                     iconSize: panel.gridIconSize
                     searchField: searchBar.field
-                    showRecentApps: Plasmoid.configuration.showRecentApps !== false
-                    startWithFavorites: Plasmoid.configuration.startWithFavorites || false
-                    favoritesActive: categoryBar.favoritesActive
+                    showRecentApps: panel.cfgShowRecentApps
+                    startWithFavorites: panel.cfgStartWithFavorites
+                    favoritesActive: panel.isFavoritesActive
+                    showDividers: panel.cfgShowDividers
                     shuffleOverlayParent: shuffleOverlay
                     onOriginYChanged: {
                         if (panel._needsScrollToTop) {
@@ -518,7 +582,7 @@ Kirigami.ShadowedRectangle {
         anchors.bottom: parent.bottom
         anchors.margins: Kirigami.Units.largeSpacing
         z: 100
-        visible: categoryBar.favoritesActive && !panel.isSearching
+        visible: panel.isFavoritesActive && !panel.isSearching
         icon.name: appGrid.editMode ? "dialog-ok-apply" : "document-edit"
         checked: appGrid.editMode
         onClicked: {

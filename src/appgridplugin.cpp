@@ -70,24 +70,24 @@ AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const
     });
 }
 
-AppFilterModel *AppGridPlugin::appsModel()
+AppFilterModel *AppGridPlugin::appsModel() const
 {
-    return &m_filterModel;
+    return const_cast<AppFilterModel *>(&m_filterModel);
 }
 
-QAbstractItemModel *AppGridPlugin::runnerModel()
+QAbstractItemModel *AppGridPlugin::runnerModel() const
 {
-    return &m_runnerFilterModel;
+    return const_cast<RunnerFilterModel *>(&m_runnerFilterModel);
 }
 
-KRunner::ResultsModel *AppGridPlugin::runnerSourceModel()
+KRunner::ResultsModel *AppGridPlugin::runnerSourceModel() const
 {
     return m_runnerModel;
 }
 
-UnifiedSearchModel *AppGridPlugin::searchModel()
+UnifiedSearchModel *AppGridPlugin::searchModel() const
 {
-    return &m_searchModel;
+    return const_cast<UnifiedSearchModel *>(&m_searchModel);
 }
 
 bool AppGridPlugin::isWayland() const
@@ -134,6 +134,11 @@ void AppGridPlugin::configureWayland(QWindow *window)
     layer->setLayer(LayerShellQt::Window::LayerOverlay);
     layer->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
     layer->setScope(QStringLiteral("appgrid"));
+    // Cover the full screen including panel exclusive zones
+    layer->setExclusiveZone(-1);
+    layer->setAnchors(LayerShellQt::Window::Anchors(
+        LayerShellQt::Window::AnchorTop | LayerShellQt::Window::AnchorBottom
+        | LayerShellQt::Window::AnchorLeft | LayerShellQt::Window::AnchorRight));
 }
 
 void AppGridPlugin::updateScreenWayland(QWindow *window, QScreen *target, bool useActiveScreen)
@@ -267,12 +272,33 @@ void AppGridPlugin::switchUser()
 
 // --- Prefix mode commands ---
 
+// Validate that the given shell path is listed in /etc/shells.
+// Falls back to /bin/sh if empty or not found.
+static QString validatedShell(const QString &shell)
+{
+    if (shell.isEmpty())
+        return QStringLiteral("/bin/sh");
+
+    QFile file(QStringLiteral("/etc/shells"));
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            const auto line = in.readLine().trimmed();
+            if (!line.isEmpty() && !line.startsWith(QLatin1Char('#')) && line == shell)
+                return shell;
+        }
+    }
+
+    qWarning() << "AppGrid: shell not in /etc/shells, falling back to /bin/sh:" << shell;
+    return QStringLiteral("/bin/sh");
+}
+
 void AppGridPlugin::runInTerminal(const QString &command, const QString &shell)
 {
     if (command.trimmed().isEmpty())
         return;
 
-    const QString sh = shell.isEmpty() ? QStringLiteral("/bin/sh") : shell;
+    const QString sh = validatedShell(shell);
 
     // Wrap command so the terminal stays open after it finishes.
     const QString wrapped = QStringLiteral("%1 -c '%2; echo; echo \"[Press Enter to close]\"; read _'")
@@ -287,7 +313,7 @@ void AppGridPlugin::runCommand(const QString &command, const QString &shell)
     if (command.trimmed().isEmpty())
         return;
 
-    const QString sh = shell.isEmpty() ? QStringLiteral("/bin/sh") : shell;
+    const QString sh = validatedShell(shell);
     QProcess::startDetached(sh, {QStringLiteral("-c"), command});
 }
 
@@ -630,6 +656,11 @@ int UnifiedSearchModel::rowCount(const QModelIndex &parent) const
 
 QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
 {
+    if (!index.isValid() || index.row() < 0 || index.row() >= rowCount())
+        return {};
+    if (!m_appModel || !m_runnerModel)
+        return {};
+
     const int row = index.row();
     const int ac = appResultCount();
     const bool isApp = row < ac;

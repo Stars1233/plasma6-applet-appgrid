@@ -20,6 +20,8 @@ Column {
     property int currentRecentIndex: -1
     property bool gridHasFocus: false
     property bool favoritesActive: false
+    property bool hideBottomLabel: false
+    property bool showDividers: true
 
     signal recentLaunched(string storageId)
     signal contextMenuRequested(string storageId, string desktopFile)
@@ -88,10 +90,11 @@ Column {
 
     Kirigami.Separator {
         width: parent.width
-        opacity: Plasmoid.configuration.showDividers !== false ? 1 : 0
+        opacity: recentHeader.showDividers ? 1 : 0
     }
 
     PlasmaComponents.Label {
+        visible: !recentHeader.hideBottomLabel
         leftPadding: Kirigami.Units.largeSpacing
         text: recentHeader.favoritesActive
               ? i18nd("dev.xarbit.appgrid", "Favorites")

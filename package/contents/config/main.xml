@@ -50,6 +50,10 @@
       <label>Whether to enable background blur effect.</label>
       <default>true</default>
     </entry>
+    <entry name="dimBackground" type="Bool">
+      <label>Whether to dim the screen behind the launcher overlay.</label>
+      <default>false</default>
+    </entry>
     <entry name="shakeOnOpen" type="Bool">
       <label>Whether to shake all icons when the grid opens.</label>
       <default>true</default>
@@ -129,6 +133,10 @@
     <entry name="useSystemCategories" type="Bool">
       <label>Whether to use KDE menu system categories instead of the simplified built-in mapping.</label>
       <default>false</default>
+    </entry>
+    <entry name="hideEmptyCategories" type="Bool">
+      <label>Whether to hide categories with no applications from the category bar.</label>
+      <default>true</default>
     </entry>
     <entry name="terminalShell" type="String">
       <label>Shell to use for t: terminal commands (e.g. /bin/bash, /bin/zsh). Empty uses /bin/sh.</label>
