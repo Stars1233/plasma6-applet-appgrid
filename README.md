@@ -1,4 +1,4 @@
-# AppGrid
+# AppGrid - KDE Plasma 6 Application Launcher
 
 A modern application launcher for KDE Plasma, inspired by macOS Launchpad, COSMIC, and Pantheon.
 
@@ -36,25 +36,20 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 
 ## Features
 
-- **Two plasmoid variants** — standalone window launcher, or a native Plasma panel popup (like Kickoff)
-- Favorites tab — right-click any app to add it, with optional start-on-favorites mode and reorderable positions
-- Category filtering with scrollable category bar, mouse wheel support, and Alt+key mnemonic navigation
-- Option to hide the category bar for a minimal look
-- **Two category modes** — simplified built-in categories for a clean look, or system categories that respect KDE Menu Editor changes
-- KDE Menu Editor integration — right-click categories to edit them (system categories mode)
-- **Unified search** — app results and KRunner results (windows, bookmarks, calculator, web search, etc.) merged into a single seamless list with continuous Tab/arrow navigation and Alt+1–9 shortcuts
-- Duplicate filtering — apps already shown in app results are automatically hidden from KRunner results
-- Application actions (jumplist) — right-click any app to see its actions (e.g., Firefox → New Private Window)
-- Quick commands — terminal, shell commands, file browser (type `?` for help)
-- Configurable terminal shell for quick commands (`/bin/sh`, `/bin/bash`, `/bin/zsh`, etc.)
-- Sort by most used or alphabetically
-- New app detection with badge
-- Configurable icon hover animations — shake, grow, bounce, spin, shuffle, or none
-- Session management (sleep, restart, shut down, lock, log out)
-- Context menu with add to favorites, pin to Task Manager, add to Desktop, hide apps
-- Customizable grid size, icon size, background blur, opacity, and corner radius
-- Multi-monitor support — configurable to open on active screen (mouse focus) or panel screen
-- Reset to defaults button for easy configuration recovery
+- **Two plasmoid variants** — standalone centered popup or native Plasma panel popup (like Kickoff)
+- **Unified search** — app results and KRunner results merged into one list with Alt+1–9 shortcuts
+- **Favorites** — add, remove, and reorder favorites with edit mode
+- **Categories** — scrollable bar with Alt+key mnemonics, or use KDE Menu Editor categories
+- **Application actions** — right-click any app to see jumplist actions (e.g., New Private Window)
+- **Quick commands** — terminal (`t:`), shell commands (`:`), file browser (`/`), configurable shell
+- **open/close animations** — Fade, Scale, Pop, Slide Up/Down, Glide, Buzz, Twist, Slam, or None
+- **Icon animations** — shake, grow, bounce, spin, shuffle, or none
+- **Multi-monitor** — open on active screen or panel screen
+- **Customizable** — grid size, icon size, blur, opacity, corner radius, dividers, session buttons
+- **Respects KDE settings** — system animation speed, font size, Plasma theme corner radius
+- Sort by most used or alphabetically, new app detection with badge
+- Context menu with favorites, pin to Task Manager, add to Desktop, hide apps
+- Session management (sleep, restart, shut down, lock, log out, switch user)
 - Drop-in replacement via Plasma's Show Alternatives
 
 ## Dependencies
