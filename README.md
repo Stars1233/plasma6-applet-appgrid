@@ -138,26 +138,29 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Icon** | Panel icon or custom image | `start-here-kde-symbolic` |
-| **Icons per row** | Number of columns in the grid | 7 |
-| **Visible rows** | Number of rows visible before scrolling | 4 |
+| **Icons per row** | Number of columns in the grid (Center only) | 7 |
+| **Visible rows** | Number of rows visible before scrolling (Center only) | 4 |
 | **Icon size** | Small, medium, or large | Large |
-| **Sort order** | **Alphabetical** sorts apps A–Z. **Most Used** sorts by launch frequency, so your most opened apps appear first. | Most Used |
-| **Show category bar** | Show or hide the category filter bar. When hidden, all apps are shown. | On |
-| **Search all apps** | Search covers all apps regardless of the active category or favorites tab | On |
-| **Start with favorites tab** | Open the launcher showing only your favorited apps instead of all apps | Off |
-| **Use system categories** | Use KDE menu system categories instead of simplified built-in mapping. Supports KDE Menu Editor for renaming and organizing categories. | Off |
-| **Terminal shell** | Shell used for `t:` quick commands | Default (/bin/sh) |
-| **Show scrollbars** | Show scrollbars in grid and search views | Off |
-| **Enable background blur** | Blur effect behind the launcher (AppGrid only) | On |
-| **Icon animation** | Hover and open animation style — None, Shake, Grow, Bounce, Spin, or Shuffle | Shake |
-| **Animate icons on open** | Play the selected animation on all icons when the launcher opens (requires an animation selected above) | On |
-| **Show labels on power/session buttons** | Text labels on sleep, restart, shut down, etc. | Off |
-| **Expand search to bookmarks, files, and websites** | Use additional KRunner plugins for search | On |
-| **Background opacity** | Opacity of the launcher background (AppGrid only) | 85% |
-| **Corner radius** | Override the default corner radius (AppGrid only) | 24 px (off by default) |
-| **Hidden Applications** | Apps hidden from the grid via right-click → Hide | — |
+| **Sort order** | Alphabetical or Most Used (by launch frequency) | Most Used |
+| **Open on active screen** | Open on mouse focus screen or panel screen | On |
+| **Show category bar** | Show or hide the category filter bar | On |
+| **Search all apps** | Search all apps regardless of active tab | On |
+| **Start with favorites** | Open showing favorites instead of all apps | Off |
+| **Use system categories** | Use KDE Menu Editor categories | Off |
+| **Terminal shell** | Shell for `t:` commands | /bin/sh |
+| **Show divider lines** | Show dividers between UI sections | Off |
+| **Show scrollbars** | Show scrollbars in grid and search | Off |
+| **Open/close animation** | None, Fade, Scale, Pop, Slide Up/Down, Glide, Buzz, Twist, Slam | Scale |
+| **Enable background blur** | Blur behind the launcher (Center only) | On |
+| **Icon animation** | None, Shake, Grow, Bounce, Spin, Shuffle | Shake |
+| **Animate icons on open** | Play icon animation when launcher opens | On |
+| **Show session buttons** | Show power/session buttons | On |
+| **Show button labels** | Text labels on session buttons | Off |
+| **KRunner plugins** | Search bookmarks, files, websites | On |
+| **Background opacity** | Launcher background opacity (Center only) | 85% |
+| **Corner radius** | Custom corner radius (Center only) | Off (uses Plasma theme) |
 
-> **Note:** The **AppGrid (Panel)** variant shares most settings but does not include background blur, opacity, or corner radius options — those are managed by Plasma's native popup.
+> **Note:** The **AppGrid Panel** variant shares most settings but does not include grid size, blur, opacity, corner radius, multi-monitor, or open/close animation — those are managed by Plasma's native popup.
 
 ## FAQ
 
