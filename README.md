@@ -160,7 +160,7 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 | **Background opacity** | Launcher background opacity (Center only) | 85% |
 | **Corner radius** | Custom corner radius (Center only) | Off (uses Plasma theme) |
 
-> **Note:** The **AppGrid Panel** variant shares most settings but does not include grid size, blur, opacity, corner radius, multi-monitor, or open/close animation — those are managed by Plasma's native popup.
+> **Note:** The **AppGrid Panel** variant shares most settings but does not include grid size, blur, opacity, corner radius, multi-monitor, or open/close animation — those are managed by Plasma's native popup. Settings marked **(Center only)** apply exclusively to the AppGrid Center variant.
 
 ## FAQ
 
