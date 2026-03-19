@@ -18,14 +18,18 @@
 
 // Qt 6.13 deprecated invalidateFilter() in favour of begin/endFilterChange().
 // Suppress the deprecation warning on older Qt where the replacement doesn't exist.
+// APPGRID_INVALIDATE_FILTER  — re-run filter only
+// APPGRID_INVALIDATE_ALL     — re-run filter + sort (for search relevance ranking)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 13, 0)
 #define APPGRID_INVALIDATE_FILTER() do { beginFilterChange(); endFilterChange(); } while (0)
+#define APPGRID_INVALIDATE_ALL()    invalidate()
 #else
 #define APPGRID_INVALIDATE_FILTER() \
     _Pragma("GCC diagnostic push") \
     _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"") \
     invalidateFilter(); \
     _Pragma("GCC diagnostic pop")
+#define APPGRID_INVALIDATE_ALL()    invalidate()
 #endif
 
 // Simplified category mapping — maps freedesktop categories to clean groups
@@ -393,7 +397,7 @@ void AppFilterModel::setSearchText(const QString &text)
     if (m_searchText == text)
         return;
     m_searchText = text;
-    APPGRID_INVALIDATE_FILTER();
+    APPGRID_INVALIDATE_ALL(); // Re-run filter + sort for relevance ranking
     emit searchTextChanged();
 }
 
@@ -683,6 +687,32 @@ void AppFilterModel::recordLaunch(const QString &storageId)
     }
 }
 
+// Search relevance: lower score = better match.
+// 0 = name prefix, 1 = name substring, 2 = generic name, 3 = keyword, 4 = no match.
+static int searchRelevance(const QModelIndex &idx, const QString &query)
+{
+    if (query.isEmpty())
+        return 4;
+
+    const auto name = idx.data(AppModel::NameRole).toString();
+    if (name.startsWith(query, Qt::CaseInsensitive))
+        return 0;
+    if (name.contains(query, Qt::CaseInsensitive))
+        return 1;
+
+    const auto generic = idx.data(AppModel::GenericNameRole).toString();
+    if (generic.contains(query, Qt::CaseInsensitive))
+        return 2;
+
+    const auto keywords = idx.data(AppModel::KeywordsRole).toStringList();
+    for (const auto &kw : keywords) {
+        if (kw.contains(query, Qt::CaseInsensitive))
+            return 3;
+    }
+
+    return 4;
+}
+
 bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
     // In favorites mode, sort by position in favoriteApps list
@@ -692,14 +722,29 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
         return m_favoriteApps.indexOf(leftSid) < m_favoriteApps.indexOf(rightSid);
     }
 
-    if (m_sortMode == MostUsed) {
+    // When searching, rank by match relevance first
+    if (!m_searchText.isEmpty()) {
+        const int leftRel = searchRelevance(left, m_searchText);
+        const int rightRel = searchRelevance(right, m_searchText);
+        if (leftRel != rightRel)
+            return leftRel < rightRel;
+
+        // Within the same relevance tier, prefer more frequently launched apps
         const auto leftSid = left.data(AppModel::StorageIdRole).toString();
         const auto rightSid = right.data(AppModel::StorageIdRole).toString();
         const int leftCount = m_launchCounts.value(leftSid, 0);
         const int rightCount = m_launchCounts.value(rightSid, 0);
         if (leftCount != rightCount)
-            return leftCount > rightCount; // Higher count first
+            return leftCount > rightCount;
+    } else if (m_sortMode == MostUsed) {
+        const auto leftSid = left.data(AppModel::StorageIdRole).toString();
+        const auto rightSid = right.data(AppModel::StorageIdRole).toString();
+        const int leftCount = m_launchCounts.value(leftSid, 0);
+        const int rightCount = m_launchCounts.value(rightSid, 0);
+        if (leftCount != rightCount)
+            return leftCount > rightCount;
     }
+
     const auto leftName = left.data(AppModel::NameRole).toString();
     const auto rightName = right.data(AppModel::NameRole).toString();
     return QString::localeAwareCompare(leftName, rightName) < 0;

@@ -12,6 +12,7 @@
     "Description": "A modern style application launcher",
     "FormFactors": ["desktop"],
     "Icon": "start-here-kde-symbolic",
+    "Id": "dev.xarbit.appgrid",
     "License": "GPL-2.0-or-later",
     "Name": "Application Launcher (AppGrid Center)",
     "Version": "@CMAKE_PROJECT_VERSION@",
