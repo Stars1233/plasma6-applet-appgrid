@@ -19,6 +19,7 @@ struct AppEntry {
     QString category;
     QString genericName;
     QString storageId;
+    QStringList keywords;
 };
 
 /**
@@ -38,6 +39,7 @@ public:
         CategoryRole,
         GenericNameRole,
         StorageIdRole,
+        KeywordsRole,
     };
 
     explicit AppModel(QObject *parent = nullptr);

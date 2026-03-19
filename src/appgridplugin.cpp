@@ -147,12 +147,15 @@ void AppGridPlugin::updateScreenWayland(QWindow *window, QScreen *target, bool u
             layer->setProperty("screen", QVariant::fromValue(target));
         }
     } else {
-        // Old API (LayerShellQt < 6.6)
+        // Old API (LayerShellQt < 6.6) — deprecated but needed for compatibility
         if (target)
             window->setScreen(target);
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
         layer->setScreenConfiguration(
             useActiveScreen ? LayerShellQt::Window::ScreenFromCompositor
                             : LayerShellQt::Window::ScreenFromQWindow);
+QT_WARNING_POP
     }
 }
 

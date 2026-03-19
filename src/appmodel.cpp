@@ -16,6 +16,18 @@
 #include <QCollator>
 #include <algorithm>
 
+// Qt 6.13 deprecated invalidateFilter() in favour of begin/endFilterChange().
+// Suppress the deprecation warning on older Qt where the replacement doesn't exist.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 13, 0)
+#define APPGRID_INVALIDATE_FILTER() do { beginFilterChange(); endFilterChange(); } while (0)
+#else
+#define APPGRID_INVALIDATE_FILTER() \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"") \
+    invalidateFilter(); \
+    _Pragma("GCC diagnostic pop")
+#endif
+
 // Simplified category mapping — maps freedesktop categories to clean groups
 static const QHash<QString, QString> &categoryMap()
 {
@@ -145,6 +157,8 @@ QVariant AppModel::data(const QModelIndex &index, int role) const
         return app.genericName;
     case StorageIdRole:
         return app.storageId;
+    case KeywordsRole:
+        return app.keywords;
     }
     return {};
 }
@@ -158,6 +172,7 @@ QHash<int, QByteArray> AppModel::roleNames() const
         {CategoryRole, "category"},
         {GenericNameRole, "genericName"},
         {StorageIdRole, "storageId"},
+        {KeywordsRole, "keywords"},
     };
 }
 
@@ -268,6 +283,7 @@ void AppModel::loadApplications()
             appEntry.desktopFile = service->entryPath();
             appEntry.genericName = service->genericName();
             appEntry.storageId = storageId;
+            appEntry.keywords = service->keywords();
 
             if (systemMode)
                 appEntry.category = category.isEmpty() ? QStringLiteral("Other") : category;
@@ -363,7 +379,7 @@ void AppFilterModel::setFilterCategory(const QString &category)
     if (m_filterCategory == category)
         return;
     m_filterCategory = category;
-    invalidateFilter();
+    APPGRID_INVALIDATE_FILTER();
     emit filterCategoryChanged();
 }
 
@@ -377,7 +393,7 @@ void AppFilterModel::setSearchText(const QString &text)
     if (m_searchText == text)
         return;
     m_searchText = text;
-    invalidateFilter();
+    APPGRID_INVALIDATE_FILTER();
     emit searchTextChanged();
 }
 
@@ -391,7 +407,7 @@ void AppFilterModel::setHiddenApps(const QStringList &list)
     if (m_hiddenApps == list)
         return;
     m_hiddenApps = list;
-    invalidateFilter();
+    APPGRID_INVALIDATE_FILTER();
     emit hiddenAppsChanged();
 }
 
@@ -403,7 +419,7 @@ void AppFilterModel::hideApp(int proxyIndex)
     const auto sid = idx.data(AppModel::StorageIdRole).toString();
     if (!sid.isEmpty() && !m_hiddenApps.contains(sid)) {
         m_hiddenApps.append(sid);
-        invalidateFilter();
+        APPGRID_INVALIDATE_FILTER();
         emit hiddenAppsChanged();
     }
 }
@@ -412,7 +428,7 @@ void AppFilterModel::unhideApp(const QString &storageId)
 {
     if (m_hiddenApps.contains(storageId)) {
         m_hiddenApps.removeAll(storageId);
-        invalidateFilter();
+        APPGRID_INVALIDATE_FILTER();
         emit hiddenAppsChanged();
     }
 }
@@ -428,7 +444,7 @@ void AppFilterModel::setFavoriteApps(const QStringList &list)
         return;
     m_favoriteApps = list;
     if (m_showFavoritesOnly)
-        invalidateFilter();
+        APPGRID_INVALIDATE_FILTER();
     emit favoriteAppsChanged();
 }
 
@@ -446,7 +462,7 @@ void AppFilterModel::toggleFavorite(const QString &storageId)
     else
         m_favoriteApps.append(storageId);
     if (m_showFavoritesOnly)
-        invalidateFilter();
+        APPGRID_INVALIDATE_FILTER();
     emit favoriteAppsChanged();
 }
 
@@ -526,8 +542,21 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
     if (!m_searchText.isEmpty()) {
         const auto name = idx.data(AppModel::NameRole).toString();
         const auto generic = idx.data(AppModel::GenericNameRole).toString();
-        if (!name.contains(m_searchText, Qt::CaseInsensitive)
-            && !generic.contains(m_searchText, Qt::CaseInsensitive))
+        bool matched = name.contains(m_searchText, Qt::CaseInsensitive)
+                    || generic.contains(m_searchText, Qt::CaseInsensitive);
+
+        // Check desktop file keywords (e.g. "browser" finds Firefox)
+        if (!matched) {
+            const auto keywords = idx.data(AppModel::KeywordsRole).toStringList();
+            for (const auto &kw : keywords) {
+                if (kw.contains(m_searchText, Qt::CaseInsensitive)) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (!matched)
             return false;
     }
 
@@ -615,7 +644,7 @@ void AppFilterModel::setShowFavoritesOnly(bool enabled)
     if (m_showFavoritesOnly == enabled)
         return;
     m_showFavoritesOnly = enabled;
-    invalidateFilter();
+    APPGRID_INVALIDATE_FILTER();
     emit showFavoritesOnlyChanged();
 }
 
