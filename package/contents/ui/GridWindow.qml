@@ -109,12 +109,22 @@ Window {
         }
     }
 
+    Timer {
+        id: deactivateGuard
+        interval: 100
+        onTriggered: closeOnDeactivate = true
+    }
+
     function showGrid() {
         if (!windowConfigured) {
             Plasmoid.configureWindow(root)
             windowConfigured = true
         }
         Plasmoid.updateWindowScreen(root, Plasmoid.configuration.openOnActiveScreen !== false)
+
+        // Delay close-on-deactivate to avoid LayerShell reconfig race
+        closeOnDeactivate = false
+        deactivateGuard.start()
 
         // Reset all animatable properties to clean state
         panel.scale = 1.0
@@ -142,6 +152,8 @@ Window {
     }
 
     function closeGrid() {
+        closeOnDeactivate = false
+        deactivateGuard.stop()
         Plasmoid.setBlurBehind(root, false, 0, 0, 0, 0, 0)
         if (animationsEnabled && animStyle !== 0 && animLoader.item) {
             animLoader.item.close()
@@ -160,9 +172,10 @@ Window {
         }
     }
 
-    // In popup mode, close when window loses focus
+    // Close when window loses focus (skip briefly after open to avoid LayerShell reconfig race)
+    property bool closeOnDeactivate: false
     onActiveChanged: {
-        if (!active && visible) {
+        if (!active && visible && closeOnDeactivate) {
             if (appletInterface)
                 appletInterface.closeWindow()
         }
