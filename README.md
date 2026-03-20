@@ -2,6 +2,21 @@
 
 A modern application launcher for KDE Plasma, inspired by macOS Launchpad, COSMIC, and Pantheon.
 
+## Table of Contents
+
+- [Why AppGrid?](#why-appgrid)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Installation](#installation)
+- [Building from source](#building-from-source)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [FAQ](#faq)
+- [Credits](#credits)
+- [Contributing](#contributing)
+- [License](#license)
+
 AppGrid ships as two plasmoids that share a common codebase:
 
 - **AppGrid** — a standalone window launcher with its own blur, opacity, and corner radius settings.
@@ -11,7 +26,7 @@ Both variants share the same app grid, search, categories, quick commands, and c
 
 > **Note:** AppGrid is actively maintained with a focus on stability, polish, and community-requested improvements. If you run into any issues, please [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) — you can type `i:` in the search bar to copy your system info for the report.
 
-> **Compatibility:** AppGrid targets KDE Plasma 6 and supports a wide range of distributions. Multi-monitor screen selection works best with LayerShellQt 6.6+, but falls back to the older API on earlier versions. Pre-built packages are provided for Arch Linux (AUR), Fedora, openSUSE Tumbleweed, Ubuntu 25.04+, and Debian 13+.
+> **Compatibility:** AppGrid targets KDE Plasma 6 and supports a wide range of distributions. Multi-monitor screen selection works best with LayerShellQt 6.6+, but falls back to the older API on earlier versions. Pre-built packages are provided for Arch Linux (AUR), Fedora, Ubuntu 25.04+, and Debian 13+. openSUSE is available via a community-maintained OBS package.
 
 > **Wayland-first:** AppGrid is developed and tested on Wayland. X11 support is included but less tested — the standalone launcher uses frameless window flags and manual screen positioning on X11 instead of LayerShellQt. The **AppGrid (Panel)** variant uses Plasma's native popup and works on both. If you encounter X11 issues, please [report them](https://github.com/xarbit/plasma6-applet-appgrid/issues).
 
@@ -87,7 +102,7 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 
 ### Pre-built packages
 
-Pre-built packages for Fedora, openSUSE, Ubuntu, and Debian are available on the [Releases](https://github.com/xarbit/plasma6-applet-appgrid/releases) page. These are auto-generated and provided as is — I'm not a packager, and they may not follow all distro packaging standards. Ideally, distribution maintainers would pick up AppGrid for their official repositories. If you're a packager and want to maintain AppGrid for your distro, please reach out so I can link to your package and eventually retire these from the CI pipeline.
+Pre-built packages for Fedora, Ubuntu, and Debian are available on the [Releases](https://github.com/xarbit/plasma6-applet-appgrid/releases) page. These are auto-generated and provided as is — I'm not a packager, and they may not follow all distro packaging standards. Ideally, distribution maintainers would pick up AppGrid for their official repositories. If you're a packager and want to maintain AppGrid for your distro, please reach out so I can link to your package and eventually retire these from the CI pipeline. openSUSE packages are available via the community-maintained OBS package (see below).
 
 ### Arch Linux (AUR) — officially supported
 
@@ -192,7 +207,7 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 
 **Why isn't there a `.plasmoid` file I can install from the KDE Store?**
 
-AppGrid uses a C++ backend for app discovery, window management, blur effects, and session actions. The `.plasmoid` format only supports pure QML plasmoids — it has no mechanism to install the compiled plugin (`.so`) to the system plugin path where Plasma expects it. This is the same reason KDE's own C++ plasmoids (Kickoff, Kicker, etc.) are only distributed via system packages. AppGrid provides packages for Arch, Fedora, openSUSE, Ubuntu, and Debian.
+AppGrid uses a C++ backend for app discovery, window management, blur effects, and session actions. The `.plasmoid` format only supports pure QML plasmoids — it has no mechanism to install the compiled plugin (`.so`) to the system plugin path where Plasma expects it. This is the same reason KDE's own C++ plasmoids (Kickoff, Kicker, etc.) are only distributed via system packages. AppGrid provides packages for Arch, Fedora, Ubuntu, and Debian. openSUSE is available via a community OBS package.
 
 **How do I reorder my favorites?**
 
