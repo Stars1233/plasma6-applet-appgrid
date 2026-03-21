@@ -35,6 +35,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_showRecentApps: showRecentApps.checked
     property alias cfg_useExtraRunners: useExtraRunners.checked
     property alias cfg_useSystemCategories: useSystemCategories.checked
+    property alias cfg_hideEmptyCategories: hideEmptyCategories.checked
     property string cfg_terminalShell: Plasmoid.configuration.terminalShell
     property var cfg_hiddenApps: Plasmoid.configuration.hiddenApps
 
@@ -156,13 +157,7 @@ KCMUtils.SimpleKCM {
 
             QQC2.ComboBox {
                 id: sortMode
-                model: [i18nd("dev.xarbit.appgrid", "Alphabetical"), i18nd("dev.xarbit.appgrid", "Most Used")]
-            }
-
-            QQC2.CheckBox {
-                id: showRecentApps
-                text: i18nd("dev.xarbit.appgrid", "Show recently used applications")
-                enabled: sortMode.currentIndex === 0
+                model: [i18nd("dev.xarbit.appgrid", "Alphabetical"), i18nd("dev.xarbit.appgrid", "Most Used"), i18nd("dev.xarbit.appgrid", "By Category")]
             }
         }
 
@@ -188,8 +183,20 @@ KCMUtils.SimpleKCM {
         }
 
         QQC2.CheckBox {
+            id: showRecentApps
+            text: i18nd("dev.xarbit.appgrid", "Show recently used applications")
+            enabled: sortMode.currentIndex !== 1 || startWithFavorites.checked
+        }
+
+        QQC2.CheckBox {
             id: useSystemCategories
             text: i18nd("dev.xarbit.appgrid", "Use system categories (supports KDE Menu Editor)")
+            enabled: showCategoryBar.checked
+        }
+
+        QQC2.CheckBox {
+            id: hideEmptyCategories
+            text: i18nd("dev.xarbit.appgrid", "Hide empty categories")
             enabled: showCategoryBar.checked
         }
 
@@ -282,13 +289,15 @@ KCMUtils.SimpleKCM {
                 showCategoryBar.checked = true
                 searchAll.checked = true
                 startWithFavorites.checked = false
+                showRecentApps.checked = true
+                hideEmptyCategories.checked = true
                 shakeOnOpen.checked = true
                 hoverAnimation.currentIndex = 1
                 showSessionButtons.checked = true
                 showActionLabels.checked = false
-                showRecentApps.checked = true
                 useExtraRunners.checked = true
                 useSystemCategories.checked = false
+                hideEmptyCategories.checked = true
                 configGeneral.cfg_terminalShell = ""
                 terminalShell.currentIndex = 0
             }
