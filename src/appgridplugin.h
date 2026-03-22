@@ -14,7 +14,6 @@
 
 class QScreen;
 class QWindow;
-class SessionManagement;
 
 /**
  * @brief Proxy that filters KRunner results already present in AppFilterModel.
@@ -129,15 +128,6 @@ public:
     /** Set a rounded-rect blur region on @p window matching the panel geometry. */
     Q_INVOKABLE void setBlurBehind(QWindow *window, bool enable, int x, int y, int w, int h, int radius);
 
-    // --- Session actions ---
-
-    Q_INVOKABLE void sleep();
-    Q_INVOKABLE void restart();
-    Q_INVOKABLE void shutDown();
-    Q_INVOKABLE void lock();
-    Q_INVOKABLE void logOut();
-    Q_INVOKABLE void switchUser();
-
     // --- Prefix mode commands ---
 
     /** Run @p command in the user's preferred terminal emulator using @p shell. */
@@ -203,5 +193,4 @@ private:
     KRunner::ResultsModel *m_runnerModel = nullptr;
     RunnerFilterModel m_runnerFilterModel;
     UnifiedSearchModel m_searchModel;
-    SessionManagement *m_session = nullptr;
 };

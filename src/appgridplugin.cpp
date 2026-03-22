@@ -35,7 +35,6 @@
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
-#include <sessionmanagement.h>
 
 // Known task manager plugin IDs, matching the list used by Kicker.
 static constexpr QLatin1StringView s_knownTaskManagers[] = {
@@ -46,7 +45,6 @@ static constexpr QLatin1StringView s_knownTaskManagers[] = {
 
 AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
     : Plasma::Applet(parent, data, args)
-    , m_session(new SessionManagement(this))
 {
     m_filterModel.setSourceModel(&m_appModel);
     m_runnerModel = new KRunner::ResultsModel(this);
@@ -244,38 +242,6 @@ void AppGridPlugin::setBlurBehind(QWindow *window, bool enable, int x, int y, in
     }
 
     KWindowEffects::enableBlurBehind(window, enable, region);
-}
-
-// --- Session actions ---
-
-void AppGridPlugin::sleep()
-{
-    m_session->suspend();
-}
-
-void AppGridPlugin::restart()
-{
-    m_session->requestReboot();
-}
-
-void AppGridPlugin::shutDown()
-{
-    m_session->requestShutdown();
-}
-
-void AppGridPlugin::lock()
-{
-    m_session->lock();
-}
-
-void AppGridPlugin::logOut()
-{
-    m_session->requestLogout();
-}
-
-void AppGridPlugin::switchUser()
-{
-    m_session->switchUser();
 }
 
 // --- Prefix mode commands ---
