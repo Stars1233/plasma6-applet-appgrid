@@ -2,7 +2,7 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Power and session management buttons using Kicker.SystemModel.
+    Power and session management buttons using Sessions.SessionManagement.
 */
 
 import QtQuick
@@ -10,7 +10,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
-import org.kde.plasma.private.kicker as Kicker
+import org.kde.plasma.private.sessions as Sessions
 
 RowLayout {
     id: powerButtons
@@ -21,57 +21,61 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing
     readonly property bool showLabels: Plasmoid.configuration.showActionLabels
 
-    // KDE native session model — provides Sleep, Restart, Shut Down, Lock, Log Out, Switch User
-    Kicker.SystemModel {
-        id: systemModel
-        Component.onCompleted: refresh()
+    Sessions.SessionManagement {
+        id: sm
     }
 
-    // Map system model entries to our button layout
+    Sessions.SessionsModel {
+        id: sessionsModel
+    }
+
     // Primary buttons: Sleep, Restart, Shut Down
-    // Session menu: Lock, Log Out, Switch User
-    readonly property var primaryActions: {
-        var actions = []
-        var menuActions = []
-        for (var i = 0; i < systemModel.count; i++) {
-            var item = systemModel.data(systemModel.index(i, 0), Qt.DisplayRole)
-            var icon = systemModel.data(systemModel.index(i, 0), Qt.DecorationRole)
-            var entry = { index: i, label: item || "", icon: icon || "" }
-
-            // Match by icon name to determine primary vs menu actions
-            var iconStr = String(icon)
-            if (iconStr.indexOf("suspend") >= 0 || iconStr.indexOf("reboot") >= 0 || iconStr.indexOf("shutdown") >= 0)
-                actions.push(entry)
-            else
-                menuActions.push(entry)
-        }
-        return { primary: actions, menu: menuActions }
-    }
-
-    Repeater {
-        model: powerButtons.primaryActions.primary
-        delegate: PlasmaComponents.ToolButton {
-            required property var modelData
-            icon.name: modelData.icon
-            text: powerButtons.showLabels ? modelData.label : ""
-            display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                             : PlasmaComponents.AbstractButton.IconOnly
-            PlasmaComponents.ToolTip.text: modelData.label
-            PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
-            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-            onClicked: {
-                systemModel.trigger(modelData.index, "", null)
-                powerButtons.actionTriggered()
-            }
-
-            Accessible.name: modelData.label
-            Accessible.role: Accessible.Button
-        }
+    PlasmaComponents.ToolButton {
+        visible: sm.canSuspend
+        icon.name: "system-suspend"
+        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Sleep") : ""
+        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+                                         : PlasmaComponents.AbstractButton.IconOnly
+        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Sleep")
+        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
+        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+        onClicked: { sm.suspend(); powerButtons.actionTriggered() }
+        Accessible.name: i18nd("dev.xarbit.appgrid", "Sleep")
+        Accessible.role: Accessible.Button
     }
 
     PlasmaComponents.ToolButton {
+        visible: sm.canReboot
+        icon.name: "system-reboot"
+        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Restart") : ""
+        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+                                         : PlasmaComponents.AbstractButton.IconOnly
+        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Restart")
+        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
+        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+        onClicked: { sm.requestReboot(); powerButtons.actionTriggered() }
+        Accessible.name: i18nd("dev.xarbit.appgrid", "Restart")
+        Accessible.role: Accessible.Button
+    }
+
+    PlasmaComponents.ToolButton {
+        visible: sm.canShutdown
+        icon.name: "system-shutdown"
+        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Shut Down") : ""
+        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+                                         : PlasmaComponents.AbstractButton.IconOnly
+        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Shut Down")
+        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
+        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+        onClicked: { sm.requestShutdown(); powerButtons.actionTriggered() }
+        Accessible.name: i18nd("dev.xarbit.appgrid", "Shut Down")
+        Accessible.role: Accessible.Button
+    }
+
+    // Session menu: Lock, Log Out, Switch User
+    PlasmaComponents.ToolButton {
         id: sessionButton
-        visible: powerButtons.primaryActions.menu.length > 0
+        visible: sm.canLock || sm.canLogout || sessionsModel.canSwitchUser
         icon.name: "system-log-out"
         text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Session") : ""
         display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
@@ -89,21 +93,25 @@ RowLayout {
             id: sessionMenu
             y: sessionButton.height
 
-            Instantiator {
-                model: powerButtons.primaryActions.menu
-                delegate: PlasmaComponents.MenuItem {
-                    required property var modelData
-                    icon.name: modelData.icon
-                    text: modelData.label
-                    onClicked: {
-                        systemModel.trigger(modelData.index, "", null)
-                        powerButtons.actionTriggered()
-                    }
-                    Accessible.name: modelData.label
-                    Accessible.role: Accessible.MenuItem
-                }
-                onObjectAdded: (index, object) => sessionMenu.insertItem(index, object)
-                onObjectRemoved: (index, object) => sessionMenu.removeItem(object)
+            PlasmaComponents.MenuItem {
+                visible: sm.canLock
+                icon.name: "system-lock-screen"
+                text: i18nd("dev.xarbit.appgrid", "Lock")
+                onClicked: { sm.lock(); powerButtons.actionTriggered() }
+            }
+
+            PlasmaComponents.MenuItem {
+                visible: sm.canLogout
+                icon.name: "system-log-out"
+                text: i18nd("dev.xarbit.appgrid", "Log Out")
+                onClicked: { sm.requestLogout(); powerButtons.actionTriggered() }
+            }
+
+            PlasmaComponents.MenuItem {
+                visible: sessionsModel.canSwitchUser
+                icon.name: "system-switch-user"
+                text: i18nd("dev.xarbit.appgrid", "Switch User")
+                onClicked: { sessionsModel.startNewSession(sessionsModel.shouldLock); powerButtons.actionTriggered() }
             }
         }
     }
