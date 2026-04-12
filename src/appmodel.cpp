@@ -415,7 +415,9 @@ QStringList AppModel::categories() const
 void AppModel::reload()
 {
     // Re-set the icon theme to invalidate Qt's internal icon pixmap cache,
-    // so changed icons are picked up without restarting
+    // so changed icons are picked up without restarting.
+    // The KDE-native alternative is KIconLoader::emitChange() from KIconThemes,
+    // but this avoids adding that dependency.
     QIcon::setThemeName(QIcon::themeName());
     beginResetModel();
     m_apps.clear();
