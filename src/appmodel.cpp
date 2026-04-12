@@ -13,6 +13,8 @@
 #include <KIO/ApplicationLauncherJob>
 #include <KJob>
 
+#include <QIcon>
+
 #include <QStandardPaths>
 
 #include <QCollator>
@@ -412,6 +414,9 @@ QStringList AppModel::categories() const
 
 void AppModel::reload()
 {
+    // Re-set the icon theme to invalidate Qt's internal icon pixmap cache,
+    // so changed icons are picked up without restarting
+    QIcon::setThemeName(QIcon::themeName());
     beginResetModel();
     m_apps.clear();
     m_categories.clear();
