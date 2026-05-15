@@ -156,7 +156,8 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: (pointerDrag.active || touchDrag.active)
+                     ? Qt.ClosedHandCursor : Qt.PointingHandCursor
 
         onEntered: root.playAnimation()
 
@@ -201,6 +202,9 @@ Item {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus
         enabled: root.dragProxy !== null && root.storageId.length > 0
         target: null
+        // Higher than the Qt default to avoid accidental drags on jittery
+        // touchpads and high-DPI scrolling.
+        dragThreshold: 16
         onActiveChanged: root._beginDrag(this)
     }
 
@@ -211,6 +215,7 @@ Item {
         target: null
         // Both axes free — favorites grid reorders in 2D, unlike the list
         // views in upstream Kickoff that only need a single axis.
+        dragThreshold: 24
         onActiveChanged: root._beginDrag(this)
     }
 

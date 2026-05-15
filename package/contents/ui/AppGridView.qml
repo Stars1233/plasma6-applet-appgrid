@@ -283,6 +283,44 @@ GridView {
     Keys.onTabPressed: function(event) { event.accepted = true }
     Keys.onBacktabPressed: function(event) { event.accepted = true }
 
+    // -- Keyboard reorder (favorites tab, KAStats-backed view) --
+    function _kbdReorderable() {
+        return favoritesActive
+               && sharedFavoritesModel
+               && model === sharedFavoritesModel
+               && !Plasmoid.configuration.sortFavoritesAlphabetically
+               && currentIndex >= 0
+    }
+
+    function _kbdMove(target) {
+        if (!_kbdReorderable()) return false
+        if (target < 0 || target >= count || target === currentIndex) return false
+        sharedFavoritesModel.moveRow(currentIndex, target)
+        currentIndex = target
+        return true
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+Right"
+        enabled: _kbdReorderable() && currentIndex < count - 1
+        onActivated: _kbdMove(currentIndex + 1)
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Left"
+        enabled: _kbdReorderable() && currentIndex > 0
+        onActivated: _kbdMove(currentIndex - 1)
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Down"
+        enabled: _kbdReorderable() && currentIndex + effectiveColumns < count
+        onActivated: _kbdMove(currentIndex + effectiveColumns)
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Up"
+        enabled: _kbdReorderable() && currentIndex - effectiveColumns >= 0
+        onActivated: _kbdMove(currentIndex - effectiveColumns)
+    }
+
     Keys.onPressed: function(event) {
         // Redirect typing to search bar, but not Tab or special keys
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
@@ -491,8 +529,34 @@ GridView {
         }
 
         onDropped: drag => {
-            // Drop accepted — keep current order. KAStats persists itself.
-            pendingMoves = []
+            // Internal reorder ended — KAStats persists itself.
+            if (gridView.favoritesDragProxy
+                    && drag.source === gridView.favoritesDragProxy) {
+                pendingMoves = []
+                return
+            }
+            // External drag (e.g. .desktop file from Dolphin). Add as favorite.
+            if (!gridView.sharedFavoritesModel || !drag.hasUrls) return
+            const pos = mapToItem(gridView.contentItem, drag.x, drag.y)
+            let insertAt = gridView.indexAt(pos.x, pos.y)
+            for (const url of drag.urls) {
+                let id = url.toString()
+                // Reject anything that isn't a .desktop file. KAStats can also
+                // ingest file:// URLs but launching a .desktop is the expected
+                // favorites use case.
+                if (!id.endsWith(".desktop")) continue
+                // Strip file:// or path prefix; KAStats's normaliser accepts
+                // bare storage IDs (basename) or "applications:" form.
+                const slash = id.lastIndexOf("/")
+                if (slash >= 0) id = id.substring(slash + 1)
+                if (insertAt >= 0) {
+                    gridView.sharedFavoritesModel.addFavorite("applications:" + id, insertAt)
+                    insertAt++
+                } else {
+                    gridView.sharedFavoritesModel.addFavorite("applications:" + id)
+                }
+            }
+            drag.accept(Qt.CopyAction)
         }
     }
 
