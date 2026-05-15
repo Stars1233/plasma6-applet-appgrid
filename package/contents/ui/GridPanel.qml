@@ -289,6 +289,12 @@ Kirigami.ShadowedRectangle {
     // reloads, several of insert/remove/move/reset/layoutChanged/dataChanged
     // can fire back-to-back. We schedule one mirror per event-loop turn
     // instead of mirroring on every signal.
+    // The mirror only needs to run when AppFilterModel actually serves the
+    // favorites view (alpha-sort mode). In normal drag-reorder mode the
+    // GridView reads sharedFavoritesModel directly, so there's nothing to
+    // mirror into.
+    readonly property bool mirrorRequired: Plasmoid.configuration.sortFavoritesAlphabetically === true
+
     Timer {
         id: mirrorCoalesce
         interval: 0
@@ -299,14 +305,24 @@ Kirigami.ShadowedRectangle {
                     && panel.sharedFavoritesModel.count > 0) {
                 Plasmoid.configuration.favoritesPortedToKAstats = true
             }
-            panel._mirrorFavorites()
+            if (panel.mirrorRequired)
+                panel._mirrorFavorites()
         }
+    }
+
+    // Catch up the proxy when the user enables alpha-sort mid-session.
+    onMirrorRequiredChanged: {
+        if (mirrorRequired) mirrorCoalesce.restart()
     }
 
     Connections {
         target: panel.sharedFavoritesModel
         ignoreUnknownSignals: true
-        function _scheduleMirror() { mirrorCoalesce.restart() }
+        function _scheduleMirror() {
+            // Migration finalisation still needs to happen even when not
+            // mirroring (so the flag flips once KAStats has data).
+            mirrorCoalesce.restart()
+        }
         function onRowsInserted() { _scheduleMirror() }
         function onRowsRemoved() { _scheduleMirror() }
         function onRowsMoved() { _scheduleMirror() }
