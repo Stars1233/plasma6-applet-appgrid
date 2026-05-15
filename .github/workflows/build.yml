@@ -74,28 +74,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Mark workspace as safe (container uid mismatch)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Check SPDX license headers
         run: |
           set -e
-          missing=$(git ls-files '*.cpp' '*.h' '*.qml' | \
-            grep -v -E '^(package|package-panel)/contents/ui/DevFlags\.qml$' | \
-            while read f; do
-              grep -L "SPDX-License-Identifier" "$f" || true
-            done)
+          files=$(git ls-files '*.cpp' '*.h' '*.qml' | \
+            grep -v -E '^(package|package-panel)/contents/ui/DevFlags\.qml$')
+          if [ -z "$files" ]; then
+            echo "::error::git ls-files returned no files — repo state broken"
+            exit 1
+          fi
+          missing=$(echo "$files" | while read f; do
+            grep -L "SPDX-License-Identifier" "$f" || true
+          done)
           if [ -n "$missing" ]; then
             echo "::error::Files missing SPDX-License-Identifier:"
             echo "$missing"
             exit 1
           fi
-          echo "all tracked source files carry SPDX-License-Identifier"
+          echo "all tracked source files carry SPDX-License-Identifier ($(echo "$files" | wc -l) files)"
 
       - name: Check trailing whitespace
         run: |
-          # Use empty tree as the diff base to scan the full working tree
-          EMPTY=$(git hash-object -t tree --stdin </dev/null)
-          git -c core.whitespace=trailing-space,space-before-tab \
-              diff --check $EMPTY HEAD -- \
-              '*.cpp' '*.h' '*.qml' '*.xml' '*.json' '*.md' 'CMakeLists.txt'
+          # Scan tracked source/doc files for trailing whitespace
+          set -e
+          files=$(git ls-files '*.cpp' '*.h' '*.qml' '*.xml' '*.json' '*.md' 'CMakeLists.txt')
+          if [ -z "$files" ]; then
+            echo "::error::git ls-files returned no files — repo state broken"
+            exit 1
+          fi
+          bad=$(echo "$files" | xargs grep -nP '[ \t]+$' 2>/dev/null || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Files with trailing whitespace:"
+            echo "$bad"
+            exit 1
+          fi
+          echo "no trailing whitespace found"
 
       - name: Spellcheck (codespell)
         run: |
