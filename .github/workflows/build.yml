@@ -87,6 +87,31 @@ jobs:
       - name: Validate AppStream metadata
         run: appstreamcli validate --no-net dev.xarbit.appgrid.metainfo.xml
 
+      - name: Validate plasmoid packages
+        run: |
+          set -e
+          mkdir -p /tmp/pkg-validate
+          for pkg in package package-panel; do
+            out=$(kpackagetool6 --type Plasma/Applet --install "$pkg" --packageroot /tmp/pkg-validate 2>&1)
+            echo "$out"
+            if echo "$out" | grep -qE "^Error:"; then
+              echo "::error::kpackagetool6 reported error for $pkg"
+              exit 1
+            fi
+          done
+
+      - name: Validate translation files
+        run: |
+          set -e
+          found=0
+          while IFS= read -r f; do
+            found=1
+            msgfmt --check --output-file=/dev/null "$f"
+          done < <(find po -name "*.po" -type f)
+          if [ "$found" = "0" ]; then
+            echo "no .po files to check"
+          fi
+
       - name: Package
         run: |
           DESTDIR="$PWD/pkg" cmake --install build
