@@ -175,6 +175,7 @@ There are two variants:
 | Alt+1–9 | Launch numbered search result (apps and KRunner results) |
 | Alt+letter | Jump to category by mnemonic |
 | Arrow keys | Navigate results |
+| Ctrl+Shift+Arrow | Reorder highlighted favorite (favorites tab) |
 | Tab | Cycle through search results (apps + KRunner unified) |
 | Type anywhere | Start searching |
 | `t:command` | Run command in terminal |

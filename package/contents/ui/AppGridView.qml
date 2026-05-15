@@ -36,6 +36,10 @@ GridView {
     // Emitted when the user right-clicks an app.
     signal contextMenuRequested(int index, string storageId, string desktopFile)
 
+    // Emitted when a drag with .desktop URLs enters from outside; the host
+    // should switch to the favorites tab so the drop lands there.
+    signal externalFavoriteDragReceived()
+
     // Emitted when favorites order changes via drag reorder.
 
     // --- Shuffle animation state ---
@@ -474,13 +478,23 @@ GridView {
         parent: gridView
         anchors.fill: parent
         z: -1
-        enabled: gridView.favoritesActive
-                 && gridView.sharedFavoritesModel
-                 && !Plasmoid.configuration.sortFavoritesAlphabetically
+        // Always alive when the model is available so external file drags
+        // can ferry us to the favorites tab. Internal reorder is still gated
+        // on favoritesActive + non-alphabetical mode further down.
+        enabled: gridView.sharedFavoritesModel !== null
 
         property var pendingMoves: []
 
-        onEntered: drag => { pendingMoves = [] }
+        onEntered: drag => {
+            pendingMoves = []
+            // External drag (file URLs) on a non-favorites tab — switch to
+            // favorites so the drop targets the right model.
+            if (drag.hasUrls
+                    && (!gridView.favoritesActive
+                        || Plasmoid.configuration.sortFavoritesAlphabetically)) {
+                gridView.externalFavoriteDragReceived()
+            }
+        }
 
         onExited: {
             // Undo every move when leaving the area without dropping
