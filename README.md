@@ -123,6 +123,7 @@ The following packages are created and maintained by community members — we ap
 | Distribution | Package | Maintainer |
 |---|---|---|
 | openSUSE (OBS) | [plasma6-applet-appgrid](https://build.opensuse.org/package/show/home:JMarcosHP01/plasma6-applet-appgrid) | [@JMarcosHP01](https://build.opensuse.org/users/JMarcosHP01) |
+| Gentoo | [kde-misc/plasma6-applet-appgrid](https://github.com/mnalmahmud/mnalmahmud-overlay) | [@mnalmahmud](https://github.com/mnalmahmud) |
 
 If you maintain a package for AppGrid on your distribution and would like it listed here, please open an issue or pull request.
 
