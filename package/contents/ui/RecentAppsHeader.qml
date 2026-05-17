@@ -23,6 +23,9 @@ Column {
     property bool hideBottomLabel: false
     property bool showDividers: true
     property bool showTooltips: true
+    // Shared drag proxy from the plasmoid root so recent apps can also be
+    // dragged out to external targets (taskbar, panel, Dolphin, desktop).
+    property var dragProxy: null
 
     signal recentLaunched(string storageId)
     signal contextMenuRequested(string storageId, string desktopFile)
@@ -77,6 +80,10 @@ Column {
                     showTooltip: recentHeader.showTooltips
                     isCurrentItem: recentHeader.currentRecentIndex === recentDelegate.index
                     iconSize: recentHeader.iconSize
+                    storageId: recentDelegate.modelData
+                    desktopFile: recentDelegate.appData.desktopFile || ""
+                    dragProxy: recentHeader.dragProxy
+                    dragEnabled: true
                     onClicked: function(mouse) {
                         if (mouse.button === Qt.RightButton)
                             recentHeader.contextMenuRequested(recentDelegate.modelData, recentDelegate.appData.desktopFile || "")

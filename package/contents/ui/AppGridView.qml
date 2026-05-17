@@ -354,6 +354,7 @@ GridView {
         favoritesActive: gridView.favoritesActive
         showDividers: gridView.showDividers
         showTooltips: gridView.showTooltips
+        dragProxy: gridView.favoritesDragProxy
         onRecentLaunched: function(storageId) { gridView.recentLaunched(storageId) }
         onContextMenuRequested: function(storageId, desktopFile) {
             gridView.contextMenuRequested(-1, storageId, desktopFile)
@@ -430,13 +431,16 @@ GridView {
                    && gridView.showNewAppBadge && gridView.appsModel
                    ? gridView.appsModel.isNewApp(delegateRoot._sid) : false
             storageId: delegateRoot._sid
+            desktopFile: delegateRoot._fromShared
+                ? (delegateRoot._appData ? delegateRoot._appData.desktopFile || "" : "")
+                : (model.desktopFile || "")
             gridRow: model.index
-            // Drag is only available on the favorites tab; manual-ordering
-            // is incompatible with the alphabetical-sort option.
-            dragProxy: (gridView.favoritesActive
-                        && gridView.sharedFavoritesModel
-                        && !Plasmoid.configuration.sortFavoritesAlphabetically)
-                       ? gridView.favoritesDragProxy : null
+            // Drag-out is allowed from every view (taskbar/panel/Dolphin
+            // pinning); internal reorder is gated separately in the DropArea
+            // based on the source delegate's storageId lookup, so always
+            // enabling the drag here is safe.
+            dragProxy: gridView.favoritesDragProxy
+            dragEnabled: true
             onClicked: function(mouse) {
                 if (mouse.button === Qt.RightButton) {
                     const desktopFile = delegateRoot._fromShared
@@ -468,11 +472,11 @@ GridView {
 
     // -- Drag reorder handler --
     // Sits behind the delegates (z below them so clicks still reach icons)
-    // and reacts to drag positions originating from the shared favorites
-    // drag proxy. We rewrite the KAStats favorites order on every cursor
-    // movement; the grid's `move`/`moveDisplaced` transitions provide the
-    // animated reflow. If the drop ends outside, we replay the move log
-    // in reverse so the user sees no net change.
+    // and handles two drag flavours:
+    //   * Internal: drag.source is the shared favoritesDragProxy carrying a
+    //     reference to the source delegate via `sourceItem`. We re-order
+    //     favorites live as the cursor moves.
+    //   * External: .desktop file drag from Dolphin/elsewhere — add as fav.
     DropArea {
         id: reorderArea
         parent: gridView
@@ -485,11 +489,18 @@ GridView {
 
         property var pendingMoves: []
 
+        function _isOwnDrag(drag) {
+            return gridView.favoritesDragProxy
+                && drag.source === gridView.favoritesDragProxy
+        }
+
         onEntered: drag => {
             pendingMoves = []
-            // External drag (file URLs) on a non-favorites tab — switch to
-            // favorites so the drop targets the right model.
-            if (drag.hasUrls
+            // External drag (file URLs from Dolphin etc.) on a non-favorites
+            // tab — switch to favorites so the drop targets the right model.
+            // Skip our own drag-out events; those carry text/uri-list too but
+            // the user is dragging to leave AppGrid, not to add a favorite.
+            if (drag.hasUrls && !_isOwnDrag(drag)
                     && (!gridView.favoritesActive
                         || Plasmoid.configuration.sortFavoritesAlphabetically)) {
                 gridView.externalFavoriteDragReceived()
@@ -505,8 +516,7 @@ GridView {
         }
 
         onPositionChanged: drag => {
-            if (!gridView.favoritesDragProxy
-                    || drag.source !== gridView.favoritesDragProxy
+            if (!_isOwnDrag(drag)
                     || !gridView.favoritesDragProxy.sourceItem
                     || !gridView.sharedFavoritesModel) {
                 return
@@ -544,8 +554,7 @@ GridView {
 
         onDropped: drag => {
             // Internal reorder ended — KAStats persists itself.
-            if (gridView.favoritesDragProxy
-                    && drag.source === gridView.favoritesDragProxy) {
+            if (_isOwnDrag(drag)) {
                 pendingMoves = []
                 return
             }

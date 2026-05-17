@@ -25,14 +25,15 @@ PlasmoidItem {
     property GridWindow gridWindow: null
     property bool gridOpen: false
 
-    // Shared drag proxy for favorites reordering. The proxy carries the grab
-    // image and mime data while a delegate's DragHandler is active, so the
-    // visual drag follows the cursor independently of GridView delegate
-    // recycling. See DragController in AppGridView.qml.
-    property Item favoritesDragProxy: Item {
+    // Shared drag proxy carrying the grab image and mime data while a
+    // delegate's DragHandler is active. The same pattern Kickoff uses (see
+    // its `dragSource` in main.qml + BUG 449426) — keeps the platform DnD
+    // alive even when GridView recycles the dragged delegate.
+    readonly property Item favoritesDragProxy: Item {
+        id: dragSource
         property Item sourceItem
         Drag.dragType: Drag.Automatic
-        Drag.supportedActions: Qt.MoveAction
+        Drag.supportedActions: Qt.MoveAction | Qt.CopyAction | Qt.LinkAction
     }
 
     Component {

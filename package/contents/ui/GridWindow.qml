@@ -211,12 +211,26 @@ Window {
         }
     }
 
-    // Close when window loses focus (skip briefly after open to avoid LayerShell reconfig race)
+    // Close when window loses focus (skip briefly after open to avoid LayerShell
+    // reconfig race; also skip while a drag-out is in flight so the platform DnD
+    // isn't cancelled by the source window disappearing mid-drag).
     property bool closeOnDeactivate: false
+    readonly property bool _dragInFlight: appletInterface
+        && appletInterface.favoritesDragProxy
+        && appletInterface.favoritesDragProxy.Drag.active
     onActiveChanged: {
-        if (!active && visible && closeOnDeactivate) {
+        if (!active && visible && closeOnDeactivate && !_dragInFlight) {
             if (appletInterface)
                 appletInterface.closeWindow()
+        }
+    }
+    // When a drag-out finishes, close the window if it had lost focus during
+    // the drag. Without this, the window would linger after the user drops on
+    // an external target.
+    on_DragInFlightChanged: {
+        if (!_dragInFlight && !active && visible && closeOnDeactivate
+                && appletInterface) {
+            appletInterface.closeWindow()
         }
     }
 

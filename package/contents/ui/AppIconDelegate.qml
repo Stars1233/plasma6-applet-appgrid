@@ -25,12 +25,20 @@ Item {
     property bool hideLabel: false
     property real iconSize: Kirigami.Units.iconSizes.huge
     // Identity used by the favorites drag controller. Set externally;
-    // empty disables dragging.
+    // empty disables dragging when desktopFile is also empty.
     property string storageId: ""
+    // Absolute path to the .desktop file for this app. Used to advertise
+    // a text/uri-list MIME entry so external targets (taskbar, panel,
+    // Dolphin, desktop) accept the dropped app.
+    property string desktopFile: ""
     property int gridRow: -1
-    // External proxy that carries the grab image; set when dragging should
-    // be enabled in this view (favorites tab only).
+    // External drag proxy that carries the grab image and mime data while
+    // this delegate is being dragged. Same pattern as Kickoff's `dragSource`
+    // (see BUG 449426). When null, dragging is disabled entirely.
     property Item dragProxy: null
+    // True iff this delegate may be dragged. The proxy presence is necessary
+    // but not sufficient — internal reorder is gated on tab/sort context.
+    property bool dragEnabled: false
     signal clicked(var mouse)
 
     // Visual icon override for shuffle animation (set externally by the grid)
@@ -175,11 +183,17 @@ Item {
         Accessible.focusable: true
     }
 
-    // -- Drag handler for favorites reordering --
-    // Activates a shared external proxy carrying the grabbed icon image.
-    // Only enabled when `dragProxy` and `storageId` are set, which the
-    // favorites view does. Position-based reorder happens in the surrounding
-    // DropArea (see AppGridView).
+    // QUrl typed property for the .desktop file. The Drag.mimeData array form
+    // of text/uri-list requires QUrl values (not strings), so we bind once
+    // here so QML does the string → url conversion at the property boundary.
+    readonly property url desktopFileUrl: root.desktopFile.length > 0
+        ? "file://" + root.desktopFile : ""
+
+    // -- Drag handler for favorites reordering and external drag-out --
+    // Mirrors the Kickoff pattern: a delegate's DragHandler activates a
+    // shared proxy Item (kicker.favoritesDragProxy) that owns Drag.Automatic
+    // and the mime data. Internal reorder reads `text/x-appgrid-storage-id`;
+    // external drop targets (taskbar, panel, Dolphin) read `text/uri-list`.
     function _beginDrag(handler) {
         if (!root.dragProxy) return
         if (!handler.active) {
@@ -192,7 +206,13 @@ Item {
             if (!handler.active) return
             root.dragProxy.sourceItem = root
             root.dragProxy.Drag.imageSource = result.url
-            root.dragProxy.Drag.mimeData = { "text/x-appgrid-storage-id": root.storageId }
+            const mime = {}
+            if (root.storageId.length > 0)
+                mime["text/x-appgrid-storage-id"] = root.storageId
+            if (root.desktopFileUrl.toString().length > 0) {
+                mime["text/uri-list"] = [root.desktopFileUrl]
+            }
+            root.dragProxy.Drag.mimeData = mime
             root.dragProxy.Drag.active = true
         })
     }
@@ -200,7 +220,8 @@ Item {
     DragHandler {
         id: pointerDrag
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus
-        enabled: root.dragProxy !== null && root.storageId.length > 0
+        enabled: root.dragEnabled && root.dragProxy !== null
+                 && (root.storageId.length > 0 || root.desktopFile.length > 0)
         target: null
         // Higher than the Qt default to avoid accidental drags on jittery
         // touchpads and high-DPI scrolling.

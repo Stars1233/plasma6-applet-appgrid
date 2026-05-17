@@ -232,6 +232,10 @@ AppGrid uses a C++ backend for app discovery, window management, blur effects, a
 
 Switch to the favorites tab and drag any icon to its new position. The grid reflows as you drag; release to drop. Dragging near the top or bottom auto-scrolls. Order is saved automatically. To remove a favorite, right-click it and pick "Remove from Favorites".
 
+**Can I drag apps from AppGrid to my taskbar, panel, or desktop?**
+
+Yes. Drag any app icon out of AppGrid onto the KDE task manager (to pin it), the panel (to add a launcher), the desktop (to place an icon), or a Dolphin window (to create a `.desktop` shortcut). The drag carries a standard `text/uri-list` reference to the app's `.desktop` file, so any KDE drop target that accepts launcher files will accept it.
+
 **Where are favorites stored?**
 
 AppGrid stores favorites in KDE's activity-aware favorites backend (`KAStatsFavoritesModel`, backed by `KActivitiesStats` from KDE Frameworks). Each AppGrid instance writes to its own namespace (`dev.xarbit.appgrid.favorites.instance-<id>`), which means:

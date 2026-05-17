@@ -17,14 +17,17 @@ PlasmoidItem {
     preferredRepresentation: compactRepresentation
 
     activationTogglesExpanded: true
-    hideOnWindowDeactivate: true
+    // Keep the popup open while a drag-out is in flight so the source surface
+    // doesn't disappear mid-drag (which would cancel the platform DnD before
+    // the drop target accepts it).
+    hideOnWindowDeactivate: !(favoritesDragProxy.Drag.active)
 
-    // Shared drag proxy for favorites reordering — see same property in the
-    // standalone variant's main.qml for details.
-    property Item favoritesDragProxy: Item {
+    // Shared drag proxy — see standalone main.qml for the rationale.
+    readonly property Item favoritesDragProxy: Item {
+        id: dragSource
         property Item sourceItem
         Drag.dragType: Drag.Automatic
-        Drag.supportedActions: Qt.MoveAction
+        Drag.supportedActions: Qt.MoveAction | Qt.CopyAction | Qt.LinkAction
     }
 
     Plasmoid.icon: Plasmoid.configuration.useCustomButtonImage
