@@ -81,9 +81,16 @@ Kirigami.ShadowedRectangle {
     property bool nativePopup: false
 
     // -- Cell size (icon-based, no circular dependency) --
+    //
+    // estCellHeight must match AppGridView.cellHeight when labels are visible
+    // (iconSize + gridUnit*3 + smallSpacing*2). Earlier it was a gridUnit too
+    // small per row, which accumulated across rows and clipped the bottom
+    // row of icons. Labels-hidden case (favorites with hideLabelsOnFavorites)
+    // uses cellWidth which is smaller, so estimating the worst case here
+    // just leaves a sliver of padding on that one tab.
     readonly property real estCellWidth: gridIconSize + Kirigami.Units.gridUnit * 2
                                          + Kirigami.Units.smallSpacing * 2
-    readonly property real estCellHeight: gridIconSize + Kirigami.Units.gridUnit * 2
+    readonly property real estCellHeight: gridIconSize + Kirigami.Units.gridUnit * 3
                                           + Kirigami.Units.smallSpacing * 2
 
     // -- Panel sizing --
