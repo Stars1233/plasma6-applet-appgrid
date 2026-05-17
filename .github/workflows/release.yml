@@ -103,27 +103,23 @@ jobs:
   fedora:
     name: Fedora (${{ matrix.arch }})
     needs: [version, tests]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         arch: [x86_64, aarch64]
         include:
           - arch: x86_64
+            runner: ubuntu-latest
             platform: linux/amd64
           - arch: aarch64
+            runner: ubuntu-24.04-arm
             platform: linux/arm64
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Set up QEMU
-        if: matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Build and package
         run: |
@@ -165,7 +161,7 @@ jobs:
   deb-packages:
     name: ${{ matrix.distro.name }} (${{ matrix.arch.name }})
     needs: [version, tests]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch.runner }}
     strategy:
       fail-fast: false
       matrix:
@@ -175,19 +171,13 @@ jobs:
           - { name: "Ubuntu 26.04", image: "ubuntu:26.04", id: "ubuntu-26.04" }
           - { name: "Debian 13", image: "debian:13", id: "debian-13" }
         arch:
-          - { name: "x86_64", platform: "linux/amd64", deb: "amd64" }
-          - { name: "aarch64", platform: "linux/arm64", deb: "arm64" }
+          - { name: "x86_64", runner: "ubuntu-latest", platform: "linux/amd64", deb: "amd64" }
+          - { name: "aarch64", runner: "ubuntu-24.04-arm", platform: "linux/arm64", deb: "arm64" }
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Set up QEMU
-        if: matrix.arch.name == 'aarch64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Build and package
         env:
@@ -241,27 +231,23 @@ jobs:
   universal:
     name: Universal package (${{ matrix.arch }})
     needs: [version, tests]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         arch: [x86_64, aarch64]
         include:
           - arch: x86_64
+            runner: ubuntu-latest
             platform: linux/amd64
           - arch: aarch64
+            runner: ubuntu-24.04-arm
             platform: linux/arm64
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Set up QEMU
-        if: matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Build and package
         # Build inside Fedora 42. KDE bumped its library SONAME chain to
