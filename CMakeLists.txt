@@ -21,23 +21,12 @@ option(BUILD_TESTING "Build the test suite" OFF)
 # updates. The universal tarball CI job turns it ON.
 option(APPGRID_UNIVERSAL_BUILD "Compile in the in-app update checker for universal tarball releases" OFF)
 
-# Version string baked into the binary for the update checker and the i:
-# view. Three cases, in priority order:
-#
-#  1. APPGRID_VERSION_OVERRIDE explicitly passed (-DAPPGRID_VERSION_OVERRIDE=…)
-#     wins. CI uses this to inject the version it computes itself, so the
-#     binary string matches CI's tarball filename / release tag exactly.
-#
-#  2. Otherwise, if HEAD is exactly a release tag, use CMAKE_PROJECT_VERSION
-#     unchanged ("1.8.0"). Distro PKGBUILDs and CI release builds land here.
-#
-#  3. Otherwise it's a local dev build between releases — derive
-#     "${BASE}-dev.<commits-since-last-tag>+self.g<sha>". The "+self.g…"
-#     build-metadata suffix marks the binary as a hand-built one (not a CI
-#     artifact); per semver, build metadata is ignored for ordering so the
-#     update-indicator behavior is identical to the CI build of the same
-#     git state. Useful in bug reports for telling local vs CI binaries
-#     apart at a glance.
+# Resolved version baked into the binary (update checker + i: view):
+#   1. APPGRID_VERSION_OVERRIDE wins (CI injects exact tag here).
+#   2. On a release tag → CMAKE_PROJECT_VERSION (clean "1.8.0").
+#   3. Local dev → "${BASE}-dev.<N>+self.g<sha>". The +self.g… build-metadata
+#      tail flags hand-built binaries vs CI artifacts; semver ignores build
+#      metadata for ordering so update behavior matches.
 set(APPGRID_VERSION_OVERRIDE "" CACHE STRING
     "Explicit version string to bake into the binary (overrides git-derived)")
 if(APPGRID_VERSION_OVERRIDE)
@@ -53,7 +42,6 @@ else()
             RESULT_VARIABLE _appgrid_on_tag
         )
         if(NOT _appgrid_on_tag EQUAL 0)
-            # Find the most recent tag; count commits since (matches CI).
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

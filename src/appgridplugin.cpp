@@ -437,9 +437,8 @@ QVariantList AppGridPlugin::listDirectory(const QString &path)
 QVariantMap AppGridPlugin::systemInfo()
 {
     QVariantMap info;
-    // Use the CMake-baked version string (carries the -dev.N+g<sha> suffix
-    // on dev builds) rather than the plain version from metadata.json, so
-    // the i: view shows exactly what binary the user is running.
+    // APPGRID_VERSION carries the dev-suffix on local builds; metadata.json's
+    // version doesn't, so prefer the bake-in to reflect the running binary.
     info[QStringLiteral("appgridVersion")] = QString::fromUtf8(APPGRID_VERSION);
     info[QStringLiteral("plasmaVersion")] = QStringLiteral(PLASMA_VERSION_STRING);
     info[QStringLiteral("kfVersion")] = QStringLiteral(KCOREADDONS_VERSION_STRING);

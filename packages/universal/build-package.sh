@@ -37,17 +37,12 @@ PAYLOAD_ROOT="$PKG_ROOT/files"
 
 mkdir -p "$PKG_ROOT" "$PAYLOAD_ROOT"
 
-# Install the build tree into the payload, using /.local as the prefix so the
-# resulting tree maps cleanly under the user's ~/.local on extract.
+# Install into files/, prefixed with /.local so the tree maps to ~/.local on extract.
 DESTDIR="$PAYLOAD_ROOT/__prefix__" \
     cmake --install "$BUILD_DIR" --prefix "/.local"
-
-# Move the install tree out of the prefix wrapper to land at $PAYLOAD_ROOT
-# (so SCRIPT_DIR/files/lib/... matches ~/.local/lib/...).
 mv "$PAYLOAD_ROOT/__prefix__/.local/"* "$PAYLOAD_ROOT/"
 rm -rf "$PAYLOAD_ROOT/__prefix__"
 
-# Bundle the installer scripts + dep declarations next to the payload.
 cp "$PROJECT_ROOT/packages/universal/install.sh"   "$PKG_ROOT/"
 cp "$PROJECT_ROOT/packages/universal/install.py"   "$PKG_ROOT/"
 cp "$PROJECT_ROOT/packages/universal/uninstall.sh" "$PKG_ROOT/"
@@ -57,8 +52,7 @@ cp "$PROJECT_ROOT/packages/universal/INSTALL.TXT"  "$PKG_ROOT/"
 chmod +x "$PKG_ROOT/install.sh" "$PKG_ROOT/install.py" \
          "$PKG_ROOT/uninstall.sh" "$PKG_ROOT/uninstall.py"
 
-# Version stamp — install.py reads this to detect upgrade / downgrade /
-# reinstall of an existing user-local install.
+# install.py reads this to detect upgrade / reinstall / downgrade.
 echo "$VERSION" > "$PKG_ROOT/VERSION"
 
 # Per-package README explaining what's in this tarball.
@@ -108,18 +102,12 @@ removes only the files it placed there.
   detect upgrade vs. reinstall vs. downgrade of an existing install)
 EOF
 
-# Manifest of payload files (used by uninstall.sh too, written at install time).
 ( cd "$PAYLOAD_ROOT" && find . -type f -printf "%P\n" | sort ) > "$PKG_ROOT/MANIFEST"
-
-# Integrity checksums over the payload (install.sh verifies these).
 ( cd "$PKG_ROOT" && \
     find files -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS )
 
-# Final tarball.
 TARBALL="$OUT_DIR/${PKG_NAME}.tar.gz"
 ( cd "$STAGE_DIR" && tar -czf "$TARBALL" "$PKG_NAME" )
-
-# SHA256 of the tarball itself, for release-page integrity.
 ( cd "$OUT_DIR" && sha256sum "${PKG_NAME}.tar.gz" > "${PKG_NAME}.tar.gz.sha256" )
 
 echo "Built: $TARBALL"

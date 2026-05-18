@@ -246,9 +246,7 @@ KCMUtils.SimpleKCM {
             enabled: showCategoryBar.checked
         }
 
-        // Universal-build only: in-app update check. Distro-package builds
-        // expose `Plasmoid.isUniversalBuild === false` so this row stays
-        // hidden — their package manager handles updates.
+        // Hidden on distro-package builds — package manager handles updates.
         QQC2.CheckBox {
             id: checkForUpdates
             visible: Plasmoid.isUniversalBuild === true

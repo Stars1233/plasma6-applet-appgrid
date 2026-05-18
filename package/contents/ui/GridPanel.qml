@@ -80,22 +80,15 @@ Kirigami.ShadowedRectangle {
     // When used as a native Plasma popup, skip custom chrome (Plasma provides its own)
     property bool nativePopup: false
 
-    // -- Cell size (icon-based, no circular dependency) --
-    //
-    // estCellHeight must match AppGridView.cellHeight when labels are visible
-    // (iconSize + gridUnit*3 + smallSpacing*2). Earlier it was a gridUnit too
-    // small per row, which accumulated across rows and clipped the bottom
-    // row of icons. Labels-hidden case (favorites with hideLabelsOnFavorites)
-    // uses cellWidth which is smaller, so estimating the worst case here
-    // just leaves a sliver of padding on that one tab.
+    // Icon-based estimate avoids the circular dependency panel width →
+    // grid cellWidth → grid width → panel width. estCellHeight must match
+    // AppGridView.cellHeight with labels visible (gridUnit too small per
+    // row would accumulate and clip the bottom row).
     readonly property real estCellWidth: gridIconSize + Kirigami.Units.gridUnit * 2
                                          + Kirigami.Units.smallSpacing * 2
     readonly property real estCellHeight: gridIconSize + Kirigami.Units.gridUnit * 3
                                           + Kirigami.Units.smallSpacing * 2
 
-    // -- Panel sizing --
-    // Always use icon-based cell estimates to avoid circular dependency
-    // (panel width → grid cellWidth → grid width → panel width).
     readonly property real panelMargin: nativePopup ? Kirigami.Units.largeSpacing : Kirigami.Units.largeSpacing * 2
     readonly property real headerHeight: Kirigami.Units.gridUnit * 5
     readonly property real panelWidth: estCellWidth * columns + panelMargin * 2
@@ -703,9 +696,6 @@ Kirigami.ShadowedRectangle {
                 showDividers: panel.cfgShowDividers
                 showTooltips: panel.cfgShowTooltips
                 showNewAppBadge: panel.cfgShowNewAppBadge
-                // Same shared DragSource as AppGridView so drag-to-favorites
-                // / drag-to-taskbar / drag-to-Dolphin all work from the
-                // by-category view too.
                 dragSource: panel.appletInterface
                                     ? panel.appletInterface.dragSource : null
                 showRecents: panel.cfgShowRecentApps

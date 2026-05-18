@@ -21,16 +21,14 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing
     readonly property bool showLabels: Plasmoid.configuration.showActionLabels
 
-    // Update indicator — only present on universal builds (distro packages
-    // surface their own update notifications via the system package manager).
+    // Update indicator — universal builds only (Plasmoid.updateChecker is
+    // null on distro packages).
     PlasmaComponents.ToolButton {
         id: updateButton
         visible: Plasmoid.updateChecker !== null
                  && Plasmoid.updateChecker.enabled
                  && Plasmoid.updateChecker.hasUpdate
         icon.name: "system-software-update"
-        // Tint the update icon with Kirigami's neutral (attention) color so
-        // it stands out from the monochrome session buttons next to it.
         icon.color: Kirigami.Theme.neutralTextColor
         text: powerButtons.showLabels
               ? i18nd("dev.xarbit.appgrid", "Update available")

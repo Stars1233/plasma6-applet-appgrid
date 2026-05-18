@@ -108,13 +108,9 @@ class AppGridPlugin : public Plasma::Applet {
     Q_PROPERTY(KRunner::ResultsModel *runnerSourceModel READ runnerSourceModel CONSTANT)
     Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
     Q_PROPERTY(bool isWayland READ isWayland CONSTANT)
-    // True when compiled with APPGRID_UNIVERSAL_BUILD. QML uses this to
-    // hide the "Check for updates" setting on distro-package builds.
-    // systemInfo() surfaces this as the "Install" row in the i: view.
+    // Drives QML's "Check for updates" visibility + i: view "Install" row.
     Q_PROPERTY(bool isUniversalBuild READ isUniversalBuild CONSTANT)
 #ifdef APPGRID_UNIVERSAL_BUILD
-    // Only exposed on universal builds — non-universal builds don't carry
-    // QtNetwork or this class at all.
     Q_PROPERTY(UpdateChecker *updateChecker READ updateChecker CONSTANT)
 #endif
 

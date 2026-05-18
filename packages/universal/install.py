@@ -35,28 +35,19 @@ VERSION_FILE = SCRIPT_DIR / "VERSION"
 USER_PREFIX = Path.home() / ".local"
 USER_MANIFEST = USER_PREFIX / "share" / "appgrid" / "MANIFEST"
 
-# Hardening constants -----------------------------------------------------
-# Maximum file count and total payload size we'll accept. A sane AppGrid
-# install is a few hundred files / under 50 MB; reject anything wildly
-# larger as a sign the tarball is not what we think it is.
 MAX_PAYLOAD_FILES = 5000
-MAX_PAYLOAD_BYTES = 100 * 1024 * 1024  # 100 MiB
-# SHA256SUMS line: exactly 64 lowercase hex chars, whitespace, then path.
+MAX_PAYLOAD_BYTES = 100 * 1024 * 1024
 SHA256SUMS_RE = re.compile(r"^([0-9a-f]{64})\s+(\S.*)$")
-# Version string accepted in VERSION file. Same shape as the in-binary
-# APPGRID_VERSION (semver-ish, optional v prefix, optional -pre+build tail).
 VERSION_RE = re.compile(r"^v?\d+(\.\d+){0,3}(-[0-9A-Za-z.\-]+)?(\+[0-9A-Za-z.\-]+)?$")
-# Absolute paths the installer is allowed to place outside USER_PREFIX.
-# Hardcoded allowlist — anything else flagged in MANIFEST is rejected to
-# stop a tampered manifest from making uninstall.py touch unrelated files.
 
-# Qt's default plugin search path is baked at Qt build time to /usr/lib/qt6/
-# plugins; without help it never looks under ~/.local/. plasma-workspace
-# sources every *.sh in this directory at session start, so dropping a tiny
-# script here adds our plugin dir to QT_PLUGIN_PATH for the whole session.
+# Qt's plugin search path is baked at build time to /usr/lib/qt6/plugins
+# and doesn't look under ~/.local/. plasma-workspace sources every *.sh
+# in this dir at session start, so we drop a tiny script there.
 PLASMA_ENV_DIR = Path.home() / ".config" / "plasma-workspace" / "env"
 PLASMA_ENV_FILE = PLASMA_ENV_DIR / "appgrid-user-local.sh"
 
+# Allowlist of absolute paths uninstall is permitted to touch. Tampered
+# MANIFEST entries pointing anywhere else are rejected.
 ALLOWED_ABS_EXTRAS = frozenset({PLASMA_ENV_FILE})
 PLASMA_ENV_CONTENT = """\
 #!/bin/sh
@@ -92,12 +83,7 @@ def confirm(prompt: str, *, assume_yes: bool) -> bool:
     return reply in ("y", "yes")
 
 
-# -- Hardening helpers -----------------------------------------------------
-
 def refuse_if_root() -> None:
-    """User-local install — root has the wrong $HOME and shouldn't ever
-    own files under /root/.local. Fail loudly instead of silently doing
-    the wrong thing."""
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         die("refusing to install as root — the universal package goes into "
             "the invoking user's ~/.local/. Run as your normal user; sudo "
@@ -105,8 +91,6 @@ def refuse_if_root() -> None:
 
 
 def validate_home() -> None:
-    """Defense against $HOME pointing somewhere insane (empty, /, /tmp).
-    If we install under those, uninstall later could nuke unrelated files."""
     home = Path.home()
     if not home.is_absolute() or home == Path("/") or str(home) == "":
         die(f"refusing to install: $HOME ({home}) is not a sane user "
@@ -114,10 +98,7 @@ def validate_home() -> None:
 
 
 def safe_rel(rel: str) -> Path:
-    """Resolve a relative payload path under USER_PREFIX and verify it
-    stays inside. Defends against attacker-supplied paths containing `..`
-    that would escape into the rest of the filesystem.
-    """
+    """Reject `..` traversal and resolve under USER_PREFIX."""
     candidate = (USER_PREFIX / rel).resolve()
     base = USER_PREFIX.resolve()
     try:
@@ -130,9 +111,7 @@ def safe_rel(rel: str) -> Path:
 
 
 def safe_extra(abs_path: str) -> Path:
-    """Validate that an absolute path is on our allowlist. The installer
-    only ever drops one file outside USER_PREFIX (the plasma-workspace env
-    script); any other absolute path in MANIFEST is treated as tampering."""
+    """Reject absolute paths not in ALLOWED_ABS_EXTRAS."""
     candidate = Path(abs_path).resolve()
     if candidate not in {p.resolve() for p in ALLOWED_ABS_EXTRAS}:
         die(f"refusing to handle absolute path outside the allowlist: "
@@ -195,13 +174,11 @@ def detect_distro(distros: dict[str, dict]) -> tuple[str, dict]:
                     return name, table
         return None
 
-    # 1-2: VARIANT_ID exact then prefix.
     for matcher in (_match_exact, _match_prefix):
         result = matcher(variant)
         if result:
             return result
 
-    # 3-6: ID then ID_LIKE, exact then prefix for each list.
     for ids in (primary, likes):
         for matcher in (_match_exact, _match_prefix):
             for token in ids:
@@ -212,30 +189,15 @@ def detect_distro(distros: dict[str, dict]) -> tuple[str, dict]:
     return "generic", distros.get("generic", {})
 
 
-# -- Runtime checks --------------------------------------------------------
-
 def plasma_present() -> bool:
-    """Whether Plasma 6 looks usable on this system.
-
-    We probe for the `plasmashell` binary on PATH. It's the Plasma session
-    process and ships with every Plasma install; if it's missing, our
-    plasmoid has nothing to load into. The Plasma install location doesn't
-    matter — we install to ~/.local/ regardless, and Plasma auto-discovers
-    user-local plasmoids alongside system ones.
-    """
+    """plasmashell on PATH = Plasma 6 session bin available."""
     return shutil.which("plasmashell") is not None
 
 
 def unresolved_dependencies() -> list[str]:
-    """Run `ldd` on the bundled .so files and return any libraries the
-    dynamic linker can't resolve. Empty list means everything is satisfied.
-
-    Catches the case where Plasma is installed (plasmashell on PATH) but
-    a specific library AppGrid links against is missing — e.g. an older
-    distro without `libPlasmaActivities` packaged separately.
-    """
+    """ldd each bundled .so; return libs the dynamic linker can't resolve."""
     if not shutil.which("ldd"):
-        return []  # can't probe; let install proceed and fail loudly later
+        return []
 
     missing: set[str] = set()
     for so in PAYLOAD_DIR.rglob("*.so"):
@@ -245,7 +207,6 @@ def unresolved_dependencies() -> list[str]:
         except OSError:
             continue
         for line in out.splitlines():
-            # ldd line format: "\tlibFoo.so.6 => not found"
             line = line.strip()
             if "=> not found" in line:
                 lib = line.split("=>")[0].strip()
@@ -254,21 +215,13 @@ def unresolved_dependencies() -> list[str]:
     return sorted(missing)
 
 
-# -- Existing-install detection --------------------------------------------
-
 def package_version() -> str:
-    """Version baked into this package (written by build-package.sh).
-
-    Validated against VERSION_RE so a malformed VERSION file (oversize,
-    control characters, format-string bait) can't reach the manifest or
-    user-facing messages.
-    """
+    """Read + validate the VERSION file stamped by build-package.sh."""
     if not VERSION_FILE.is_file():
         return "unknown"
     raw = VERSION_FILE.read_text(errors="replace").strip()
     if not raw:
         return "unknown"
-    # Hard cap to defeat a pathologically large VERSION file before regex.
     if len(raw) > 64 or "\n" in raw:
         die(f"refusing to install: VERSION file is malformed (length "
             f"{len(raw)} or contains newlines).")
@@ -279,14 +232,7 @@ def package_version() -> str:
 
 
 def read_existing_manifest() -> tuple[str, set[str], set[str]] | None:
-    """Returns (installed_version, rel_paths, abs_paths) or None if no prior install.
-
-    Every entry is validated before being trusted — relative paths must
-    stay inside USER_PREFIX (no `..` traversal, no absolute paths), and
-    absolute extras must match the allowlist. A tampered MANIFEST that
-    tries to make a later remove_orphans() unlink unrelated files is
-    rejected here at read time.
-    """
+    """Returns (version, rel_paths, abs_paths) or None. Validates each entry."""
     if not USER_MANIFEST.is_file():
         return None
     version = "unknown"
@@ -302,16 +248,16 @@ def read_existing_manifest() -> tuple[str, set[str], set[str]] | None:
             continue
         if line.startswith("@"):
             entry = line[1:]
-            safe_extra(entry)  # dies if not allowlisted
+            safe_extra(entry)
             abs_.add(entry)
         else:
-            safe_rel(line)  # dies on traversal / absolute path
+            safe_rel(line)
             rel.add(line)
     return version, rel, abs_
 
 
 def version_tuple(v: str) -> tuple[int, ...]:
-    """Lenient numeric tuple — strips leading 'v', non-numeric tail; for ordering only."""
+    """Numeric tuple for ordering; strips leading 'v' and non-numeric tail."""
     parts: list[int] = []
     for seg in v.lstrip("v").split("."):
         num = ""
@@ -335,17 +281,10 @@ def describe_transition(old: str, new: str) -> str:
     return f"{old} -> {new}" + (" (downgrade)" if version_tuple(new) < version_tuple(old) else "")
 
 
-# -- Integrity check -------------------------------------------------------
-
 def verify_sha256sums() -> None:
-    """Verify SHA256SUMS in SCRIPT_DIR against the payload files.
-
-    Mandatory — refuses to proceed if SHA256SUMS is missing. Validates
-    each line against a strict format (64-char lowercase hex + path), and
-    after verifying the listed files, walks the payload tree to confirm
-    every file in files/ is mentioned. This defends against an attacker
-    dropping extra payload files (e.g. a malicious .so) that wouldn't be
-    caught by digest verification of only the listed entries.
+    """Verify SHA256SUMS; refuse install if any listed file mismatches or
+    any payload file is present but not listed (defeats attacker dropping
+    extra unverified binaries into files/).
     """
     if not SHA256SUMS_FILE.is_file():
         die(f"missing SHA256SUMS in this package ({SHA256SUMS_FILE}). "
@@ -363,7 +302,6 @@ def verify_sha256sums() -> None:
             die(f"malformed SHA256SUMS line {n}: {raw!r}\n"
                 f"  expected: <64 hex chars> <whitespace> <path>")
         expected, rel = match.group(1), match.group(2).strip()
-        # Reject path traversal in the manifest itself.
         if any(part == ".." for part in Path(rel).parts) or Path(rel).is_absolute():
             die(f"SHA256SUMS line {n} contains an unsafe path: {rel!r}")
         target = SCRIPT_DIR / rel
@@ -375,9 +313,6 @@ def verify_sha256sums() -> None:
                 f"  expected: {expected}\n  actual:   {digest}")
         listed_paths.add(rel)
 
-    # Coverage check: every file under PAYLOAD_DIR must appear in SHA256SUMS.
-    # Otherwise an attacker with write access to files/ could slip in extra
-    # binaries that the digest pass never sees.
     payload_paths = {str(p.relative_to(SCRIPT_DIR))
                      for p in PAYLOAD_DIR.rglob("*") if p.is_file()}
     uncovered = payload_paths - listed_paths
@@ -387,28 +322,18 @@ def verify_sha256sums() -> None:
             + "\nRefusing to install — the package has unverified files.")
 
 
-# -- Install ---------------------------------------------------------------
-
 def install_payload(*, dry_run: bool) -> list[Path]:
-    """Copy PAYLOAD_DIR/* into USER_PREFIX/*. Returns the list of relative
-    paths actually written. Refuses symlinks anywhere in the payload and
-    validates each destination path stays under USER_PREFIX.
-    """
+    """Copy PAYLOAD_DIR/* into USER_PREFIX/*. Refuse symlinks (escape vector
+    via shutil.copy2 following them) and traversal paths."""
     installed: list[Path] = []
     total_bytes = 0
     for src in PAYLOAD_DIR.rglob("*"):
-        # Refuse symlinks — they're our biggest escape vector. shutil.copy2
-        # follows them, so a symlink under files/ pointing at /etc/passwd
-        # (or anywhere else) would copy that target into USER_PREFIX. None
-        # of our legitimate payloads contain symlinks.
         if src.is_symlink():
             die(f"refusing to install: payload contains a symlink: "
                 f"{src.relative_to(PAYLOAD_DIR)}")
         if not src.is_file():
             continue
         rel = src.relative_to(PAYLOAD_DIR)
-        # Validate destination stays under USER_PREFIX even if the relative
-        # path has been crafted with `..` segments.
         target = safe_rel(str(rel))
         total_bytes += src.stat().st_size
         if total_bytes > MAX_PAYLOAD_BYTES:
@@ -427,39 +352,23 @@ def install_payload(*, dry_run: bool) -> list[Path]:
 
 
 def write_plasma_env() -> tuple[Path, bool]:
-    """Drop the plasma-workspace env script so QT_PLUGIN_PATH includes ~/.local.
-
-    Returns (path, was_new). was_new is True only on first install — on
-    upgrade/reinstall the script is already in place and the running session
-    already has QT_PLUGIN_PATH set, so plasmashell can just be restarted
-    without a full log-out.
-    """
+    """Write the plasma-workspace env script. Returns (path, was_new) so the
+    caller can tell first-install from upgrade (first install requires a
+    full log-out to source QT_PLUGIN_PATH; upgrade just needs plasmashell)."""
     was_new = not PLASMA_ENV_FILE.exists()
     PLASMA_ENV_DIR.mkdir(parents=True, exist_ok=True)
     PLASMA_ENV_FILE.write_text(PLASMA_ENV_CONTENT)
-    # 0o600: the file is sourced (not exec'd) by plasma-workspace as our
-    # own user — no need for exec bits or for other users to read it.
     PLASMA_ENV_FILE.chmod(0o600)
     return PLASMA_ENV_FILE, was_new
 
 
 def write_manifest(installed: list[Path], extras: list[Path], version: str) -> None:
-    """Record installed paths.
-
-    `installed` is the payload (relative to USER_PREFIX so uninstall can
-    rebuild absolute paths). `extras` are absolute paths to files we placed
-    outside USER_PREFIX (e.g. the plasma-workspace env script) and need to
-    track separately, since the manifest's primary semantic is "relative to
-    USER_PREFIX".
-
-    The leading `# version:` header lets a later install detect upgrade vs.
-    reinstall vs. downgrade without consulting any other state.
-    """
+    """Write MANIFEST. Format: `# version: X.Y.Z` header, then relative
+    payload paths, then `@` + absolute path for each extra outside USER_PREFIX."""
     USER_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     lines = [f"# version: {version}"]
     lines.extend(str(p) for p in sorted(installed))
     for extra in extras:
-        # Tag absolute paths so uninstall.py can tell them apart on read.
         lines.append(f"@{extra}")
     USER_MANIFEST.write_text("\n".join(lines) + "\n")
 
@@ -467,16 +376,9 @@ def write_manifest(installed: list[Path], extras: list[Path], version: str) -> N
 def remove_orphans(existing_rel: set[str], existing_abs: set[str],
                    new_rel: set[str], new_abs: set[str],
                    *, dry_run: bool) -> int:
-    """Delete files the prior install placed that this version no longer ships.
-
-    Same-path overwrites are handled by copy2 / write_text later; only the
-    set difference needs explicit removal. Returns the count removed.
-    """
+    """Delete files the prior install placed that this version no longer ships."""
     removed = 0
     for rel in sorted(existing_rel - new_rel):
-        # safe_rel re-validates: even though MANIFEST was checked on read,
-        # repeating the check on every unlink prevents a regression elsewhere
-        # from sneaking a bad path through.
         target = safe_rel(rel)
         if not target.exists() and not target.is_symlink():
             continue
@@ -503,8 +405,6 @@ def refresh_service_cache() -> None:
                        stderr=subprocess.DEVNULL, check=False)
 
 
-# -- Main ------------------------------------------------------------------
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     parser.add_argument("-y", "--yes", action="store_true",
@@ -516,8 +416,6 @@ def main() -> int:
                         help="print what would happen without writing files")
     args = parser.parse_args()
 
-    # Hardening preflight — fail before touching anything if running
-    # as the wrong user or under a degenerate $HOME.
     refuse_if_root()
     validate_home()
 
@@ -642,11 +540,8 @@ def main() -> int:
         info("install. Plasmashell still needs to restart so it drops the old .so")
         info("from memory and loads the new one.")
         info()
-        # Restart only when explicitly requested via -r/--restart-plasmashell.
-        # -y alone deliberately does NOT restart (unattended runs stay
-        # non-destructive). Interactive runs without -y prompt the user;
-        # default no, since restarting plasmashell blanks the panel briefly
-        # and closes any open AppGrid popup.
+        # -y deliberately does NOT restart (unattended = non-destructive);
+        # only -r asks for the restart explicitly.
         if args.restart_plasmashell:
             should_restart = True
         elif args.yes:

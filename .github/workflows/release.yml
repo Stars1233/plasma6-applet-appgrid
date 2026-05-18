@@ -250,14 +250,10 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Build and package
-        # Build inside Fedora 42. KDE bumped its library SONAME chain to
-        # version 7 in Plasma ~6.4 (libPlasma.so.7, libPlasmaActivities.so.7,
-        # …). A tarball built against the older SONAME 6 (e.g. Debian 13
-        # trixie's Plasma 6.1) won't load on any newer distro that has
-        # bumped to 7 — which is most of our actual target audience: KDE
-        # Linux, Kinoite, Bazzite, Aurora, Kalpa, SteamOS, Arch, Tumbleweed.
-        # Fedora 42 is the oldest mainstream stable distro shipping SONAME
-        # 7, so building there gives the broadest reach on current Plasma.
+        # Fedora 42 = oldest mainstream stable shipping Plasma libs at
+        # SONAME 7 (KDE bumped from 6 around Plasma 6.4). Built here so the
+        # tarball loads on KDE Linux / Kinoite / Bazzite / Aurora / Kalpa /
+        # SteamOS / Arch / Tumbleweed. Excludes Plasma <= 6.3 users.
         run: |
           docker run --rm --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
@@ -275,10 +271,9 @@ jobs:
                 plasma-activities-devel plasma-workspace-devel \
                 gettext
               cd /workspace
-              # Force the plugin install path to lib/qt6/plugins/. Fedora
-              # ECM defaults to lib64/qt6/plugins/ (multiarch on 64-bit),
-              # but install.py + the plasma-workspace env script wire
-              # QT_PLUGIN_PATH to ~/.local/lib/qt6/plugins/ only.
+              # Pin plugin path: install.py's env script only adds
+              # ~/.local/lib/qt6/plugins/ to QT_PLUGIN_PATH; ECM's default
+              # lib64/ won't be found.
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
                   -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
