@@ -395,8 +395,6 @@ jobs:
             -e ARCH="${{ matrix.arch }}" \
             fedora:42 bash -c '
               set -e
-              dnf clean all
-              dnf makecache --refresh
               dnf install -y \
                 cmake extra-cmake-modules gcc-c++ make \
                 qt6-qtbase-devel qt6-qtdeclarative-devel \
@@ -405,43 +403,14 @@ jobs:
                 kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
                 plasma-activities-devel plasma-workspace-devel \
                 gettext
-              # Diagnostic: dump everything CMake might look at to figure
-              # out why find_package(Qt6) keeps failing on GH-hosted runners.
-              echo "=== arch / cmake version ==="
-              uname -m
-              cmake --version
-              echo "=== qt6-qtbase-devel files (Qt6*.cmake) ==="
-              rpm -ql qt6-qtbase-devel | grep -iE "Qt6.*\.cmake$" | head -30
-              echo "=== find Qt6Config.cmake on disk ==="
-              find /usr -name "Qt6Config.cmake" 2>/dev/null
-              find /usr -name "qt6-config.cmake" 2>/dev/null
-              echo "=== /usr/lib64/cmake/Qt6 listing ==="
-              ls -la /usr/lib64/cmake/Qt6/ 2>/dev/null || echo "(missing)"
-              echo "=== /usr/lib/cmake/Qt6 listing ==="
-              ls -la /usr/lib/cmake/Qt6/ 2>/dev/null || echo "(missing)"
-              echo "==="
-              test -f /usr/lib64/cmake/Qt6/Qt6Config.cmake \
-                || { echo "ERROR: qt6-qtbase-devel install incomplete"; rpm -V qt6-qtbase-devel; exit 1; }
               cd /workspace
-              # Pin plugin path: install.py's env script only adds
-              # ~/.local/lib/qt6/plugins/ to QT_PLUGIN_PATH; ECM's default
-              # lib64/ won't be found.
-              # GitHub-hosted fedora:42 docker layer has an overlayfs quirk:
-              # cmake reports "/usr/lib64/cmake/<Pkg>/<Pkg>Config.cmake not
-              # found" even though stat/ls/find all see the files. Mirror
-              # the entire cmake config tree to /tmp (tmpfs, no overlay)
-              # and point CMAKE_PREFIX_PATH there to sidestep it. We need
-              # KF6*, Plasma, LayerShellQt etc. too — copy the whole tree.
-              mkdir -p /tmp/cmake-pkgs
-              cp -a /usr/lib64/cmake/. /tmp/cmake-pkgs/
-              echo "=== /tmp/cmake-pkgs sanity ==="
-              ls /tmp/cmake-pkgs/Qt6/Qt6Config.cmake \
-                 /tmp/cmake-pkgs/KF6Package/KF6PackageConfig.cmake \
-                 /tmp/cmake-pkgs/Plasma/PlasmaConfig.cmake
-              md5sum /tmp/cmake-pkgs/Qt6/Qt6Config.cmake /usr/lib64/cmake/Qt6/Qt6Config.cmake
+              # Pin plugin install path to lib/qt6/plugins (Fedora ECM
+              # defaults to lib64/qt6/plugins, but the universal payload
+              # script wires QT_PLUGIN_PATH to ~/.local/lib/qt6/plugins
+              # only). NO APOSTROPHES in any comment inside this bash -c
+              # block — single quote here closes the outer string.
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
-                  -DCMAKE_PREFIX_PATH=/tmp/cmake-pkgs \
                   -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
                   -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
               cmake --build build -j$(nproc)
