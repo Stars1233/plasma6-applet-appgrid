@@ -40,14 +40,14 @@ constexpr int kJitterCheckMs   = 2 * 60 * 60 * 1000;
 // per-user identifier across IP rotations.
 constexpr int kEtagResetEvery = 7;
 
-constexpr qint64 kMaxResponseBytes = 16 * 1024;
+constexpr qint64 kMaxResponseBytes = qint64{16} * 1024;
 constexpr int kRequestTimeoutMs = 10 * 1000;
 
 // AppGrid ships two plasmoid variants (center + panel); both run in
 // plasmashell + write the same cache. If either wrote it within this
 // window, skip the network and reload from disk so startup double-fire
 // collapses to one request.
-constexpr qint64 kFreshenWindowMs = 60 * 1000;
+constexpr qint64 kFreshenWindowMs = qint64{60} * 1000;
 
 // Bump whenever the parsing logic changes in a way that older cached
 // state could cause the new code to miss data on the next 304 short-circuit
