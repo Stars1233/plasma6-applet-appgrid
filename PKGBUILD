@@ -13,6 +13,7 @@ depends=(
     'plasma-workspace'
     'kservice'
     'ki18n'
+    'kiconthemes'
     'layer-shell-qt'
 )
 makedepends=(
@@ -26,6 +27,7 @@ makedepends=(
     'kcoreaddons'
     'krunner'
     'kwindowsystem'
+    'kiconthemes'
     'gettext'
 )
 source=()

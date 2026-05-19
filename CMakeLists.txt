@@ -92,6 +92,7 @@ find_package(KF6CoreAddons REQUIRED)
 find_package(KF6KIO REQUIRED)
 find_package(KF6WindowSystem REQUIRED)
 find_package(KF6Package REQUIRED)
+find_package(KF6IconThemes REQUIRED)
 find_package(LayerShellQt REQUIRED)
 # LibKWorkspace no longer required — session actions use Kicker.SystemModel
 # find_package(LibKWorkspace REQUIRED)
@@ -114,6 +115,7 @@ set(APPGRID_COMMON_LIBS
     KF6::CoreAddons
     KF6::KIOGui
     KF6::WindowSystem
+    KF6::IconThemes
     LayerShellQt::Interface
     Plasma::PlasmaQuick
     KF6::Runner

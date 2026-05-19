@@ -15,6 +15,7 @@ set(TEST_COMMON_LIBS
     KF6::I18n
     KF6::CoreAddons
     KF6::KIOGui
+    KF6::IconThemes
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -33,6 +34,9 @@ appgrid_add_test(test_search_ranking ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 appgrid_add_test(test_filter ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 appgrid_add_test(test_sort ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 appgrid_add_test(test_appmodel_helpers)
+# Regression test for issues #86 (icon file change on disk) and #103
+# (system theme switch). Both flow through KIconLoader::iconChanged.
+appgrid_add_test(test_appmodel)
 
 # UpdateChecker only exists in universal builds; gate the test to match so
 # distro-package CI runs (which don't compile updatechecker.cpp) don't try
