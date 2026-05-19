@@ -2,7 +2,13 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Right-click context menu for grid items: favorite, pin, add to desktop, edit, hide.
+    Right-click context menu. Splits into two PlasmaComponents.Menu
+    instances so each only holds items relevant to its mode — gating
+    items inside one shared Menu via `visible: false` left ghost layout
+    rows because PlasmaComponents.MenuItem's internal padding/insets
+    don't fully collapse with implicitHeight=0. Truly-conditional items
+    (jumplist, bulk Add/Remove favorites) use Instantiator so
+    non-applicable rows don't exist at all.
 */
 
 import QtQuick
@@ -11,58 +17,41 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.private.kicker as Kicker
 import "favoriteid.js" as FavoriteId
 
-PlasmaComponents.Menu {
+Item {
     id: contextMenu
 
     Kicker.ProcessRunner { id: processRunner }
     Kicker.ContainmentInterface { id: containmentInterface }
 
-    // -- Signals for bulk ops that need parent-side confirmation --
-    // Launch and Hide are emitted up to GridPanel so it can decide whether
-    // to gate behind a Kirigami.PromptDialog (always for Hide; threshold-
-    // based for Launch). Pin / Desktop / Copy run inline below since they're
-    // immediately reversible (unpin / delete launcher / overwrite clipboard).
+    // Launch/Hide go up to GridPanel for Kirigami.PromptDialog gating.
+    // Pin / Desktop / Copy run inline (immediately reversible).
     signal bulkLaunchRequested(var sids)
     signal bulkHideRequested(var sids)
-    // Single-menu "Add to selection" / "Remove from selection" — emitted up
-    // to GridPanel which routes the toggle to whichever grid currently owns
-    // the selection state.
     signal toggleSelectionRequested(string sid)
 
-    // Plasmoid root. Deliberately `var`, not typed as PlasmoidItem,
-    // for two reasons: typing it would force every consumer to import
-    // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
-    // tests pass plain QtObject mocks that expose the same properties
-    // (isDragInFlight, …).
     property var appletInterface: null
     property var appsModel: null
     property var sharedFavoritesModel: null
 
+    // Popup snapshot — populated by showForApp() before popping the
+    // appropriate Menu. Lives here so both child Menus + their dynamic
+    // delegates share one source of truth.
     property int popupIndex: -1
     property string popupStorageId: ""
     property string popupDesktopFile: ""
     property bool popupIsFavorite: false
-
     property var popupActions: []
-
-    // Live selection snapshot from the originating view. May be empty (no
-    // multi-select), contain the popup item, or contain other items only.
-    // The menu shape branches on:
-    //   * popupIsSelected   — right-clicked item is itself selected
-    //   * isMultiSelect     — popup is selected AND total >= 2; gates the
-    //                         bulk action rows. A single-item selection
-    //                         (the popup alone) stays in single-item mode
-    //                         so "Remove from selection" can clear it.
     property var popupSelectedSids: []
     property bool popupIsSelected: false
     readonly property bool isMultiSelect: popupIsSelected
                                           && popupSelectedSids.length >= 2
-    // Per-action counts — derived once at showForApp() rather than as live
-    // bindings, since the selection is a snapshot taken at right-click time
-    // and we don't want the menu re-counting if the model mutates while
-    // open (e.g. a sibling drag-add).
     property int popupNonFavCount: 0
     property int popupFavCount: 0
+
+    // Favorites-mutation rows lock out while a drag-reorder is in flight
+    // to avoid clobbering KAStats state mid-move.
+    readonly property bool _favsLocked: appletInterface
+                                        && appletInterface.isDragInFlight
 
     function showForApp(index, storageId, desktopFile, selectedSids) {
         popupIndex = index
@@ -74,8 +63,7 @@ PlasmaComponents.Menu {
         popupIsFavorite = sharedFavoritesModel
                           ? sharedFavoritesModel.isFavorite(prefixed)
                           : false
-        // Partition the selection so each bulk menu row can show an
-        // accurate count of the items it would actually act on.
+
         var favs = 0
         if (isMultiSelect && sharedFavoritesModel) {
             for (var i = 0; i < popupSelectedSids.length; ++i) {
@@ -87,13 +75,17 @@ PlasmaComponents.Menu {
         popupFavCount = favs
         popupNonFavCount = popupSelectedSids.length - favs
         popupActions = isMultiSelect ? [] : (Plasmoid.appActions(storageId) || [])
-        popup()
+
+        if (isMultiSelect)
+            bulkMenu.popup()
+        else
+            singleMenu.popup()
     }
 
-    // -- Bulk-action helpers: each iterates popupSelectedSids and runs an
-    // operation, idempotently. Kept here (rather than inlined on every
-    // MenuItem) so the visible items stay declarative and the action
-    // semantics live in one place.
+    function close() {
+        singleMenu.close()
+        bulkMenu.close()
+    }
 
     function _desktopFileFor(sid) {
         if (!appsModel || !sid) return ""
@@ -130,157 +122,44 @@ PlasmaComponents.Menu {
             const df = _desktopFileFor(sids[i])
             if (df) paths.push(df)
         }
-        // Hidden TextEdit clipboard sink — same pattern as PrefixInfoView,
-        // sidesteps QtQuick.Dialogs / Clipboard plugin imports.
         bulkPathClipboard.text = paths.join("\n")
         bulkPathClipboard.selectAll()
         bulkPathClipboard.copy()
     }
 
+    // Hidden TextEdit clipboard sink — same pattern as PrefixInfoView,
+    // sidesteps QtQuick.Dialogs / Clipboard plugin imports.
     TextEdit { id: bulkPathClipboard; visible: false }
 
-    // -- Application-defined actions (jumplist) --
-    Repeater {
-        model: contextMenu.popupActions
-        delegate: PlasmaComponents.MenuItem {
-            required property var modelData
-            required property int index
-            icon.name: modelData.icon || ""
-            text: modelData.text
-            onClicked: {
-                Plasmoid.launchAppAction(contextMenu.popupStorageId, index)
-                contextMenu.close()
+    PlasmaComponents.Menu {
+        id: singleMenu
+
+        Instantiator {
+            model: contextMenu.popupActions
+            delegate: PlasmaComponents.MenuItem {
+                required property var modelData
+                required property int index
+                icon.name: modelData.icon || ""
+                text: modelData.text
+                onClicked: {
+                    Plasmoid.launchAppAction(contextMenu.popupStorageId, index)
+                    singleMenu.close()
+                }
             }
+            onObjectAdded: (idx, obj) => singleMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
         }
-    }
 
-    // PlasmaComponents.Menu sizes itself from each child's `implicitHeight`,
-    // and visible=false alone does NOT collapse the row — empty space leaks
-    // into the menu wherever a gated item lives. Every conditionally-shown
-    // item below pins `height: visible ? implicitHeight : 0` so hidden rows
-    // contribute zero vertical space. Same trick applied to separators.
-
-    // Bulk "Add N to Favorites" — visible whenever the selection contains
-    // at least one non-favorite. Ordered before Remove because adding is
-    // the more common selection-driven flow (selecting in All/category).
-    PlasmaComponents.MenuItem {
-        icon.name: "bookmark-new"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Add %1 to Favorites", "Add %1 to Favorites",
-                     contextMenu.popupNonFavCount)
-        visible: contextMenu.isMultiSelect && contextMenu.popupNonFavCount > 0
-        height: visible ? implicitHeight : 0
-        enabled: !(contextMenu.appletInterface
-                   && contextMenu.appletInterface.isDragInFlight)
-        onClicked: contextMenu._bulkSetFavorite(true)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    // Bulk "Remove N from Favorites" — visible whenever the selection
-    // contains at least one favorite. Both rows appear simultaneously on a
-    // mixed selection (e.g. 5 chosen, 4 new + 1 existing) so the user
-    // picks intent explicitly instead of guessing based on which item
-    // they happened to right-click.
-    PlasmaComponents.MenuItem {
-        icon.name: "bookmark-remove"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Remove %1 from Favorites", "Remove %1 from Favorites",
-                     contextMenu.popupFavCount)
-        visible: contextMenu.isMultiSelect && contextMenu.popupFavCount > 0
-        height: visible ? implicitHeight : 0
-        enabled: !(contextMenu.appletInterface
-                   && contextMenu.appletInterface.isDragInFlight)
-        onClicked: contextMenu._bulkSetFavorite(false)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    // -- Bulk system-integration ops (multi-select only) --
-    PlasmaComponents.MenuSeparator {
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "pin"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Pin %1 to Task Manager", "Pin %1 to Task Manager",
-                     contextMenu.popupSelectedSids.length)
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu._bulkAddLauncher(Kicker.ContainmentInterface.TaskManager)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "desktop"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Add %1 to Desktop", "Add %1 to Desktop",
-                     contextMenu.popupSelectedSids.length)
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu._bulkAddLauncher(Kicker.ContainmentInterface.Desktop)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "system-run"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Launch %1 application", "Launch %1 applications",
-                     contextMenu.popupSelectedSids.length)
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu.bulkLaunchRequested(contextMenu.popupSelectedSids)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    PlasmaComponents.MenuSeparator {
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "edit-copy"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Copy %1 path", "Copy %1 paths",
-                     contextMenu.popupSelectedSids.length)
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu._copySelectedPaths()
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "view-hidden"
-        text: i18ndp("dev.xarbit.appgrid",
-                     "Hide %1 application", "Hide %1 applications",
-                     contextMenu.popupSelectedSids.length)
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu.bulkHideRequested(contextMenu.popupSelectedSids)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
-
-    // -- Single-select actions (hidden in multi mode) --
-    PlasmaComponents.MenuItem {
-        icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
-        text: contextMenu.popupIsFavorite ? i18nd("dev.xarbit.appgrid", "Remove from Favorites") : i18nd("dev.xarbit.appgrid", "Add to Favorites")
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        // Disabled while a drag-reorder is mid-flight to avoid clobbering
-        // KAStats state and stale-grabbing the in-progress move.
-        enabled: !(contextMenu.appletInterface
-                   && contextMenu.appletInterface.isDragInFlight)
-        onClicked: {
-            const sid = contextMenu.popupStorageId
-            if (!sid) return
-            if (contextMenu.sharedFavoritesModel) {
+        PlasmaComponents.MenuItem {
+            icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
+            text: contextMenu.popupIsFavorite
+                  ? i18nd("dev.xarbit.appgrid", "Remove from Favorites")
+                  : i18nd("dev.xarbit.appgrid", "Add to Favorites")
+            enabled: !contextMenu._favsLocked
+            onClicked: {
+                if (!contextMenu.sharedFavoritesModel) return
+                const sid = contextMenu.popupStorageId
+                if (!sid) return
                 const prefixed = FavoriteId.toPrefixed(sid)
                 if (contextMenu.sharedFavoritesModel.isFavorite(prefixed))
                     contextMenu.sharedFavoritesModel.removeFavorite(prefixed)
@@ -288,87 +167,136 @@ PlasmaComponents.Menu {
                     contextMenu.sharedFavoritesModel.addFavorite(prefixed)
             }
         }
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
 
-    // Separator before the selection toggle when shown alongside the bulk
-    // section, so "Remove from Selection" doesn't visually stick to the
-    // last bulk Hide row. Hidden in single-menu mode where the existing
-    // Add/Remove Favorites row already sits directly above.
-    PlasmaComponents.MenuSeparator {
-        visible: contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-    }
+        PlasmaComponents.MenuItem {
+            icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
+            text: contextMenu.popupIsSelected
+                  ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
+                  : i18nd("dev.xarbit.appgrid", "Add to Selection")
+            onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+        }
 
-    // Right-click path into the multi-select flow for users who don't
-    // reach for Ctrl+click. Shown in both single and bulk menus: Add
-    // appears for any unselected popup (build up a selection one item at
-    // a time); Remove appears for any selected popup (shrink the
-    // selection by one without clearing the rest).
-    PlasmaComponents.MenuItem {
-        icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
-        text: contextMenu.popupIsSelected
-              ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
-              : i18nd("dev.xarbit.appgrid", "Add to Selection")
-        height: visible ? implicitHeight : 0
-        onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
-        Accessible.name: text
-        Accessible.role: Accessible.MenuItem
-    }
+        PlasmaComponents.MenuSeparator {}
 
-    PlasmaComponents.MenuSeparator {
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-    }
+        PlasmaComponents.MenuItem {
+            icon.name: "pin"
+            text: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
+            onClicked: containmentInterface.addLauncher(
+                contextMenu.appletInterface,
+                Kicker.ContainmentInterface.TaskManager,
+                contextMenu.popupDesktopFile)
+        }
 
-    PlasmaComponents.MenuItem {
-        icon.name: "pin"
-        text: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: containmentInterface.addLauncher(contextMenu.appletInterface, Kicker.ContainmentInterface.TaskManager, contextMenu.popupDesktopFile)
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
-        Accessible.role: Accessible.MenuItem
-    }
+        PlasmaComponents.MenuItem {
+            icon.name: "desktop"
+            text: i18nd("dev.xarbit.appgrid", "Add to Desktop")
+            onClicked: containmentInterface.addLauncher(
+                contextMenu.appletInterface,
+                Kicker.ContainmentInterface.Desktop,
+                contextMenu.popupDesktopFile)
+        }
 
-    PlasmaComponents.MenuItem {
-        icon.name: "desktop"
-        text: i18nd("dev.xarbit.appgrid", "Add to Desktop")
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: containmentInterface.addLauncher(contextMenu.appletInterface, Kicker.ContainmentInterface.Desktop, contextMenu.popupDesktopFile)
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Add to Desktop")
-        Accessible.role: Accessible.MenuItem
-    }
+        PlasmaComponents.MenuItem {
+            icon.name: "document-edit"
+            text: i18nd("dev.xarbit.appgrid", "Edit Application")
+            onClicked: processRunner.runMenuEditor(contextMenu.popupStorageId)
+        }
 
-    PlasmaComponents.MenuItem {
-        icon.name: "document-edit"
-        text: i18nd("dev.xarbit.appgrid", "Edit Application")
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: processRunner.runMenuEditor(contextMenu.popupStorageId)
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Edit Application")
-        Accessible.role: Accessible.MenuItem
-    }
+        PlasmaComponents.MenuSeparator {}
 
-    PlasmaComponents.MenuSeparator {
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-    }
-
-    PlasmaComponents.MenuItem {
-        icon.name: "view-hidden"
-        text: i18nd("dev.xarbit.appgrid", "Hide Application")
-        visible: !contextMenu.isMultiSelect
-        height: visible ? implicitHeight : 0
-        onClicked: {
-            if (contextMenu.appsModel) {
+        PlasmaComponents.MenuItem {
+            icon.name: "view-hidden"
+            text: i18nd("dev.xarbit.appgrid", "Hide Application")
+            onClicked: {
+                if (!contextMenu.appsModel) return
                 contextMenu.appsModel.hideApp(contextMenu.popupIndex)
                 Plasmoid.configuration.hiddenApps = contextMenu.appsModel.hiddenApps
             }
         }
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Hide Application")
-        Accessible.role: Accessible.MenuItem
+    }
+
+    PlasmaComponents.Menu {
+        id: bulkMenu
+
+        // Add N inserts at 0 (top). Remove N lands at 0 or 1 based on
+        // whether Add N is already present — both at top, Add N above.
+        Instantiator {
+            active: contextMenu.popupNonFavCount > 0
+            delegate: PlasmaComponents.MenuItem {
+                icon.name: "bookmark-new"
+                text: i18ndp("dev.xarbit.appgrid",
+                             "Add %1 to Favorites", "Add %1 to Favorites",
+                             contextMenu.popupNonFavCount)
+                enabled: !contextMenu._favsLocked
+                onClicked: contextMenu._bulkSetFavorite(true)
+            }
+            onObjectAdded: (idx, obj) => bulkMenu.insertItem(0, obj)
+            onObjectRemoved: (idx, obj) => bulkMenu.removeItem(obj)
+        }
+
+        Instantiator {
+            active: contextMenu.popupFavCount > 0
+            delegate: PlasmaComponents.MenuItem {
+                icon.name: "bookmark-remove"
+                text: i18ndp("dev.xarbit.appgrid",
+                             "Remove %1 from Favorites", "Remove %1 from Favorites",
+                             contextMenu.popupFavCount)
+                enabled: !contextMenu._favsLocked
+                onClicked: contextMenu._bulkSetFavorite(false)
+            }
+            onObjectAdded: (idx, obj) => bulkMenu.insertItem(
+                contextMenu.popupNonFavCount > 0 ? 1 : 0, obj)
+            onObjectRemoved: (idx, obj) => bulkMenu.removeItem(obj)
+        }
+
+        PlasmaComponents.MenuItem {
+            icon.name: "pin"
+            text: i18ndp("dev.xarbit.appgrid",
+                         "Pin %1 to Task Manager", "Pin %1 to Task Manager",
+                         contextMenu.popupSelectedSids.length)
+            onClicked: contextMenu._bulkAddLauncher(Kicker.ContainmentInterface.TaskManager)
+        }
+
+        PlasmaComponents.MenuItem {
+            icon.name: "desktop"
+            text: i18ndp("dev.xarbit.appgrid",
+                         "Add %1 to Desktop", "Add %1 to Desktop",
+                         contextMenu.popupSelectedSids.length)
+            onClicked: contextMenu._bulkAddLauncher(Kicker.ContainmentInterface.Desktop)
+        }
+
+        PlasmaComponents.MenuItem {
+            icon.name: "system-run"
+            text: i18ndp("dev.xarbit.appgrid",
+                         "Launch %1 application", "Launch %1 applications",
+                         contextMenu.popupSelectedSids.length)
+            onClicked: contextMenu.bulkLaunchRequested(contextMenu.popupSelectedSids)
+        }
+
+        PlasmaComponents.MenuSeparator {}
+
+        PlasmaComponents.MenuItem {
+            icon.name: "edit-copy"
+            text: i18ndp("dev.xarbit.appgrid",
+                         "Copy %1 path", "Copy %1 paths",
+                         contextMenu.popupSelectedSids.length)
+            onClicked: contextMenu._copySelectedPaths()
+        }
+
+        PlasmaComponents.MenuItem {
+            icon.name: "view-hidden"
+            text: i18ndp("dev.xarbit.appgrid",
+                         "Hide %1 application", "Hide %1 applications",
+                         contextMenu.popupSelectedSids.length)
+            onClicked: contextMenu.bulkHideRequested(contextMenu.popupSelectedSids)
+        }
+
+        PlasmaComponents.MenuSeparator {}
+
+        PlasmaComponents.MenuItem {
+            icon.name: "edit-select-none"
+            text: i18nd("dev.xarbit.appgrid", "Remove from Selection")
+            onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+        }
     }
 }
