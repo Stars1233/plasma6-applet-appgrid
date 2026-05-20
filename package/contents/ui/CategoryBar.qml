@@ -78,22 +78,55 @@ RowLayout {
     function mnemonicIndex(name) { return mnemonicResolver.indexFor(name) }
     function mnemonicRichText(name) { return mnemonicResolver.richTextFor(name) }
 
+    // Selectable tabs in visual (left-to-right) order — the single source
+    // of truth for what Alt+Left/Right steps through.
+    readonly property var orderedTabs: {
+        var tabs = []
+        if (favoritesFirst) tabs.push(favoritesLabel)
+        if (!isSortByCategory) tabs.push(allLabel)
+        tabs = tabs.concat(categoryList)
+        if (!favoritesFirst) tabs.push(favoritesLabel)
+        return tabs
+    }
+
+    // Label of the currently selected tab.
+    readonly property string currentTab: {
+        if (favoritesActive) return favoritesLabel
+        var sel = scrollOnlyMode ? scrollOnlySelected
+                                 : (appsModel ? appsModel.filterCategory : "")
+        return sel === "" ? allLabel : sel
+    }
+
+    // Select a tab by label — single dispatch point for mnemonics,
+    // Alt+arrow navigation, and programmatic selection.
+    function selectByName(name) {
+        if (name === favoritesLabel)
+            favoritesToggled(true)
+        else if (name === allLabel)
+            selectAll()
+        else
+            selectCategory(name)
+        scrollToSelected()
+    }
+
     function selectByMnemonic(key) {
         var name = mnemonicResolver.nameForKey(key)
         if (!name) return false
-
-        if (name === allLabel) {
-            selectAll()
-            scrollToSelected()
-            return true
-        }
-        if (name === favoritesLabel) {
-            categoryBar.favoritesToggled(!categoryBar.favoritesActive)
-            return true
-        }
-        selectCategory(name)
-        scrollToSelected()
+        // A mnemonic on Favorites toggles it; every other tab selects.
+        if (name === favoritesLabel)
+            favoritesToggled(!favoritesActive)
+        else
+            selectByName(name)
         return true
+    }
+
+    // Step the selection one tab left (-1) or right (+1).
+    function selectAdjacentCategory(step) {
+        var tabs = orderedTabs
+        var cur = tabs.indexOf(currentTab)
+        var next = cur < 0 ? (step > 0 ? 0 : tabs.length - 1) : cur + step
+        if (next >= 0 && next < tabs.length && next !== cur)
+            selectByName(tabs[next])
     }
 
     // -- Category action helpers --

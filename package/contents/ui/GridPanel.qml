@@ -444,13 +444,18 @@ Kirigami.ShadowedRectangle {
     // Eat clicks so they don't pass through the panel
     MouseArea { anchors.fill: parent }
 
-    // Handle Alt+letter mnemonics for category bar
+    // Category bar keyboard navigation: Alt+letter mnemonics, Alt+Left/Right.
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Alt)
             categoryBar.altHeld = true
-        if ((event.modifiers & Qt.AltModifier) && event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
-            if (categoryBar.visible && categoryBar.selectByMnemonic(event.key))
+        if (!categoryBar.visible || !(event.modifiers & Qt.AltModifier))
+            return
+        if (event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
+            if (categoryBar.selectByMnemonic(event.key))
                 event.accepted = true
+        } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+            categoryBar.selectAdjacentCategory(event.key === Qt.Key_Right ? 1 : -1)
+            event.accepted = true
         }
     }
     Keys.onReleased: function(event) {

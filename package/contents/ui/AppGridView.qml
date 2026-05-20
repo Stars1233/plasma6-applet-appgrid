@@ -343,12 +343,15 @@ GridView {
         }
     }
     Keys.onLeftPressed: function(event) {
+        // Alt+Left belongs to the category bar — let it bubble up.
+        if (event.modifiers & Qt.AltModifier) { event.accepted = false; return }
         if (recentIndex > 0)
             recentIndex--
         else if (recentIndex < 0)
             _arrowMoveWithSelection(event, moveCurrentIndexLeft)
     }
     Keys.onRightPressed: function(event) {
+        if (event.modifiers & Qt.AltModifier) { event.accepted = false; return }
         if (recentIndex >= 0 && recentIndex < recentCount - 1)
             recentIndex++
         else if (recentIndex < 0)

@@ -148,12 +148,15 @@ Flickable {
     }
 
     Keys.onLeftPressed: function(event) {
+        // Alt+Left belongs to the category bar — let it bubble up.
+        if (event.modifiers & Qt.AltModifier) { event.accepted = false; return }
         if (recentIndex > 0) { recentIndex-- }
         else _arrowMoveWithSelection(event, function() {
             if (currentIndex > 0) { currentIndex--; ensureVisible() }
         })
     }
     Keys.onRightPressed: function(event) {
+        if (event.modifiers & Qt.AltModifier) { event.accepted = false; return }
         if (recentIndex >= 0 && recentIndex < recentCount - 1) { recentIndex++ }
         else _arrowMoveWithSelection(event, function() {
             if (currentIndex < flatApps.length - 1) { currentIndex++; ensureVisible() }
