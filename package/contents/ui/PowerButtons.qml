@@ -2,7 +2,10 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Power and session management buttons using Sessions.SessionManagement.
+    Power and session buttons. The top-level slots (Sleep, Restart, Shut
+    Down, Session) are ordered and individually shown/hidden via the
+    powerButtonOrder / powerButtonsHidden config; the Session slot groups
+    Lock / Log Out / Switch User in a dropdown.
 */
 
 import QtQuick
@@ -16,13 +19,54 @@ RowLayout {
     id: powerButtons
 
     signal actionTriggered()
-    function closeMenus() { sessionMenu.close() }
+    function closeMenus() { if (_sessionMenu) _sessionMenu.close() }
 
     spacing: Kirigami.Units.smallSpacing
     readonly property bool showLabels: Plasmoid.configuration.showActionLabels
 
-    // Update indicator — universal builds only (Plasmoid.updateChecker is
-    // null on distro packages).
+    // The live Session dropdown, so closeMenus() can reach it.
+    property var _sessionMenu: null
+
+    Sessions.SessionManagement { id: sm }
+    Sessions.SessionsModel { id: sessionsModel }
+
+    readonly property var hiddenButtons: Plasmoid.configuration.powerButtonsHidden || []
+    function isHidden(id) { return hiddenButtons.indexOf(id) >= 0 }
+
+    readonly property var defaultSlotOrder: ["sleep", "restart", "shutdown", "session"]
+
+    // Top-level slots in configured order, hidden ones removed. An empty
+    // config means "default order" (kcfg StringList defaults are unreliable).
+    readonly property var orderedSlots: {
+        const cfg = Plasmoid.configuration.powerButtonOrder || []
+        const order = cfg.length > 0 ? cfg : defaultSlotOrder
+        return order.filter(s => !isHidden(s))
+    }
+
+    readonly property var powerSlotInfo: ({
+        "sleep":    { "icon": "system-suspend",  "label": i18nd("dev.xarbit.appgrid", "Sleep"),
+                      "available": sm.canSuspend },
+        "restart":  { "icon": "system-reboot",   "label": i18nd("dev.xarbit.appgrid", "Restart"),
+                      "available": sm.canReboot },
+        "shutdown": { "icon": "system-shutdown", "label": i18nd("dev.xarbit.appgrid", "Shut Down"),
+                      "available": sm.canShutdown }
+    })
+
+    function runPowerSlot(id) {
+        if (id === "sleep") sm.suspend()
+        else if (id === "restart") sm.requestReboot()
+        else if (id === "shutdown") sm.requestShutdown()
+        powerButtons.actionTriggered()
+    }
+
+    function runSessionItem(id) {
+        if (id === "lock") sm.lock()
+        else if (id === "logout") sm.requestLogout()
+        else if (id === "switchuser") sessionsModel.startNewSession(sessionsModel.shouldLock)
+        powerButtons.actionTriggered()
+    }
+
+    // Update indicator — universal builds only, not part of the slot config.
     PlasmaComponents.ToolButton {
         id: updateButton
         visible: !!Plasmoid.updateChecker
@@ -51,97 +95,96 @@ RowLayout {
         Accessible.role: Accessible.Button
     }
 
-    Sessions.SessionManagement {
-        id: sm
-    }
+    Repeater {
+        model: powerButtons.orderedSlots
 
-    Sessions.SessionsModel {
-        id: sessionsModel
-    }
+        delegate: PlasmaComponents.ToolButton {
+            id: slotButton
+            required property string modelData
 
-    // Primary buttons: Sleep, Restart, Shut Down
-    PlasmaComponents.ToolButton {
-        visible: sm.canSuspend
-        icon.name: "system-suspend"
-        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Sleep") : ""
-        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                         : PlasmaComponents.AbstractButton.IconOnly
-        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Sleep")
-        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-        onClicked: { sm.suspend(); powerButtons.actionTriggered() }
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Sleep")
-        Accessible.role: Accessible.Button
-    }
+            readonly property bool isSession: modelData === "session"
+            readonly property var info: powerButtons.powerSlotInfo[modelData]
+            readonly property bool lockShown: sm.canLock && !powerButtons.isHidden("lock")
+            readonly property bool logoutShown: sm.canLogout && !powerButtons.isHidden("logout")
+            readonly property bool switchShown: sessionsModel.canSwitchUser
+                                                && !powerButtons.isHidden("switchuser")
 
-    PlasmaComponents.ToolButton {
-        visible: sm.canReboot
-        icon.name: "system-reboot"
-        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Restart") : ""
-        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                         : PlasmaComponents.AbstractButton.IconOnly
-        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Restart")
-        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-        onClicked: { sm.requestReboot(); powerButtons.actionTriggered() }
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Restart")
-        Accessible.role: Accessible.Button
-    }
-
-    PlasmaComponents.ToolButton {
-        visible: sm.canShutdown
-        icon.name: "system-shutdown"
-        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Shut Down") : ""
-        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                         : PlasmaComponents.AbstractButton.IconOnly
-        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Shut Down")
-        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-        onClicked: { sm.requestShutdown(); powerButtons.actionTriggered() }
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Shut Down")
-        Accessible.role: Accessible.Button
-    }
-
-    // Session menu: Lock, Log Out, Switch User
-    PlasmaComponents.ToolButton {
-        id: sessionButton
-        visible: sm.canLock || sm.canLogout || sessionsModel.canSwitchUser
-        icon.name: "system-log-out"
-        text: powerButtons.showLabels ? i18nd("dev.xarbit.appgrid", "Session") : ""
-        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                         : PlasmaComponents.AbstractButton.IconOnly
-        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Session")
-        PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-        checked: sessionMenu.visible
-        onClicked: sessionMenu.visible ? sessionMenu.close() : sessionMenu.open()
-
-        Accessible.name: i18nd("dev.xarbit.appgrid", "Session")
-        Accessible.role: Accessible.Button
-
-        PlasmaComponents.Menu {
-            id: sessionMenu
-            y: sessionButton.height
-
-            PlasmaComponents.MenuItem {
-                visible: sm.canLock
-                icon.name: "system-lock-screen"
-                text: i18nd("dev.xarbit.appgrid", "Lock")
-                onClicked: { sm.lock(); powerButtons.actionTriggered() }
+            // Session items that should appear, in menu order.
+            readonly property var sessionItems: {
+                var items = []
+                if (lockShown)
+                    items.push({ "id": "lock", "icon": "system-lock-screen",
+                                 "label": i18nd("dev.xarbit.appgrid", "Lock") })
+                if (logoutShown)
+                    items.push({ "id": "logout", "icon": "system-log-out",
+                                 "label": i18nd("dev.xarbit.appgrid", "Log Out") })
+                if (switchShown)
+                    items.push({ "id": "switchuser", "icon": "system-switch-user",
+                                 "label": i18nd("dev.xarbit.appgrid", "Switch User") })
+                return items
             }
 
-            PlasmaComponents.MenuItem {
-                visible: sm.canLogout
-                icon.name: "system-log-out"
-                text: i18nd("dev.xarbit.appgrid", "Log Out")
-                onClicked: { sm.requestLogout(); powerButtons.actionTriggered() }
+            // One session item left → render it as a direct button, no
+            // dropdown; two or more → the "Session" button + menu.
+            readonly property bool soloSession: isSession && sessionItems.length === 1
+            readonly property bool useSessionMenu: isSession && sessionItems.length > 1
+            readonly property string slotIcon:
+                soloSession ? sessionItems[0].icon
+                : isSession ? "system-log-out"
+                : (info ? info.icon : "")
+            readonly property string slotLabel:
+                soloSession ? sessionItems[0].label
+                : isSession ? i18nd("dev.xarbit.appgrid", "Session")
+                : (info ? info.label : "")
+
+            Layout.alignment: Qt.AlignVCenter
+            visible: isSession ? (sessionItems.length > 0)
+                               : (info !== undefined && info.available)
+            icon.name: slotIcon
+            text: powerButtons.showLabels ? slotLabel : ""
+            display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+                                             : PlasmaComponents.AbstractButton.IconOnly
+            checked: useSessionMenu && sessionMenu.visible
+            PlasmaComponents.ToolTip.text: slotLabel
+            PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
+            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+            onClicked: {
+                if (soloSession)
+                    powerButtons.runSessionItem(sessionItems[0].id)
+                else if (useSessionMenu)
+                    sessionMenu.visible ? sessionMenu.close() : sessionMenu.open()
+                else
+                    powerButtons.runPowerSlot(modelData)
             }
 
-            PlasmaComponents.MenuItem {
-                visible: sessionsModel.canSwitchUser
-                icon.name: "system-switch-user"
-                text: i18nd("dev.xarbit.appgrid", "Switch User")
-                onClicked: { sessionsModel.startNewSession(sessionsModel.shouldLock); powerButtons.actionTriggered() }
+            Accessible.name: slotLabel
+            Accessible.role: Accessible.Button
+
+            // Lives on every delegate but only used by the session slot.
+            PlasmaComponents.Menu {
+                id: sessionMenu
+                y: slotButton.height
+                // Right-aligned under the button so it opens into the app.
+                x: slotButton.width - width
+
+                Component.onCompleted: if (slotButton.isSession)
+                                           powerButtons._sessionMenu = sessionMenu
+                Component.onDestruction: if (powerButtons._sessionMenu === sessionMenu)
+                                             powerButtons._sessionMenu = null
+
+                // Instantiator removes a hidden item outright — a
+                // visible:false MenuItem leaves a blank row in the menu.
+                Instantiator {
+                    model: slotButton.sessionItems
+                    delegate: PlasmaComponents.MenuItem {
+                        required property var modelData
+                        icon.name: modelData.icon
+                        text: modelData.label
+                        onClicked: powerButtons.runSessionItem(modelData.id)
+                    }
+                    onObjectAdded: (idx, obj) => sessionMenu.insertItem(idx, obj)
+                    onObjectRemoved: (idx, obj) => sessionMenu.removeItem(obj)
+                }
             }
         }
     }

@@ -42,6 +42,7 @@ package-panel/contents/ui/favoriteid.js
 package-panel/contents/ui/GridPanel.qml
 package-panel/contents/ui/MnemonicResolver.qml
 package-panel/contents/ui/PowerButtons.qml
+package-panel/contents/ui/PowerButtonsConfig.qml
 package-panel/contents/ui/PrefixDetector.qml
 package-panel/contents/ui/PrefixModeView.qml
 package-panel/contents/ui/RecentAppsHeader.qml

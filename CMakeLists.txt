@@ -139,6 +139,7 @@ set(SHARED_QML_FILES
     GridPanel.qml
     MnemonicResolver.qml
     PowerButtons.qml
+    PowerButtonsConfig.qml
     PrefixDetector.qml
     PrefixModeView.qml
     RecentAppsHeader.qml

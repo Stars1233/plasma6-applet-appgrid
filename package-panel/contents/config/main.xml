@@ -31,8 +31,20 @@
       <default>true</default>
     </entry>
     <entry name="showSessionButtons" type="Bool">
-      <label>Whether to show power and session buttons (sleep, restart, shut down, lock, etc.).</label>
+      <label>Legacy — migrated to powerButtonOrder / powerButtonsHidden on first run.</label>
       <default>true</default>
+    </entry>
+    <entry name="powerButtonOrder" type="StringList">
+      <label>Top-level power/session slots in display order; empty means the default order.</label>
+      <default></default>
+    </entry>
+    <entry name="powerButtonsHidden" type="StringList">
+      <label>Power/session button ids the user has hidden (sleep, restart, shutdown, session, lock, logout, switchuser).</label>
+      <default></default>
+    </entry>
+    <entry name="powerButtonsMigrated" type="Bool">
+      <label>Whether the legacy showSessionButtons toggle has been migrated to the per-button config.</label>
+      <default>false</default>
     </entry>
     <entry name="showTooltips" type="Bool">
       <label>Whether to show tooltips on app icon hover.</label>

@@ -44,8 +44,9 @@ KCMUtils.SimpleKCM {
     property alias cfg_startWithFavorites: startWithFavorites.checked
     property alias cfg_shakeOnOpen: shakeOnOpen.checked
     property alias cfg_hoverAnimation: hoverAnimation.currentIndex
-    property alias cfg_showSessionButtons: showSessionButtons.checked
     property alias cfg_showActionLabels: showActionLabels.checked
+    property var cfg_powerButtonOrder: Plasmoid.configuration.powerButtonOrder
+    property var cfg_powerButtonsHidden: Plasmoid.configuration.powerButtonsHidden
     property alias cfg_showRecentApps: showRecentApps.checked
     property alias cfg_checkForUpdates: checkForUpdates.checked
     property alias cfg_useExtraRunners: useExtraRunners.checked
@@ -340,15 +341,21 @@ KCMUtils.SimpleKCM {
             enabled: hoverAnimation.currentIndex > 0
         }
 
-        QQC2.CheckBox {
-            id: showSessionButtons
-            text: i18nd("dev.xarbit.appgrid", "Show power/session buttons")
+        PowerButtonsConfig {
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Power & session buttons:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+            Layout.fillWidth: true
+            buttonOrder: configGeneral.cfg_powerButtonOrder
+            hiddenButtons: configGeneral.cfg_powerButtonsHidden
+            onEdited: (newOrder, newHidden) => {
+                configGeneral.cfg_powerButtonOrder = newOrder
+                configGeneral.cfg_powerButtonsHidden = newHidden
+            }
         }
 
         QQC2.CheckBox {
             id: showActionLabels
             text: i18nd("dev.xarbit.appgrid", "Show labels on power/session buttons")
-            enabled: showSessionButtons.checked
         }
 
         QQC2.CheckBox {
@@ -433,7 +440,8 @@ KCMUtils.SimpleKCM {
                 startWithFavorites.checked = false
                 shakeOnOpen.checked = true
                 hoverAnimation.currentIndex = 1
-                showSessionButtons.checked = true
+                configGeneral.cfg_powerButtonOrder = ["sleep", "restart", "shutdown", "session"]
+                configGeneral.cfg_powerButtonsHidden = []
                 showActionLabels.checked = false
                 showRecentApps.checked = true
                 useExtraRunners.checked = true
@@ -450,6 +458,7 @@ KCMUtils.SimpleKCM {
 
         ColumnLayout {
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Hidden apps:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 

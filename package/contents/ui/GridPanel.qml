@@ -182,8 +182,19 @@ Kirigami.ShadowedRectangle {
             appsModel.markAllKnown()
     }
 
-    Component.onCompleted: syncModelFromConfig()
+    Component.onCompleted: { _migratePowerButtons(); syncModelFromConfig() }
     onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
+
+    // One-time: the legacy showSessionButtons toggle hid the whole power
+    // row — carry that into the per-button config so it is not lost.
+    function _migratePowerButtons() {
+        if (Plasmoid.configuration.powerButtonsMigrated)
+            return
+        if (Plasmoid.configuration.showSessionButtons === false)
+            Plasmoid.configuration.powerButtonsHidden =
+                ["sleep", "restart", "shutdown", "session", "lock", "logout", "switchuser"]
+        Plasmoid.configuration.powerButtonsMigrated = true
+    }
 
     Connections {
         target: panel.appsModel
@@ -598,7 +609,6 @@ Kirigami.ShadowedRectangle {
             PowerButtons {
                 id: powerButtons
                 visible: !panel.isSearching
-                         && (Plasmoid.configuration.showSessionButtons !== false)
                 onActionTriggered: panel.closeRequested()
             }
 
