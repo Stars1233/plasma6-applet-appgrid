@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: 2026 AppGrid Contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Reusable publish workflow. Uploads a source package to the Launchpad PPA
+# and an SRPM to Fedora COPR; both services then build the binaries for
+# every series and architecture. Called by release.yml (stable / rc tags)
+# and build.yml (dev builds from main).
+#
+# Channel -> project name:
+#   stable -> plasma-applet-appgrid
+#   rc     -> plasma-applet-appgrid-rc
+#   dev    -> plasma-applet-appgrid-dev
+
+name: Publish
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: "stable | rc | dev"
+        required: true
+        type: string
+      version:
+        description: "Full version, e.g. 1.8.0 / 1.8.0-rc.1 / 1.8.0-dev.42"
+        required: true
+        type: string
+      pkg_version:
+        description: "Packaging-safe version, e.g. 1.8.0 / 1.8.0~rc.1"
+        required: true
+        type: string
+    secrets:
+      COPR_CONFIG:
+        required: true
+      LAUNCHPAD_GPG_KEY:
+        required: true
+
+jobs:
+  copr:
+    name: COPR (${{ inputs.channel }})
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Install tooling
+        run: dnf install -y --setopt=install_weak_deps=False copr-cli rpm-build git-core tar gettext
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Mark workspace safe (container uid mismatch)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Configure copr-cli
+        run: |
+          mkdir -p ~/.config
+          printf '%s' "${{ secrets.COPR_CONFIG }}" > ~/.config/copr
+
+      - name: Build SRPM
+        env:
+          APP_VERSION: ${{ inputs.version }}
+          PKG_VERSION: ${{ inputs.pkg_version }}
+        run: |
+          set -e
+          export CHANGELOG_DATE="$(date '+%a %b %d %Y')"
+          envsubst '$APP_VERSION $PKG_VERSION $CHANGELOG_DATE' \
+            < packages/rpm/appgrid.spec.in > appgrid.spec
+          git archive --format=tar.gz \
+            --prefix="plasma-applet-appgrid-${PKG_VERSION}/" \
+            -o "plasma-applet-appgrid-${PKG_VERSION}.tar.gz" HEAD
+          rpmbuild -bs appgrid.spec \
+            --define "_sourcedir $PWD" \
+            --define "_srcrpmdir $PWD"
+          ls -la ./*.src.rpm
+
+      - name: Submit to COPR
+        run: |
+          set -e
+          case "${{ inputs.channel }}" in
+            stable) PROJECT=scujas/plasma-applet-appgrid ;;
+            rc)     PROJECT=scujas/plasma-applet-appgrid-rc ;;
+            dev)    PROJECT=scujas/plasma-applet-appgrid-dev ;;
+            *) echo "::error::unknown channel ${{ inputs.channel }}"; exit 1 ;;
+          esac
+          copr-cli build --nowait "$PROJECT" ./*.src.rpm
+
+  launchpad:
+    name: Launchpad ${{ matrix.series.codename }} (${{ inputs.channel }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        series:
+          - { codename: noble, ver: "24.04" }
+          - { codename: plucky, ver: "25.04" }
+          - { codename: questing, ver: "25.10" }
+          - { codename: resolute, ver: "26.04" }
+          - { codename: stonking, ver: "26.10" }
+    steps:
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            devscripts dput dpkg-dev debhelper
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Import signing key
+        run: printf '%s' "${{ secrets.LAUNCHPAD_GPG_KEY }}" | gpg --batch --import
+
+      - name: Build and upload source package
+        env:
+          DEBEMAIL: code@xarbit.dev
+          DEBFULLNAME: AppGrid CI
+        run: |
+          set -e
+          case "${{ inputs.channel }}" in
+            stable) PPA=ppa:xarbit/plasma-applet-appgrid ;;
+            rc)     PPA=ppa:xarbit/plasma-applet-appgrid-rc ;;
+            dev)    PPA=ppa:xarbit/plasma-applet-appgrid-dev ;;
+            *) echo "::error::unknown channel ${{ inputs.channel }}"; exit 1 ;;
+          esac
+          # dpkg-buildpackage needs debian/ at the source-tree root.
+          mv packages/deb/debian debian
+          # ~<series> keeps each per-series upload distinct and correctly
+          # ordered; native source format -> no Debian revision.
+          DEB_VERSION="${{ inputs.pkg_version }}~${{ matrix.series.ver }}"
+          rm -f debian/changelog
+          dch --create --package plasma-applet-appgrid \
+              --newversion "$DEB_VERSION" \
+              --distribution "${{ matrix.series.codename }}" --force-distribution \
+              "Automated ${{ inputs.channel }} build of ${{ inputs.version }}."
+          # Native source package — drop the VCS dir so it stays out of the tarball.
+          rm -rf .git
+          dpkg-buildpackage -S -d
+          dput "$PPA" "../plasma-applet-appgrid_${DEB_VERSION}_source.changes"

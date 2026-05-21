@@ -74,197 +74,18 @@ jobs:
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
 
-  arch:
-    name: Arch Linux
+  # Ubuntu + Fedora are published to the Launchpad PPA and Fedora COPR;
+  # those services build the binaries for every series and architecture.
+  # A plain "v1.2.3" tag → stable projects; "v1.2.3-rc.1" → the -rc projects.
+  publish:
+    name: Publish packages
     needs: [version, tests]
-    runs-on: ubuntu-latest
-    container: archlinux:latest
-    env:
-      APP_VERSION: ${{ needs.version.outputs.version }}
-    steps:
-      - name: Install dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed \
-            base-devel git sudo \
-            cmake extra-cmake-modules \
-            qt6-base qt6-declarative \
-            libplasma kpackage kio kservice ki18n kiconthemes kirigami \
-            kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
-            plasma-workspace gettext
-
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      # makepkg refuses to run as root — make a regular user for the build.
-      - name: Create builder user
-        run: |
-          useradd -m builder
-          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-          chown -R builder:builder .
-
-      - name: Package via makepkg
-        run: |
-          # Render PKGBUILD from PKGBUILD.in via envsubst, same pattern
-          # the .rpm/.deb specs use. PKG_VERSION must be pacman-safe
-          # (no '-' or '+'); APP_VERSION keeps the full string so the
-          # binary's self-reported version still matches the release tag.
-          export PKG_VERSION=$(echo "$APP_VERSION" | sed 's/-/_/g; s/+.*//')
-          export PKG_RELEASE=1
-          export APP_VERSION
-          # Restrict envsubst to OUR placeholders only — without the
-          # variable list it would also expand $startdir / $pkgdir
-          # (referenced inside PKGBUILD's build() / package() functions)
-          # to empty strings at render time, breaking the build.
-          envsubst '$PKG_VERSION $PKG_RELEASE $APP_VERSION' \
-            < packages/buildpkg/PKGBUILD.in > ./PKGBUILD
-          chown -R builder:builder .
-          sudo -u builder makepkg --noconfirm --skipinteg --syncdeps --rmdeps
-          ls -la *.pkg.tar.zst
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: arch-package
-          path: plasma6-applets-appgrid-*.pkg.tar.zst
-
-  fedora:
-    name: Fedora (${{ matrix.arch }})
-    needs: [version, tests]
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64, aarch64]
-        include:
-          - arch: x86_64
-            runner: ubuntu-latest
-            platform: linux/amd64
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
-            platform: linux/arm64
-    env:
-      APP_VERSION: ${{ needs.version.outputs.version }}
-      PKG_VERSION: ${{ needs.version.outputs.pkg_version }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Build and package
-        run: |
-          docker run --rm --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -e APP_VERSION="${APP_VERSION}" \
-            -e PKG_VERSION="${PKG_VERSION}" \
-            -e BUILD_TYPE="${BUILD_TYPE}" \
-            fedora:latest bash -c '
-              set -e
-              dnf install -y \
-                cmake extra-cmake-modules gcc-c++ \
-                qt6-qtbase-devel qt6-qtdeclarative-devel \
-                libplasma-devel kf6-kpackage-devel kf6-kio-devel \
-                kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
-                kf6-kiconthemes-devel \
-                kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
-                plasma-activities-devel plasma-workspace-devel \
-                gettext rpm-build
-              cd /workspace
-              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
-                -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
-              cmake --build build -j$(nproc)
-              DESTDIR="$PWD/pkg" cmake --install build
-              export DISTRO_VER=$(rpm -E %fedora)
-              export PKG_DIR="$PWD/pkg"
-              # PKG_VERSION already comes in RPM-safe (no "-"); APP_VERSION
-              # keeps the raw tag string for APPGRID_VERSION_OVERRIDE above.
-              export PKG_VERSION
-              envsubst < packages/rpm/fedora.spec.in > appgrid.spec
-              rpmbuild -bb \
-                --define "_topdir $PWD/rpmbuild" \
-                appgrid.spec
-              find rpmbuild/RPMS -name "*.rpm" -exec cp {} /workspace/ \;
-            '
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: fedora-package-${{ matrix.arch }}
-          path: "*.rpm"
-
-  deb-packages:
-    name: ${{ matrix.distro.name }} (${{ matrix.arch.name }})
-    needs: [version, tests]
-    runs-on: ${{ matrix.arch.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        distro:
-          - { name: "Ubuntu 25.04", image: "ubuntu:25.04", id: "ubuntu-25.04" }
-          - { name: "Ubuntu 25.10", image: "ubuntu:25.10", id: "ubuntu-25.10" }
-          - { name: "Ubuntu 26.04", image: "ubuntu:26.04", id: "ubuntu-26.04" }
-          - { name: "Debian 13", image: "debian:13", id: "debian-13" }
-        arch:
-          - { name: "x86_64", runner: "ubuntu-latest", platform: "linux/amd64", deb: "amd64" }
-          - { name: "aarch64", runner: "ubuntu-24.04-arm", platform: "linux/arm64", deb: "arm64" }
-    env:
-      APP_VERSION: ${{ needs.version.outputs.version }}
-      PKG_VERSION: ${{ needs.version.outputs.pkg_version }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Build and package
-        env:
-          DEB_ARCH: ${{ matrix.arch.deb }}
-        run: |
-          docker run --rm --platform ${{ matrix.arch.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -e APP_VERSION="${APP_VERSION}" \
-            -e PKG_VERSION="${PKG_VERSION}" \
-            -e BUILD_TYPE="${BUILD_TYPE}" \
-            -e DEB_ARCH="${DEB_ARCH}" \
-            -e DEBIAN_FRONTEND=noninteractive \
-            ${{ matrix.distro.image }} bash -c '
-              set -e
-              apt-get update
-              apt-get install -y \
-                cmake extra-cmake-modules g++ \
-                qt6-base-dev qt6-declarative-dev \
-                libplasma-dev libkf6package-dev libkf6kio-dev \
-                libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
-                libkf6iconthemes-dev \
-                libkf6windowsystem-dev libkf6runner-dev \
-                libplasmaactivities-dev \
-                liblayershellqtinterface-dev \
-                plasma-workspace-dev \
-                gettext dpkg-dev
-              cd /workspace
-              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
-                -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
-              cmake --build build -j$(nproc)
-              DESTDIR="$PWD/pkg" cmake --install build
-              mkdir -p pkg/DEBIAN
-              DISTRO_ID=$(grep -oP "^ID=\K\w+" /etc/os-release)
-              VER_ID=$(grep -oP "VERSION_ID=\"\K[^\"]+" /etc/os-release)
-              CODENAME=$(grep -oP "VERSION_CODENAME=\K.*" /etc/os-release)
-              # Use the deb-safe PKG_VERSION (with "~" for pre-releases) so
-              # 1.8.0~rc.1 sorts BEFORE 1.8.0 final per dpkg --compare-versions.
-              if [ "$DISTRO_ID" = "ubuntu" ]; then
-                export PKG_SUFFIX="${PKG_VERSION}-1ubuntu${VER_ID}"
-              else
-                export PKG_SUFFIX="${PKG_VERSION}-1${DISTRO_ID}${VER_ID}"
-              fi
-              export DEB_ARCH
-              envsubst < packages/deb/control.in > pkg/DEBIAN/control
-              dpkg-deb --build pkg \
-                "/workspace/plasma-applet-appgrid_${PKG_SUFFIX}_${CODENAME}_${DEB_ARCH}.deb"
-            '
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: ${{ matrix.distro.id }}-package-${{ matrix.arch.deb }}
-          path: "*.deb"
+    uses: ./.github/workflows/publish.yml
+    with:
+      channel: ${{ contains(needs.version.outputs.version, '-') && 'rc' || 'stable' }}
+      version: ${{ needs.version.outputs.version }}
+      pkg_version: ${{ needs.version.outputs.pkg_version }}
+    secrets: inherit
 
   universal:
     name: Universal package (${{ matrix.arch }})
@@ -351,7 +172,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [version, arch, fedora, deb-packages, universal, nix]
+    needs: [version, universal, nix]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -362,18 +183,6 @@ jobs:
 
       - name: List packages
         run: find artifacts -type f | sort
-
-      # Generate SHA256 sidecars next to every .rpm and .deb so the website
-      # (and end users) can verify downloads. Universal already ships its
-      # own .tar.gz.sha256 via build-package.sh, so we skip .tar.gz here.
-      - name: Generate SHA256 sidecars for distro packages
-        run: |
-          set -e
-          find artifacts -type f \( -name '*.rpm' -o -name '*.deb' -o -name '*.pkg.tar.zst' \) | while read -r f; do
-            ( cd "$(dirname "$f")" && sha256sum "$(basename "$f")" > "$(basename "$f").sha256" )
-          done
-          echo "=== sidecars created ==="
-          find artifacts -type f -name '*.sha256' | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

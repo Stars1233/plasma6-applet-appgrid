@@ -1,0 +1,38 @@
+Source: plasma-applet-appgrid
+Section: kde
+Priority: optional
+Maintainer: Jason Scurtu <code@xarbit.dev>
+Build-Depends: debhelper-compat (= 13),
+ cmake,
+ extra-cmake-modules,
+ gettext,
+ g++,
+ qt6-base-dev,
+ qt6-declarative-dev,
+ libplasma-dev,
+ libkf6package-dev,
+ libkf6kio-dev,
+ libkf6service-dev,
+ libkf6i18n-dev,
+ libkf6coreaddons-dev,
+ libkf6iconthemes-dev,
+ libkf6windowsystem-dev,
+ libkf6runner-dev,
+ libplasmaactivities-dev,
+ liblayershellqtinterface-dev,
+ plasma-workspace-dev
+Standards-Version: 4.7.0
+Homepage: https://appgrid.xarbit.dev
+Rules-Requires-Root: no
+
+Package: plasma-applet-appgrid
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends},
+ plasma-workspace,
+ plasma-desktop
+Description: modern fullscreen application launcher for KDE Plasma
+ AppGrid is a grid-style application launcher for KDE Plasma 6,
+ inspired by macOS Launchpad and COSMIC. It offers unified search,
+ favorites, categories, and both a panel and a centered full-screen
+ presentation.
