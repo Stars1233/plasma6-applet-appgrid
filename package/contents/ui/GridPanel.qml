@@ -46,8 +46,12 @@ Kirigami.ShadowedRectangle {
     readonly property bool cfgShowNewAppBadge: Plasmoid.configuration.showNewAppBadge !== false
     readonly property bool cfgHideLabelsOnFavorites: Plasmoid.configuration.hideLabelsOnFavorites === true
     readonly property bool cfgShowScrollbars: Plasmoid.configuration.showScrollbars !== false
+    // AlwaysOn rather than AsNeeded: an AsNeeded bar reserves width only
+    // while visible, and that width change feeds back into the grid's
+    // column / cell sizing — an oscillation that can hard-freeze the view
+    // (issue #110). A constant-width bar removes the feedback edge.
     readonly property int scrollBarPolicy: cfgShowScrollbars
-                                           ? PlasmaComponents.ScrollBar.AsNeeded : PlasmaComponents.ScrollBar.AlwaysOff
+                                           ? PlasmaComponents.ScrollBar.AlwaysOn : PlasmaComponents.ScrollBar.AlwaysOff
 
     // -- Sort helpers --
     readonly property bool isSortByCategory: sortMode === 2
