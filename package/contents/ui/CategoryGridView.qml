@@ -346,7 +346,7 @@ Flickable {
                                 installSource: modelData.installSource || ""
                                 showTooltip: categoryGrid.showTooltips
                                 iconSize: categoryGrid.iconSize
-                                isCurrentItem: categoryGrid.currentIndex === parent.flatIndex
+                                isCurrentItem: categoryGrid.currentIndex === parent.flatIndex && categoryGrid.activeFocus
                                 isNew: categoryGrid.showNewAppBadge && categoryGrid.appsModel
                                     ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false
                                 storageId: modelData.storageId || ""

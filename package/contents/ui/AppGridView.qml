@@ -478,7 +478,7 @@ GridView {
                 : (model.installSource || "")
             showTooltip: gridView.showTooltips
             hideLabel: gridView.hideLabelsOnFavorites && gridView.favoritesActive
-            isCurrentItem: gridView.currentIndex === model.index
+            isCurrentItem: gridView.currentIndex === model.index && gridView.activeFocus
             iconSize: gridView.iconSize
             isNew: !delegateRoot._fromShared
                    && gridView.showNewAppBadge && gridView.appsModel
