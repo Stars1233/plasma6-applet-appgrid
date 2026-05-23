@@ -147,6 +147,12 @@ ListView {
         checkable: false
         closable: false
         interactive: false
+        labelItem.font: Kirigami.Theme.smallFont
+        leftPadding: Kirigami.Units.smallSpacing
+        rightPadding: Kirigami.Units.smallSpacing
+        topPadding: 0
+        bottomPadding: 0
+        implicitHeight: labelItem.implicitHeight + Kirigami.Units.smallSpacing
     }
 
     component ShortcutBadge: Rectangle {
