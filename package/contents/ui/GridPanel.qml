@@ -652,6 +652,7 @@ Kirigami.ShadowedRectangle {
         CategoryBar {
             id: categoryBar
             visible: panel.showCatBar
+            Layout.leftMargin: Kirigami.Units.smallSpacing
             appsModel: panel.appsModel
             devExtraCategories: devFlags.extraCategories
             favoritesFirst: panel.cfgStartWithFavorites

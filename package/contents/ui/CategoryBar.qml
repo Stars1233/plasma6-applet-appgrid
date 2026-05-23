@@ -260,9 +260,7 @@ RowLayout {
         visible: catFlick.contentX > 0
         icon.name: "arrow-left"
         implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing * 2
-        onClicked: {
-            catFlick.contentX = Math.max(0, catFlick.contentX - catFlick.width * 0.5)
-        }
+        onClicked: catFlick.contentX = Math.max(0, catFlick.contentX - catFlick.width * 0.5)
 
         Accessible.name: i18nd("dev.xarbit.appgrid", "Scroll categories left")
         Accessible.role: Accessible.Button
@@ -279,20 +277,39 @@ RowLayout {
         flickableDirection: Flickable.HorizontalFlick
         boundsBehavior: Flickable.StopAtBounds
 
+        // Edge-settling guard for #113: once a wheel lands on either edge,
+        // swallow follow-up wheels for a short window so rapid scrolling
+        // can't re-target the contentX animation and overshoot past max.
+        property bool _wheelEdgeSettling: false
+        Timer {
+            id: wheelEdgeSettlingTimer
+            interval: Math.max(Kirigami.Units.shortDuration, 120)
+            onTriggered: catFlick._wheelEdgeSettling = false
+        }
+
         Kirigami.WheelHandler {
             target: catFlick
             onWheel: function(wheel) {
-                const delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
-                catFlick.contentX = Math.max(0, Math.min(
-                    catFlick.contentWidth - catFlick.width,
-                    catFlick.contentX - delta))
                 wheel.accepted = true
+                if (catFlick._wheelEdgeSettling)
+                    return
+                const delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
+                const maxX = Math.max(0, catFlick.contentWidth - catFlick.width)
+                const target = Math.max(0, Math.min(maxX, catFlick.contentX - delta))
+                catFlick.contentX = target
+                if (target === 0 || target === maxX) {
+                    catFlick._wheelEdgeSettling = true
+                    wheelEdgeSettlingTimer.restart()
+                }
             }
         }
 
         Behavior on contentX {
             enabled: Kirigami.Units.longDuration > 0
-            SmoothedAnimation { velocity: 800 }
+            NumberAnimation {
+                duration: Kirigami.Units.longDuration
+                easing.type: Easing.OutCubic
+            }
         }
 
         RowLayout {
@@ -350,16 +367,20 @@ RowLayout {
     }
 
     // -- Scroll right arrow --
+    // Fade with opacity rather than collapse with visible: false — visible
+    // toggling removes the button from the parent RowLayout mid-scroll,
+    // growing catFlick at the moment the user lands on the right edge and
+    // visibly overshooting the new max. Left arrow can use visible:false
+    // safely because the layout shift there happens at idle (contentX = 0).
     PlasmaComponents.ToolButton {
         id: scrollRightBtn
-        visible: catFlick.contentX + catFlick.width < catFlick.contentWidth - 1
+        enabled: catFlick.contentX + catFlick.width < catFlick.contentWidth - 1
+        opacity: enabled ? 1 : 0
         icon.name: "arrow-right"
         implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing * 2
-        onClicked: {
-            catFlick.contentX = Math.min(
-                catFlick.contentWidth - catFlick.width,
-                catFlick.contentX + catFlick.width * 0.5)
-        }
+        onClicked: catFlick.contentX = Math.min(
+            catFlick.contentWidth - catFlick.width,
+            catFlick.contentX + catFlick.width)
 
         Accessible.name: i18nd("dev.xarbit.appgrid", "Scroll categories right")
         Accessible.role: Accessible.Button
