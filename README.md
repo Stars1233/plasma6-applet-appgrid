@@ -41,7 +41,7 @@ Maintained by third-party contributors, **not** by the AppGrid project. They are
 If you maintain an AppGrid package for a distro not listed here, open an issue and we will add you.
 
 > [!CAUTION]
-> **Impersonation caution.** A repository at `github.com/RishiT07-op/plasma6-applet-appgrid` is impersonating this project (not a fork, ships an unknown `.zip`, issues disabled). Only install from the official sources listed below. Details + status: [#115](https://github.com/xarbit/plasma6-applet-appgrid/issues/115).
+> **Impersonation caution.** A repository at `github.com/RishiT07-op/plasma6-applet-appgrid` is impersonating this project (not a fork, ships an unknown `.zip`, issues disabled). Only install from the official sources. Details + status: [#115](https://github.com/xarbit/plasma6-applet-appgrid/issues/115).
 
 ## Build from source
 
