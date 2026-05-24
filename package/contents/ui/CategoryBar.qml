@@ -254,32 +254,19 @@ RowLayout {
         Accessible.role: Accessible.Button
     }
 
-    // -- Scroll left slot --
-    // Reserves a fixed-width slot regardless of state so the bar never
-    // reflows when the arrow appears or disappears. Holds either the
-    // separator (idle) or the arrow button (scrollable).
-    Item {
-        id: scrollLeftSlot
+    // -- Scroll left arrow --
+    // Always rendered; faded + disabled at the start edge. Stable slot
+    // means no layout shift, arrow stays as a discoverable affordance.
+    PlasmaComponents.ToolButton {
+        id: scrollLeftBtn
+        enabled: catFlick.contentX > 0
+        opacity: enabled ? 1 : 0.9
+        icon.name: "arrow-left"
         implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing * 2
-        implicitHeight: scrollLeftBtn.implicitHeight
+        onClicked: catFlick.contentX = Math.max(0, catFlick.contentX - catFlick.width)
 
-        Kirigami.Separator {
-            anchors.centerIn: parent
-            width: 1
-            height: parent.height * 0.5
-            visible: !scrollLeftBtn.visible
-        }
-
-        PlasmaComponents.ToolButton {
-            id: scrollLeftBtn
-            anchors.fill: parent
-            visible: catFlick.contentX > 0
-            icon.name: "arrow-left"
-            onClicked: catFlick.contentX = Math.max(0, catFlick.contentX - catFlick.width)
-
-            Accessible.name: i18nd("dev.xarbit.appgrid", "Scroll categories left")
-            Accessible.role: Accessible.Button
-        }
+        Accessible.name: i18nd("dev.xarbit.appgrid", "Scroll categories left")
+        Accessible.role: Accessible.Button
     }
 
     // -- Scrollable category buttons --
@@ -391,7 +378,7 @@ RowLayout {
     PlasmaComponents.ToolButton {
         id: scrollRightBtn
         enabled: catFlick.contentX + catFlick.width < catFlick.contentWidth - 1
-        opacity: enabled ? 1 : 0
+        opacity: enabled ? 1 : 0.9
         icon.name: "arrow-right"
         implicitWidth: Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing * 2
         onClicked: catFlick.contentX = Math.min(
