@@ -37,6 +37,7 @@
 #include <QProcess>
 #include <QQuickWindow>
 #include <QStandardPaths>
+#include <QXmlStreamReader>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
@@ -453,26 +454,106 @@ bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
     return !backend.isEmpty() && discoverBackendInstalled(backend);
 }
 
+// --- AppStream component id resolver --------------------------------
+// AppStreamQt (AppStream::Pool::componentsById) would be the canonical
+// way to do this in-process, but pulling in libappstream-qt for one
+// lookup per right-click adds a build + runtime dep across every distro
+// package for negligible gain. We read the per-app metainfo XML files
+// directly instead — same source data Discover's pool indexes from.
+// --------------------------------------------------------------------
+
+// Standard locations for per-app AppStream metainfo files. Covers
+// distro-installed metadata + Flatpak's system and user exports.
+static QStringList metainfoSearchDirs()
+{
+    QStringList dirs;
+    for (const auto &base : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+        dirs << base + QStringLiteral("/metainfo");
+        dirs << base + QStringLiteral("/appdata");
+    }
+    dirs << QStringLiteral("/var/lib/flatpak/exports/share/metainfo");
+    dirs << QDir::homePath() + QStringLiteral("/.local/share/flatpak/exports/share/metainfo");
+    return dirs;
+}
+
+// Read the <id> element from an AppStream metainfo XML file. Returns
+// empty if the file can't be opened or doesn't declare an id.
+static QString readIdFromMetainfo(const QString &path)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly))
+        return {};
+    QXmlStreamReader xml(&f);
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (xml.isStartElement() && xml.name() == QLatin1String("id"))
+            return xml.readElementText().trimmed();
+    }
+    return {};
+}
+
+// Scan known metainfo locations for any file whose basename matches one
+// of @p basenames (with either .metainfo.xml or .appdata.xml suffix) and
+// return the first <id> found.
+static QString scanMetainfoForId(const QStringList &basenames)
+{
+    static const QStringList suffixes{
+        QStringLiteral(".metainfo.xml"),
+        QStringLiteral(".appdata.xml"),
+    };
+    for (const auto &dir : metainfoSearchDirs()) {
+        for (const auto &name : basenames) {
+            for (const auto &sfx : suffixes) {
+                const QString id = readIdFromMetainfo(dir + QLatin1Char('/') + name + sfx);
+                if (!id.isEmpty())
+                    return id;
+            }
+        }
+    }
+    return {};
+}
+
+// Resolve the AppStream component id for @p storageId. AppStream's spec
+// is inconsistent about the .desktop suffix (legacy keeps it, modern
+// strips it); reading each app's metainfo <id> returns whichever form
+// that specific component declares. Falls back to the storage id when
+// no metainfo file exists. Cached per session.
+static QString resolveAppStreamId(const QString &storageId)
+{
+    static QHash<QString, QString> cache;
+    const auto cached = cache.constFind(storageId);
+    if (cached != cache.constEnd())
+        return *cached;
+
+    QString stripped = storageId;
+    if (stripped.endsWith(QLatin1String(".desktop")))
+        stripped.chop(8);
+    QStringList basenames{storageId};
+    if (stripped != storageId)
+        basenames << stripped;
+
+    const QString found = scanMetainfoForId(basenames);
+    const QString resolved = found.isEmpty() ? storageId : found;
+    cache.insert(storageId, resolved);
+    return resolved;
+}
+
 void AppGridPlugin::openInDiscover(const QString &storageId)
 {
     if (storageId.isEmpty() || !isDiscoverAvailable())
         return;
 
-    // Prefer an explicit X-AppStream-Component declared on the .desktop
-    // file; fall back to the desktop file id (matches Flatpak by
-    // convention and the AppStream metadata distros ship for most
-    // native apps).
+    // Prefer X-AppStream-Component if the .desktop file declares one;
+    // otherwise resolve the canonical id by asking AppStream which form
+    // (.desktop-suffixed or stripped) it actually has registered.
     QString appId;
     auto service = KService::serviceByStorageId(storageId);
     if (service) {
         KDesktopFile desktopFile(service->entryPath());
         appId = desktopFile.desktopGroup().readEntry("X-AppStream-Component", QString());
     }
-    if (appId.isEmpty()) {
-        appId = storageId;
-        if (appId.endsWith(QLatin1String(".desktop")))
-            appId.chop(8);
-    }
+    if (appId.isEmpty())
+        appId = resolveAppStreamId(storageId);
 
     // appstream:// is the distro-agnostic entry point — Discover's
     // registered URL handler resolves the component through whichever
