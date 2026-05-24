@@ -260,6 +260,8 @@ ListView {
         id: resultDelegate
         width: listView.width
         height: Math.max(listView.iconSize, contentItem.implicitHeight) + Kirigami.Units.smallSpacing * 2
+        leftPadding: Kirigami.Units.largeSpacing
+        rightPadding: Kirigami.Units.largeSpacing
         highlighted: listView.currentIndex === model.index
         // PlasmaExtras.Highlight on the ListView draws all row backgrounds.
         background: null
