@@ -13,6 +13,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 import "favoriteid.js" as FavoriteId
+import "migrations.js" as Migrations
 
 Kirigami.ShadowedRectangle {
     id: panel
@@ -180,19 +181,11 @@ Kirigami.ShadowedRectangle {
             appsModel.markAllKnown()
     }
 
-    Component.onCompleted: { _migratePowerButtons(); syncModelFromConfig() }
-    onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
-
-    // One-time: the legacy showSessionButtons toggle hid the whole power
-    // row — carry that into the per-button config so it is not lost.
-    function _migratePowerButtons() {
-        if (Plasmoid.configuration.powerButtonsMigrated)
-            return
-        if (Plasmoid.configuration.showSessionButtons === false)
-            Plasmoid.configuration.powerButtonsHidden =
-                ["sleep", "restart", "shutdown", "session", "lock", "logout", "switchuser"]
-        Plasmoid.configuration.powerButtonsMigrated = true
+    Component.onCompleted: {
+        Migrations.migratePowerButtons(Plasmoid.configuration)
+        syncModelFromConfig()
     }
+    onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
 
     Connections {
         target: panel.appsModel

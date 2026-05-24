@@ -9,6 +9,8 @@
 import QtQuick
 import org.kde.plasma.plasmoid
 
+import "migrations.js" as Migrations
+
 PlasmoidItem {
     id: kicker
 
@@ -28,7 +30,10 @@ PlasmoidItem {
     DragSource { id: dragSourceImpl }
 
     // Update checker (universal builds only) — see standalone main.qml.
-    Component.onCompleted: _syncUpdateChecker()
+    Component.onCompleted: {
+        Migrations.migrateLauncherIcon(Plasmoid.configuration)
+        _syncUpdateChecker()
+    }
     Connections {
         target: Plasmoid.configuration
         function onCheckForUpdatesChanged() { kicker._syncUpdateChecker() }
