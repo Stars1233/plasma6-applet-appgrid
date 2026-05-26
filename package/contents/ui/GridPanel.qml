@@ -117,8 +117,9 @@ Kirigami.ShadowedRectangle {
     readonly property real headerHeight: Kirigami.Units.gridUnit * 5
     readonly property real panelWidth: estCellWidth * columns + panelMargin * 2
     readonly property real panelHeight: estCellHeight * rows + panelMargin * 2 + headerHeight
-    // Compact mode height — just the search bar + margins.
-    readonly property real compactHeight: headerHeight + panelMargin * 2
+    // Compact mode height — snug fit around the header row (search +
+    // power buttons), no slack for a category bar or grid below.
+    readonly property real compactHeight: headerRow.implicitHeight + panelMargin * 2
     readonly property real effectiveHeight: _emptyHiddenState ? compactHeight : panelHeight
     // Half the delta between current and compact heights — compact mode
     // expands the panel downward by this amount, keeping the search bar
@@ -535,6 +536,7 @@ Kirigami.ShadowedRectangle {
 
         // -- Header --
         RowLayout {
+            id: headerRow
             Layout.fillWidth: true
             spacing: Kirigami.Units.largeSpacing
             // Pin the row height so it does not shrink when the power
