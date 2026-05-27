@@ -376,21 +376,12 @@ Kirigami.ShadowedRectangle {
 
     readonly property var sharedFavoritesModel: sharedFavoritesLoader.item
 
-    // Mirror shared model into proxy model so the grid view updates.
-    // KAStatsFavoritesModel does not emit `favoritesChanged` despite the
-    // Q_PROPERTY declaration — upstream Kicker leaves it as a stub. Use the
-    // QAbstractItemModel signals which are emitted on every change.
-    // KAStatsFavoritesModel does not emit `favoritesChanged` despite the
-    // Q_PROPERTY declaration — upstream Kicker leaves it as a stub. We listen
-    // to QAbstractItemModel signals instead, which fire on every change.
-    // Coalesce bursts of model-change signals: when KAStats reorders or
-    // reloads, several of insert/remove/move/reset/layoutChanged/dataChanged
-    // can fire back-to-back. We schedule one mirror per event-loop turn
-    // instead of mirroring on every signal.
-    // The mirror only needs to run when AppFilterModel actually serves the
-    // favorites view (alpha-sort mode). In normal drag-reorder mode the
-    // GridView reads sharedFavoritesModel directly, so there's nothing to
-    // mirror into.
+    // KAStatsFavoritesModel's `favoritesChanged` is a stub in upstream
+    // Kicker, so we listen to QAbstractItemModel signals and coalesce
+    // the resulting burst (insert/remove/move/reset/layoutChanged/dataChanged
+    // often fire back-to-back) into one mirror per event-loop turn. The
+    // mirror only runs in alpha-sort mode; drag-reorder reads the shared
+    // model directly.
     readonly property bool mirrorRequired: Plasmoid.configuration.sortFavoritesAlphabetically === true
 
     Timer {
