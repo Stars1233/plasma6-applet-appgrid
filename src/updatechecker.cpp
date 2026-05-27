@@ -232,6 +232,63 @@ void UpdateChecker::runCheck(bool force)
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { handleReply(reply); });
 }
 
+UpdateChecker::ManifestResult UpdateChecker::parseManifest(const QByteArray &bytes)
+{
+    ManifestResult result;
+
+    QJsonParseError err{};
+    const auto doc = QJsonDocument::fromJson(bytes, &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning("AppGrid update check: malformed JSON");
+        return result;
+    }
+
+    const auto obj = doc.object();
+
+    // Top-level "version" / "release_notes_url" fields are the stable
+    // release (legacy + back-compat target for AppGrid <= 1.8.0-rc.1).
+    const auto stableVersion = obj.value(QStringLiteral("version")).toString();
+    const auto stableUrl = obj.value(QStringLiteral("release_notes_url")).toString();
+
+    if (!isValidVersionString(stableVersion)) {
+        qWarning("AppGrid update check: rejecting malformed version string");
+        return result;
+    }
+    if (!stableUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(stableUrl))) {
+        qWarning("AppGrid update check: rejecting release URL with disallowed scheme");
+        return result;
+    }
+
+    result.stableVersion = stableVersion;
+    result.stableUrl = stableUrl;
+
+    // Optional "prerelease" block carries the latest -rc / -beta / -alpha
+    // (added in 1.8.0). Pre-release fields are optional; either piece may
+    // be cleared independently if validation fails so the stable side of
+    // the result still surfaces.
+    const auto prereleaseValue = obj.value(QStringLiteral("prerelease"));
+    if (prereleaseValue.isObject()) {
+        const auto pre = prereleaseValue.toObject();
+        QString preVersion = pre.value(QStringLiteral("version")).toString();
+        QString preUrl = pre.value(QStringLiteral("release_notes_url")).toString();
+        if (!preVersion.isEmpty() && !isValidVersionString(preVersion)) {
+            qWarning("AppGrid update check: rejecting malformed prerelease version");
+            preVersion.clear();
+            preUrl.clear();
+        }
+        if (!preUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(preUrl))) {
+            qWarning("AppGrid update check: rejecting prerelease URL with disallowed scheme");
+            preVersion.clear();
+            preUrl.clear();
+        }
+        result.prereleaseVersion = preVersion;
+        result.prereleaseUrl = preUrl;
+    }
+
+    result.valid = true;
+    return result;
+}
+
 void UpdateChecker::handleReply(QNetworkReply *reply)
 {
     reply->deleteLater();
@@ -256,53 +313,10 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
         return;
     }
 
-    QJsonParseError err{};
-    const auto doc = QJsonDocument::fromJson(reply->readAll(), &err);
-    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-        qWarning("AppGrid update check: malformed JSON");
+    const auto manifest = parseManifest(reply->readAll());
+    if (!manifest.valid) {
         saveState();
         return;
-    }
-
-    const auto obj = doc.object();
-
-    // Top-level "version" / "release_notes_url" fields are the stable
-    // release (legacy + back-compat target for AppGrid <= 1.8.0-rc.1).
-    const auto stableVersion = obj.value(QStringLiteral("version")).toString();
-    const auto stableUrl = obj.value(QStringLiteral("release_notes_url")).toString();
-
-    // Optional "prerelease" block carries the latest -rc / -beta / -alpha
-    // (added in 1.8.0). Users currently on a pre-release should be notified
-    // about newer pre-releases too; stable users only ever see stable.
-    QString prereleaseVersion;
-    QString prereleaseUrl;
-    const auto prereleaseValue = obj.value(QStringLiteral("prerelease"));
-    if (prereleaseValue.isObject()) {
-        const auto pre = prereleaseValue.toObject();
-        prereleaseVersion = pre.value(QStringLiteral("version")).toString();
-        prereleaseUrl = pre.value(QStringLiteral("release_notes_url")).toString();
-    }
-
-    if (!isValidVersionString(stableVersion)) {
-        qWarning("AppGrid update check: rejecting malformed version string");
-        saveState();
-        return;
-    }
-    if (!stableUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(stableUrl))) {
-        qWarning("AppGrid update check: rejecting release URL with disallowed scheme");
-        saveState();
-        return;
-    }
-    // Pre-release fields are optional; only validate if present.
-    if (!prereleaseVersion.isEmpty() && !isValidVersionString(prereleaseVersion)) {
-        qWarning("AppGrid update check: rejecting malformed prerelease version");
-        prereleaseVersion.clear();
-        prereleaseUrl.clear();
-    }
-    if (!prereleaseUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(prereleaseUrl))) {
-        qWarning("AppGrid update check: rejecting prerelease URL with disallowed scheme");
-        prereleaseVersion.clear();
-        prereleaseUrl.clear();
     }
 
     // Pick which advertised version to surface to the user:
@@ -310,13 +324,13 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
     //   - pre-release users (e.g. "1.8.0-rc.1") see the higher of stable
     //     or prerelease; either path is a legit upgrade for them
     const bool currentIsPrerelease = m_currentVersion.contains(QChar(u'-'));
-    QString chosenVersion = stableVersion;
-    QString chosenUrl = stableUrl;
+    QString chosenVersion = manifest.stableVersion;
+    QString chosenUrl = manifest.stableUrl;
     if (currentIsPrerelease
-        && !prereleaseVersion.isEmpty()
-        && isNewer(prereleaseVersion, stableVersion)) {
-        chosenVersion = prereleaseVersion;
-        chosenUrl = prereleaseUrl;
+        && !manifest.prereleaseVersion.isEmpty()
+        && isNewer(manifest.prereleaseVersion, manifest.stableVersion)) {
+        chosenVersion = manifest.prereleaseVersion;
+        chosenUrl = manifest.prereleaseUrl;
     }
 
     const bool wasAvailable = m_hasUpdate;

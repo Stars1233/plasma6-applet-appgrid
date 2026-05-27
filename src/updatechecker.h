@@ -44,6 +44,18 @@ public:
     static bool isAllowedReleaseScheme(const class QUrl &url);
     static bool isValidVersionString(const QString &v);
 
+    // Decoded latest.json. `valid` is true when the JSON parsed and the
+    // mandatory stable version cleared validation; the prerelease pair
+    // is optional and may be empty even on a valid result.
+    struct ManifestResult {
+        bool valid = false;
+        QString stableVersion;
+        QString stableUrl;
+        QString prereleaseVersion;
+        QString prereleaseUrl;
+    };
+    static ManifestResult parseManifest(const QByteArray &bytes);
+
 Q_SIGNALS:
     void hasUpdateChanged();
     void latestVersionChanged();

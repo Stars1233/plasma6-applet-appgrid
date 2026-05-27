@@ -247,6 +247,74 @@ private slots:
         QVERIFY(!uc.hasUpdate() || uc.latestVersion() == QStringLiteral("1.8.0"));
     }
 
+    // --- parseManifest (pure JSON → struct) -----------------------------
+
+    void parseManifest_data()
+    {
+        QTest::addColumn<QByteArray>("json");
+        QTest::addColumn<bool>("valid");
+        QTest::addColumn<QString>("stableVersion");
+        QTest::addColumn<QString>("stableUrl");
+        QTest::addColumn<QString>("prereleaseVersion");
+
+        QTest::newRow("stable only")
+            << QByteArray("{\"version\":\"1.8.0\",\"release_notes_url\":\"https://example.com/r\"}")
+            << true << "1.8.0" << "https://example.com/r" << "";
+
+        QTest::newRow("with prerelease")
+            << QByteArray("{\"version\":\"1.8.0\",\"release_notes_url\":\"https://example.com/r\","
+                          "\"prerelease\":{\"version\":\"1.9.0-rc.1\","
+                          "\"release_notes_url\":\"https://example.com/p\"}}")
+            << true << "1.8.0" << "https://example.com/r" << "1.9.0-rc.1";
+
+        QTest::newRow("missing version")
+            << QByteArray("{\"release_notes_url\":\"https://example.com/r\"}")
+            << false << "" << "" << "";
+
+        QTest::newRow("malformed version")
+            << QByteArray("{\"version\":\"1.8.0; rm -rf /\"}")
+            << false << "" << "" << "";
+
+        QTest::newRow("bad url scheme")
+            << QByteArray("{\"version\":\"1.8.0\",\"release_notes_url\":\"javascript:alert(1)\"}")
+            << false << "" << "" << "";
+
+        QTest::newRow("prerelease bad version drops only that side")
+            << QByteArray("{\"version\":\"1.8.0\",\"release_notes_url\":\"https://example.com/r\","
+                          "\"prerelease\":{\"version\":\"not.a.version\","
+                          "\"release_notes_url\":\"https://example.com/p\"}}")
+            << true << "1.8.0" << "https://example.com/r" << "";
+
+        QTest::newRow("prerelease bad url drops only that side")
+            << QByteArray("{\"version\":\"1.8.0\",\"release_notes_url\":\"https://example.com/r\","
+                          "\"prerelease\":{\"version\":\"1.9.0-rc.1\","
+                          "\"release_notes_url\":\"javascript:alert(1)\"}}")
+            << true << "1.8.0" << "https://example.com/r" << "";
+
+        QTest::newRow("garbage json")
+            << QByteArray("not json at all")
+            << false << "" << "" << "";
+
+        QTest::newRow("not an object")
+            << QByteArray("[1, 2, 3]")
+            << false << "" << "" << "";
+    }
+
+    void parseManifest()
+    {
+        QFETCH(QByteArray, json);
+        QFETCH(bool, valid);
+        QFETCH(QString, stableVersion);
+        QFETCH(QString, stableUrl);
+        QFETCH(QString, prereleaseVersion);
+
+        const auto result = UpdateChecker::parseManifest(json);
+        QCOMPARE(result.valid, valid);
+        QCOMPARE(result.stableVersion, stableVersion);
+        QCOMPARE(result.stableUrl, stableUrl);
+        QCOMPARE(result.prereleaseVersion, prereleaseVersion);
+    }
+
     void cacheFilePermissions()
     {
         // Force a save by writing then loading then re-saving via the
