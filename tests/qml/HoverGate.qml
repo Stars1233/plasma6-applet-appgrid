@@ -45,14 +45,26 @@ QtObject {
         _lastHoverPos = Qt.point(-1, -1)
     }
 
-    // Returns true if the caller should accept the hover-select. Always
-    // updates _lastHoverPos so consecutive events can compare deltas.
+    // Returns true if the caller should accept the hover-select. The
+    // anchor advances on accept only — updating on every event would
+    // reset the reference per pointChanged and let sub-pixel drift on a
+    // fractionally-scaled screen stay under the 1 px threshold forever,
+    // never crossing into a select (#145). Sentinel still consumes its
+    // first event by anchoring, so a stationary cursor doesn't auto-
+    // claim the highlight on launcher open.
     function allows(scenePos) {
-        const sentinel = _lastHoverPos.x < 0
-        const samePos = Math.abs(scenePos.x - _lastHoverPos.x) < 1
-                     && Math.abs(scenePos.y - _lastHoverPos.y) < 1
         const wheelActive = _now() - _lastWheelTime < wheelGraceMs
+        if (!wheelActive) {
+            if (_lastHoverPos.x < 0) {
+                _lastHoverPos = scenePos
+                return false
+            }
+            const samePos = Math.abs(scenePos.x - _lastHoverPos.x) < 1
+                         && Math.abs(scenePos.y - _lastHoverPos.y) < 1
+            if (samePos)
+                return false
+        }
         _lastHoverPos = scenePos
-        return !((sentinel || samePos) && !wheelActive)
+        return true
     }
 }

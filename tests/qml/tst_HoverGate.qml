@@ -62,6 +62,18 @@ TestCase {
                "sub-pixel drift counts as a click, not motion")
     }
 
+    function test_slowMotionAccumulates() {
+        // Anchor must NOT advance on rejected events; otherwise sub-pixel
+        // steps reset the reference each call and a slow drag stays under
+        // the threshold forever — the #145 regression.
+        var g = gate()
+        g.allows(Qt.point(100, 100))            // sentinel
+        verify(!g.allows(Qt.point(100.3, 100))) // < 1 px → reject, anchor stays
+        verify(!g.allows(Qt.point(100.6, 100))) // still < 1 px from anchor
+        verify(g.allows(Qt.point(101.2, 100)),  // cumulative > 1 px → accept
+               "slow drift should accumulate past the threshold")
+    }
+
     // --- Wheel override ---
 
     function test_wheelBypassesSentinel() {
