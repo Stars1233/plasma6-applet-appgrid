@@ -12,7 +12,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
-import "migrations.js" as Migrations
+import "js/migrations.js" as Migrations
 
 Kirigami.ShadowedRectangle {
     id: panel

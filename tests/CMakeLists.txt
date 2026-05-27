@@ -88,12 +88,12 @@ if(Qt6QuickTest_FOUND)
         COPYONLY
     )
     configure_file(
-        ${CMAKE_SOURCE_DIR}/package/contents/ui/favoriteid.js
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/favoriteid.js
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/favoriteid.js
         COPYONLY
     )
     configure_file(
-        ${CMAKE_SOURCE_DIR}/package/contents/ui/migrations.js
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/migrations.js
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/migrations.js
         COPYONLY
     )
@@ -113,12 +113,12 @@ if(Qt6QuickTest_FOUND)
         COPYONLY
     )
     configure_file(
-        ${CMAKE_SOURCE_DIR}/package/contents/ui/scrolleasing.js
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/scrolleasing.js
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/scrolleasing.js
         COPYONLY
     )
     configure_file(
-        ${CMAKE_SOURCE_DIR}/package/contents/ui/favoritesmigration.js
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/favoritesmigration.js
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/favoritesmigration.js
         COPYONLY
     )

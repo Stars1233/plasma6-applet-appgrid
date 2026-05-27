@@ -17,7 +17,7 @@ import QtQuick
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.kicker as Kicker
-import "favoriteid.js" as FavoriteId
+import "js/favoriteid.js" as FavoriteId
 
 Item {
     id: contextMenu

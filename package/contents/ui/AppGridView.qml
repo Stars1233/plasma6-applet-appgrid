@@ -10,8 +10,8 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
-import "favoriteid.js" as FavoriteId
-import "gridnav.js" as GridNav
+import "js/favoriteid.js" as FavoriteId
+import "js/gridnav.js" as GridNav
 
 GridView {
     id: gridView

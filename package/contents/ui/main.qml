@@ -9,7 +9,7 @@
 import QtQuick
 import org.kde.plasma.plasmoid
 
-import "migrations.js" as Migrations
+import "js/migrations.js" as Migrations
 
 PlasmoidItem {
     id: kicker

@@ -20,7 +20,7 @@
 
 import QtQuick
 import org.kde.plasma.plasmoid
-import "favoriteid.js" as FavoriteId
+import "js/favoriteid.js" as FavoriteId
 
 DropArea {
     id: reorderArea
