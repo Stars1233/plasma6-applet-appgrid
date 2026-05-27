@@ -7,6 +7,7 @@ set(TEST_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/appmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/appfiltermodel.cpp
     ${CMAKE_SOURCE_DIR}/src/runnerfiltermodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/unifiedsearchmodel.cpp
 )
 
 set(TEST_COMMON_LIBS
@@ -36,6 +37,9 @@ appgrid_add_test(test_filter ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 appgrid_add_test(test_sort ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 appgrid_add_test(test_runner_filter ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h
     ${CMAKE_SOURCE_DIR}/src/runnerfiltermodel.h)
+appgrid_add_test(test_unified_search ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h
+    ${CMAKE_SOURCE_DIR}/src/runnerfiltermodel.h
+    ${CMAKE_SOURCE_DIR}/src/unifiedsearchmodel.h)
 appgrid_add_test(test_appmodel_helpers)
 # Regression test for issues #86 (icon file change on disk) and #103
 # (system theme switch). Both flow through KIconLoader::iconChanged.

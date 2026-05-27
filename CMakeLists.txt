@@ -195,6 +195,8 @@ set(APPGRID_SOURCES
     src/appfiltermodel.h
     src/runnerfiltermodel.cpp
     src/runnerfiltermodel.h
+    src/unifiedsearchmodel.cpp
+    src/unifiedsearchmodel.h
 )
 if(APPGRID_UNIVERSAL_BUILD)
     list(APPEND APPGRID_SOURCES src/updatechecker.cpp src/updatechecker.h)
@@ -240,6 +242,8 @@ set(APPGRID_PANEL_SOURCES
     src/appfiltermodel.h
     src/runnerfiltermodel.cpp
     src/runnerfiltermodel.h
+    src/unifiedsearchmodel.cpp
+    src/unifiedsearchmodel.h
 )
 if(APPGRID_UNIVERSAL_BUILD)
     list(APPEND APPGRID_PANEL_SOURCES src/updatechecker.cpp src/updatechecker.h)

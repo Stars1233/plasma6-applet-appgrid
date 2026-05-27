@@ -1,0 +1,177 @@
+/*
+    SPDX-FileCopyrightText: 2026 AppGrid Contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+#include "unifiedsearchmodel.h"
+
+#include "appmodel.h"
+
+#include <QFileInfo>
+#include <QList>
+#include <QUrl>
+
+UnifiedSearchModel::UnifiedSearchModel(QObject *parent)
+    : QAbstractListModel(parent)
+{
+}
+
+void UnifiedSearchModel::setAppModel(AppFilterModel *model)
+{
+    m_appModel = model;
+    connect(model, &QAbstractItemModel::modelReset, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::layoutChanged, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsInserted, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsRemoved, this, &UnifiedSearchModel::onSourceChanged);
+}
+
+void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
+{
+    m_runnerModel = model;
+    connect(model, &QAbstractItemModel::modelReset, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::layoutChanged, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsInserted, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsRemoved, this, &UnifiedSearchModel::onSourceChanged);
+
+    const auto roles = model->roleNames();
+    for (auto it = roles.begin(); it != roles.end(); ++it) {
+        if (it.value() == "subtext") m_runnerSubtextRole = it.key();
+        if (it.value() == "category") m_runnerCategoryRole = it.key();
+        if (it.value() == "urls") m_runnerUrlsRole = it.key();
+    }
+}
+
+void UnifiedSearchModel::onSourceChanged()
+{
+    if (!m_resetPending) {
+        m_resetPending = true;
+        QMetaObject::invokeMethod(this, &UnifiedSearchModel::doReset, Qt::QueuedConnection);
+    }
+}
+
+void UnifiedSearchModel::doReset()
+{
+    m_resetPending = false;
+    beginResetModel();
+    endResetModel();
+}
+
+int UnifiedSearchModel::appResultCount() const
+{
+    return m_appModel ? m_appModel->rowCount() : 0;
+}
+
+int UnifiedSearchModel::runnerResultCount() const
+{
+    return m_runnerModel ? m_runnerModel->rowCount() : 0;
+}
+
+int UnifiedSearchModel::rowCount(const QModelIndex &parent) const
+{
+    if (parent.isValid()) return 0;
+    return appResultCount() + runnerResultCount();
+}
+
+QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid() || index.row() < 0 || index.row() >= rowCount())
+        return {};
+    if (!m_appModel || !m_runnerModel)
+        return {};
+
+    const int row = index.row();
+    const int ac = appResultCount();
+    const bool isApp = row < ac;
+
+    switch (role) {
+    case ResultTypeRole:
+        return isApp ? QStringLiteral("app") : QStringLiteral("runner");
+    case IsSectionBoundaryRole:
+        return !isApp && row == ac && ac > 0;
+    case ShortcutNumberRole:
+        return (row < 9) ? row + 1 : 0;
+    case SourceIndexRole:
+        return isApp ? row : (row - ac);
+    default:
+        break;
+    }
+
+    if (isApp) {
+        const auto srcIdx = m_appModel->index(row, 0);
+        switch (role) {
+        case NameRole:        return srcIdx.data(AppModel::NameRole);
+        case IconRole:        return srcIdx.data(AppModel::IconRole);
+        case SubtextRole: {
+            auto comment = srcIdx.data(AppModel::CommentRole).toString();
+            return comment.isEmpty() ? srcIdx.data(AppModel::GenericNameRole) : comment;
+        }
+        case CategoryRole:    return srcIdx.data(AppModel::CategoryRole);
+        case StorageIdRole:   return srcIdx.data(AppModel::StorageIdRole);
+        case DesktopFileRole: return srcIdx.data(AppModel::DesktopFileRole);
+        case IsNewRole:       return m_appModel->isNewApp(srcIdx.data(AppModel::StorageIdRole).toString());
+        case InstallSourceRole: return srcIdx.data(AppModel::InstallSourceRole);
+        default: return {};
+        }
+    } else {
+        const int runnerRow = row - ac;
+        const auto srcIdx = m_runnerModel->index(runnerRow, 0);
+        switch (role) {
+        case NameRole:        return srcIdx.data(Qt::DisplayRole);
+        case IconRole:        return srcIdx.data(Qt::DecorationRole);
+        case SubtextRole:     return m_runnerSubtextRole >= 0 ? srcIdx.data(m_runnerSubtextRole) : QVariant();
+        case CategoryRole:    return m_runnerCategoryRole >= 0 ? srcIdx.data(m_runnerCategoryRole) : QVariant();
+        case StorageIdRole:
+        case DesktopFileRole: {
+            if (m_runnerUrlsRole < 0) return QString();
+            const auto urls = srcIdx.data(m_runnerUrlsRole).value<QList<QUrl>>();
+            for (const auto &url : urls) {
+                const auto path = url.toLocalFile();
+                if (path.endsWith(QLatin1String(".desktop"))) {
+                    if (role == StorageIdRole)
+                        return QFileInfo(path).fileName();
+                    return path;
+                }
+            }
+            return QString();
+        }
+        case IsNewRole:       return false;
+        case InstallSourceRole: return QString();
+        default: return {};
+        }
+    }
+    return {};
+}
+
+QHash<int, QByteArray> UnifiedSearchModel::roleNames() const
+{
+    // Qt calls roleNames() once per delegate role read from QML — across a
+    // 20-row search-results view that's ~120 calls per keystroke. Hand back
+    // a reference to a static map so we don't allocate a fresh QHash each
+    // time. Roles are compile-time constant so the table never changes.
+    static const QHash<int, QByteArray> kRoleNames = {
+        {ResultTypeRole, "resultType"},
+        {NameRole, "name"},
+        {IconRole, "iconName"},
+        {SubtextRole, "subtext"},
+        {CategoryRole, "category"},
+        {StorageIdRole, "storageId"},
+        {DesktopFileRole, "desktopFile"},
+        {IsNewRole, "isNew"},
+        {ShortcutNumberRole, "shortcutNumber"},
+        {IsSectionBoundaryRole, "isSectionBoundary"},
+        {SourceIndexRole, "sourceIndex"},
+        {InstallSourceRole, "installSource"},
+    };
+    return kRoleNames;
+}
+
+QVariantMap UnifiedSearchModel::get(int row) const
+{
+    QVariantMap map;
+    if (row < 0 || row >= rowCount()) return map;
+    const auto idx = index(row, 0);
+    const auto roles = roleNames();
+    for (auto it = roles.begin(); it != roles.end(); ++it)
+        map[QString::fromLatin1(it.value())] = data(idx, it.key());
+    return map;
+}

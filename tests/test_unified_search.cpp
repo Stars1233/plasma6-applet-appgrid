@@ -1,0 +1,233 @@
+/*
+    SPDX-FileCopyrightText: 2026 AppGrid Contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
+
+    Tests for UnifiedSearchModel: row concatenation across the app
+    proxy and the runner proxy, role mapping for each side, and the
+    derived rows (ResultType, IsSectionBoundary, ShortcutNumber,
+    SourceIndex).
+*/
+
+#include <QStringListModel>
+#include <QTest>
+
+#include "appfiltermodel.h"
+#include "runnerfiltermodel.h"
+#include "stubappmodel.h"
+#include "unifiedsearchmodel.h"
+
+class TestUnifiedSearch : public QObject {
+    Q_OBJECT
+
+private slots:
+    void init();
+    void emptyHasZeroRowCount();
+    void appOnlyMaps1to1();
+    void runnerOnlyMapsToDisplayRole();
+    void appBeforeRunnerInRowOrder();
+    void sectionBoundaryOnlyOnFirstRunnerRow();
+    void sectionBoundaryFalseWhenAppsEmpty();
+    void shortcutNumberCapsAtNine();
+    void sourceIndexRelativeToEachSide();
+    void resultTypeReflectsRowSide();
+    void getReturnsAllRolesForRow();
+    void dataReturnsEmptyForInvalidIndex();
+    void roleNamesContainsAllPublicRoles();
+
+private:
+    StubAppModel m_appSource;
+    AppFilterModel m_appFilter;
+    QStringListModel m_runnerSource;
+    RunnerFilterModel m_runnerFilter;
+    UnifiedSearchModel m_unified;
+};
+
+void TestUnifiedSearch::init()
+{
+    m_appSource.setApps({});
+    m_appFilter.setSourceModel(&m_appSource);
+    m_runnerSource.setStringList({});
+    m_runnerFilter.setSourceModel(&m_runnerSource);
+    m_runnerFilter.setAppModel(&m_appFilter);
+    m_unified.setAppModel(&m_appFilter);
+    m_unified.setRunnerModel(&m_runnerFilter);
+}
+
+void TestUnifiedSearch::emptyHasZeroRowCount()
+{
+    QCOMPARE(m_unified.rowCount(), 0);
+    QCOMPARE(m_unified.appResultCount(), 0);
+    QCOMPARE(m_unified.runnerResultCount(), 0);
+}
+
+void TestUnifiedSearch::appOnlyMaps1to1()
+{
+    m_appSource.setApps({
+        {QStringLiteral("Firefox"), QStringLiteral("firefox-icon"),
+         QStringLiteral("/x/firefox.desktop"), {QStringLiteral("Internet")},
+         QStringLiteral("Web Browser"), QStringLiteral("firefox"),
+         {}, QStringLiteral("Browse the web"), QStringLiteral("Flatpak")},
+    });
+    QCOMPARE(m_unified.rowCount(), 1);
+
+    const auto idx = m_unified.index(0, 0);
+    QCOMPARE(idx.data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("app"));
+    QCOMPARE(idx.data(UnifiedSearchModel::NameRole).toString(),
+             QStringLiteral("Firefox"));
+    QCOMPARE(idx.data(UnifiedSearchModel::IconRole).toString(),
+             QStringLiteral("firefox-icon"));
+    // Subtext falls back to GenericName when Comment is empty;
+    // here Comment "Browse the web" is set so it wins.
+    QCOMPARE(idx.data(UnifiedSearchModel::SubtextRole).toString(),
+             QStringLiteral("Browse the web"));
+    QCOMPARE(idx.data(UnifiedSearchModel::StorageIdRole).toString(),
+             QStringLiteral("firefox"));
+    QCOMPARE(idx.data(UnifiedSearchModel::DesktopFileRole).toString(),
+             QStringLiteral("/x/firefox.desktop"));
+    QCOMPARE(idx.data(UnifiedSearchModel::InstallSourceRole).toString(),
+             QStringLiteral("Flatpak"));
+}
+
+void TestUnifiedSearch::runnerOnlyMapsToDisplayRole()
+{
+    m_runnerSource.setStringList({QStringLiteral("Calculator")});
+    QCOMPARE(m_unified.rowCount(), 1);
+
+    const auto idx = m_unified.index(0, 0);
+    QCOMPARE(idx.data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("runner"));
+    QCOMPARE(idx.data(UnifiedSearchModel::NameRole).toString(),
+             QStringLiteral("Calculator"));
+    // Subtext/category come from dynamic KRunner roles that
+    // QStringListModel doesn't expose — read as empty.
+    QVERIFY(!idx.data(UnifiedSearchModel::SubtextRole).isValid()
+            || idx.data(UnifiedSearchModel::SubtextRole).toString().isEmpty());
+}
+
+void TestUnifiedSearch::appBeforeRunnerInRowOrder()
+{
+    m_appSource.setApps({
+        {QStringLiteral("App1"), {}, {}, {}, {}, QStringLiteral("a1"), {}, {}, {}},
+        {QStringLiteral("App2"), {}, {}, {}, {}, QStringLiteral("a2"), {}, {}, {}},
+    });
+    m_runnerSource.setStringList({QStringLiteral("Runner1")});
+
+    QCOMPARE(m_unified.rowCount(), 3);
+    QCOMPARE(m_unified.index(0, 0).data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("app"));
+    QCOMPARE(m_unified.index(1, 0).data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("app"));
+    QCOMPARE(m_unified.index(2, 0).data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("runner"));
+}
+
+void TestUnifiedSearch::sectionBoundaryOnlyOnFirstRunnerRow()
+{
+    m_appSource.setApps({
+        {QStringLiteral("App1"), {}, {}, {}, {}, QStringLiteral("a1"), {}, {}, {}},
+    });
+    m_runnerSource.setStringList({QStringLiteral("Runner1"), QStringLiteral("Runner2")});
+
+    QCOMPARE(m_unified.index(0, 0).data(UnifiedSearchModel::IsSectionBoundaryRole).toBool(),
+             false);
+    QCOMPARE(m_unified.index(1, 0).data(UnifiedSearchModel::IsSectionBoundaryRole).toBool(),
+             true);
+    QCOMPARE(m_unified.index(2, 0).data(UnifiedSearchModel::IsSectionBoundaryRole).toBool(),
+             false);
+}
+
+void TestUnifiedSearch::sectionBoundaryFalseWhenAppsEmpty()
+{
+    // No apps: the first runner row is row 0, not a boundary — there's
+    // no app section above it to separate from.
+    m_runnerSource.setStringList({QStringLiteral("Runner1")});
+    QCOMPARE(m_unified.index(0, 0).data(UnifiedSearchModel::IsSectionBoundaryRole).toBool(),
+             false);
+}
+
+void TestUnifiedSearch::shortcutNumberCapsAtNine()
+{
+    QVector<StubApp> apps;
+    for (int i = 0; i < 12; ++i) {
+        apps.append({QStringLiteral("App%1").arg(i), {}, {}, {}, {},
+                     QStringLiteral("a%1").arg(i), {}, {}, {}});
+    }
+    m_appSource.setApps(apps);
+
+    for (int row = 0; row < 9; ++row) {
+        QCOMPARE(m_unified.index(row, 0).data(UnifiedSearchModel::ShortcutNumberRole).toInt(),
+                 row + 1);
+    }
+    for (int row = 9; row < 12; ++row) {
+        QCOMPARE(m_unified.index(row, 0).data(UnifiedSearchModel::ShortcutNumberRole).toInt(),
+                 0);
+    }
+}
+
+void TestUnifiedSearch::sourceIndexRelativeToEachSide()
+{
+    m_appSource.setApps({
+        {QStringLiteral("App1"), {}, {}, {}, {}, QStringLiteral("a1"), {}, {}, {}},
+        {QStringLiteral("App2"), {}, {}, {}, {}, QStringLiteral("a2"), {}, {}, {}},
+    });
+    m_runnerSource.setStringList({QStringLiteral("Runner1"), QStringLiteral("Runner2")});
+
+    // App rows: sourceIndex == row.
+    QCOMPARE(m_unified.index(0, 0).data(UnifiedSearchModel::SourceIndexRole).toInt(), 0);
+    QCOMPARE(m_unified.index(1, 0).data(UnifiedSearchModel::SourceIndexRole).toInt(), 1);
+    // Runner rows: sourceIndex == row - appCount.
+    QCOMPARE(m_unified.index(2, 0).data(UnifiedSearchModel::SourceIndexRole).toInt(), 0);
+    QCOMPARE(m_unified.index(3, 0).data(UnifiedSearchModel::SourceIndexRole).toInt(), 1);
+}
+
+void TestUnifiedSearch::resultTypeReflectsRowSide()
+{
+    m_appSource.setApps({
+        {QStringLiteral("App1"), {}, {}, {}, {}, QStringLiteral("a1"), {}, {}, {}},
+    });
+    m_runnerSource.setStringList({QStringLiteral("Runner1")});
+
+    QCOMPARE(m_unified.index(0, 0).data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("app"));
+    QCOMPARE(m_unified.index(1, 0).data(UnifiedSearchModel::ResultTypeRole).toString(),
+             QStringLiteral("runner"));
+}
+
+void TestUnifiedSearch::getReturnsAllRolesForRow()
+{
+    m_appSource.setApps({
+        {QStringLiteral("Kate"), QStringLiteral("kate-icon"),
+         QStringLiteral("/x/kate.desktop"), {}, {}, QStringLiteral("kate"),
+         {}, {}, {}},
+    });
+    const auto map = m_unified.get(0);
+    QCOMPARE(map.value(QStringLiteral("name")).toString(), QStringLiteral("Kate"));
+    QCOMPARE(map.value(QStringLiteral("iconName")).toString(), QStringLiteral("kate-icon"));
+    QCOMPARE(map.value(QStringLiteral("storageId")).toString(), QStringLiteral("kate"));
+    QCOMPARE(map.value(QStringLiteral("resultType")).toString(), QStringLiteral("app"));
+}
+
+void TestUnifiedSearch::dataReturnsEmptyForInvalidIndex()
+{
+    m_appSource.setApps({
+        {QStringLiteral("A"), {}, {}, {}, {}, QStringLiteral("a"), {}, {}, {}},
+    });
+    QVERIFY(!m_unified.index(-1, 0).isValid());
+    QVERIFY(m_unified.data(m_unified.index(99, 0),
+                            UnifiedSearchModel::NameRole).toString().isEmpty());
+}
+
+void TestUnifiedSearch::roleNamesContainsAllPublicRoles()
+{
+    const auto names = m_unified.roleNames();
+    QVERIFY(names.values().contains(QByteArray("name")));
+    QVERIFY(names.values().contains(QByteArray("iconName")));
+    QVERIFY(names.values().contains(QByteArray("resultType")));
+    QVERIFY(names.values().contains(QByteArray("shortcutNumber")));
+    QVERIFY(names.values().contains(QByteArray("isSectionBoundary")));
+    QVERIFY(names.values().contains(QByteArray("sourceIndex")));
+}
+
+QTEST_MAIN(TestUnifiedSearch)
+#include "test_unified_search.moc"
