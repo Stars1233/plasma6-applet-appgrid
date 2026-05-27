@@ -35,6 +35,12 @@ GridView {
     // Emitted when a recent app is launched by storageId.
     signal recentLaunched(string storageId)
 
+    // Fired when Enter is pressed with more than one item selected —
+    // GridPanel routes this through the same threshold + confirm
+    // dialog as the context-menu "Launch" action so keyboard parity
+    // matches the menu.
+    signal bulkLaunchRequested(var sids)
+
     // Emitted when the user right-clicks an app.
     signal contextMenuRequested(int index, string storageId, string desktopFile)
 
@@ -305,8 +311,17 @@ GridView {
             launched(currentIndex)
         }
     }
-    Keys.onReturnPressed: { _launchCurrent(); clearSelection() }
-    Keys.onEnterPressed: { _launchCurrent(); clearSelection() }
+    function activateCurrent() {
+        const sids = selectedSidList()
+        if (sids.length > 1) {
+            bulkLaunchRequested(sids)
+        } else {
+            _launchCurrent()
+        }
+        clearSelection()
+    }
+    Keys.onReturnPressed: activateCurrent()
+    Keys.onEnterPressed: activateCurrent()
 
     // Shift+Arrow extends the multi-selection from the anchor through the
     // new current index. Plain arrows clear selection so anchor state never

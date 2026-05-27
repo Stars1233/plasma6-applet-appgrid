@@ -37,6 +37,11 @@ Flickable {
 
     signal launched(int proxyIndex)
     signal recentLaunched(string storageId)
+
+    // Fired when Enter is pressed with more than one item selected —
+    // GridPanel routes through the same threshold + confirm dialog as
+    // the context-menu "Launch" action.
+    signal bulkLaunchRequested(var sids)
     signal contextMenuRequested(int proxyIndex, string storageId, string desktopFile)
     signal shakeAllIcons()
 
@@ -214,8 +219,17 @@ Flickable {
             launched(flatApps[currentIndex].proxyIndex)
         clearSelection()
     }
-    Keys.onReturnPressed: _launchCurrent()
-    Keys.onEnterPressed: _launchCurrent()
+    function activateCurrent() {
+        const sids = selectedSidList()
+        if (sids.length > 1) {
+            bulkLaunchRequested(sids)
+            clearSelection()
+        } else {
+            _launchCurrent()
+        }
+    }
+    Keys.onReturnPressed: activateCurrent()
+    Keys.onEnterPressed: activateCurrent()
     Keys.onEscapePressed: function(event) {
         if (selection.consumeEscape()) event.accepted = true
     }

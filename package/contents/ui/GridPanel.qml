@@ -472,7 +472,13 @@ Kirigami.ShadowedRectangle {
                             var idx = searchResultsList.currentIndex >= 0 ? searchResultsList.currentIndex : 0
                             if (searchResultsList.count > 0) panel.launchSearchResult(idx)
                         } else {
-                            if (appGrid.currentIndex >= 0) panel.launchApp(appGrid.currentIndex)
+                            // SearchBar holds focus by default, so Enter has
+                            // to delegate to whichever grid currently owns
+                            // the keyboard contract (and the selection).
+                            const v = panel.activeMultiSelectView
+                            if (v) v.activateCurrent()
+                            else if (appGrid.currentIndex >= 0)
+                                panel.launchApp(appGrid.currentIndex)
                         }
                     }
                 }
@@ -670,6 +676,7 @@ Kirigami.ShadowedRectangle {
                          && !panel.cfgStartWithFavorites
             onLaunched: function(proxyIndex) { panel.launchApp(proxyIndex) }
             onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
+            onBulkLaunchRequested: function(sids) { panel._requestBulkLaunch(sids) }
             onContextMenuRequested: function(proxyIndex, storageId, desktopFile) {
                 contextMenu.showForApp(proxyIndex, storageId, desktopFile,
                                        categoryGridView.selectedSidList())
@@ -723,6 +730,7 @@ Kirigami.ShadowedRectangle {
                 onLaunched: function(index) { panel.launchApp(index) }
                 onCategoryNavRequested: function(direction) { panel.navigateCategory(direction) }
                 onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
+                onBulkLaunchRequested: function(sids) { panel._requestBulkLaunch(sids) }
                 onContextMenuRequested: function(index, storageId, desktopFile) {
                     // Forward the full live selection — the menu derives
                     // both popupIsSelected (for the toggle item) and the
@@ -760,20 +768,7 @@ Kirigami.ShadowedRectangle {
         sharedFavoritesModel: panel.sharedFavoritesModel
         appletInterface: panel.appletInterface
 
-        // -- Bulk launch --
-        // Direct fire below the threshold (typical workflow bundles are
-        // 2-3 apps); above it we prompt because launching e.g. all 80
-        // installed apps would be an irrecoverable surprise.
-        readonly property int _launchConfirmThreshold: 4
-        onBulkLaunchRequested: function(sids) {
-            if (!sids || sids.length === 0) return
-            if (sids.length >= _launchConfirmThreshold) {
-                bulkLaunchDialog.pendingSids = sids
-                bulkLaunchDialog.open()
-            } else {
-                _runBulkLaunch(sids)
-            }
-        }
+        onBulkLaunchRequested: function(sids) { panel._requestBulkLaunch(sids) }
         onBulkHideRequested: function(sids) {
             if (!sids || sids.length === 0) return
             bulkHideDialog.pendingSids = sids
@@ -787,6 +782,21 @@ Kirigami.ShadowedRectangle {
         onToggleSelectionRequested: function(sid) {
             const v = panel.activeMultiSelectView
             if (v && sid) v.toggleSelectionBySid(sid)
+        }
+    }
+
+    // Direct fire below the threshold (typical workflow bundles are
+    // 2-3 apps); above it we prompt because launching e.g. all 80
+    // installed apps would be an irrecoverable surprise.
+    readonly property int _bulkLaunchConfirmThreshold: 4
+
+    function _requestBulkLaunch(sids) {
+        if (!sids || sids.length === 0) return
+        if (sids.length >= _bulkLaunchConfirmThreshold) {
+            bulkLaunchDialog.pendingSids = sids
+            bulkLaunchDialog.open()
+        } else {
+            _runBulkLaunch(sids)
         }
     }
 
