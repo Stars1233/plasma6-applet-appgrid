@@ -128,12 +128,13 @@ set(APPGRID_COMMON_LIBS
 set(SHARED_QML_FILES
     AppGridView.qml
     CategoryGridView.qml
-    ConfigAnimations.qml
-    ConfigAppearance.qml
-    ConfigGeneral.qml
-    ConfigHiddenApps.qml
-    ConfigSearch.qml
-    ConfigSession.qml
+    config/ConfigAnimations.qml
+    config/ConfigAppearance.qml
+    config/ConfigGeneral.qml
+    config/ConfigHiddenApps.qml
+    config/ConfigSearch.qml
+    config/ConfigSession.qml
+    config/PowerButtonsConfig.qml
     controllers/DragSource.qml
     controllers/EdgeAutoScroller.qml
     controllers/FavoritesManager.qml
@@ -151,7 +152,6 @@ set(SHARED_QML_FILES
     js/gridnav.js
     js/migrations.js
     js/scrolleasing.js
-    PowerButtonsConfig.qml
     PrefixModeView.qml
     SearchResultsList.qml
     SharedFavoritesProvider.qml

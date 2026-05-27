@@ -10,31 +10,31 @@ ConfigModel {
     ConfigCategory {
         name: i18nc("@title:group", "General")
         icon: "preferences-desktop-plasma"
-        source: "ConfigGeneral.qml"
+        source: "config/ConfigGeneral.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Appearance")
         icon: "preferences-desktop-theme-applications"
-        source: "ConfigAppearance.qml"
+        source: "config/ConfigAppearance.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Animations")
         icon: "preferences-desktop-effects"
-        source: "ConfigAnimations.qml"
+        source: "config/ConfigAnimations.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Search")
         icon: "system-search"
-        source: "ConfigSearch.qml"
+        source: "config/ConfigSearch.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Session")
         icon: "system-shutdown"
-        source: "ConfigSession.qml"
+        source: "config/ConfigSession.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Hidden Apps")
         icon: "view-hidden"
-        source: "ConfigHiddenApps.qml"
+        source: "config/ConfigHiddenApps.qml"
     }
 }
