@@ -119,6 +119,10 @@ PlasmoidItem {
 
     Component {
         id: gridWindowComponent
-        GridWindow {}
+        GridWindow {
+            appsModel: Plasmoid.appsModel
+            searchModel: Plasmoid.searchModel
+            runnerSourceModel: Plasmoid.runnerSourceModel
+        }
     }
 }

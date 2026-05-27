@@ -36,7 +36,12 @@ Kirigami.ShadowedRectangle {
     // -- Configuration (single source of truth for all config reads) --
     ConfigCache { id: cfg; source: Plasmoid.configuration }
 
-    readonly property var appsModel: Plasmoid ? Plasmoid.appsModel : null
+    // C++ models supplied by the owning plasmoid root. Injected here
+    // rather than reached through Plasmoid.* so the panel doesn't grab
+    // its dependencies from a global and so tests can pass stubs.
+    required property var appsModel
+    required property var searchModel
+    required property var runnerSourceModel
     readonly property alias columns: cfg.gridColumns
     readonly property alias rows: cfg.gridRows
     readonly property alias sortMode: cfg.sortMode
@@ -83,10 +88,10 @@ Kirigami.ShadowedRectangle {
     readonly property alias showSearchResults: visibility.searchResultsVisible
 
     readonly property string currentResultIcon: {
-        if (!showSearchResults || !Plasmoid.searchModel || searchResultsList.count <= 0)
+        if (!showSearchResults || !panel.searchModel || searchResultsList.count <= 0)
             return ""
         const idx = searchResultsList.currentIndex >= 0 ? searchResultsList.currentIndex : 0
-        const item = Plasmoid.searchModel.get(idx)
+        const item = panel.searchModel.get(idx)
         return item ? (item.iconName || "application-x-executable") : ""
     }
 
@@ -332,7 +337,7 @@ Kirigami.ShadowedRectangle {
     }
 
     function launchSearchResult(index) {
-        var item = Plasmoid.searchModel.get(index)
+        var item = panel.searchModel.get(index)
         if (!item) return
         if (item.resultType === "app") {
             launchApp(item.sourceIndex)
@@ -431,11 +436,11 @@ Kirigami.ShadowedRectangle {
                     id: runnerDebounce
                     interval: 100
                     onTriggered: {
-                        if (Plasmoid.runnerSourceModel) {
+                        if (panel.runnerSourceModel) {
                             var q = searchBar.text
                             var searching = q.length > 0 && !panel.isPrefixMode
                                             && panel.cfgUseExtraRunners
-                            Plasmoid.runnerSourceModel.queryString = searching ? q : ""
+                            panel.runnerSourceModel.queryString = searching ? q : ""
                         }
                     }
                 }
@@ -448,8 +453,8 @@ Kirigami.ShadowedRectangle {
                     // only runs when the user opted into extra runners.
                     if (searching && panel.cfgUseExtraRunners)
                         runnerDebounce.restart()
-                    else if (Plasmoid.runnerSourceModel)
-                        Plasmoid.runnerSourceModel.queryString = ""
+                    else if (panel.runnerSourceModel)
+                        panel.runnerSourceModel.queryString = ""
                 }
                 onAltLetterPressed: function(key) {
                     if (categoryBar.visible)
@@ -638,7 +643,7 @@ Kirigami.ShadowedRectangle {
             Layout.fillHeight: true
             visible: panel.showSearchResults
             PlasmaComponents.ScrollBar.vertical: OverlayScrollBar {}
-            model: panel.isSearching ? Plasmoid.searchModel : null
+            model: panel.isSearching ? panel.searchModel : null
             iconSize: panel.gridIconSize
             showDividers: panel.cfgShowDividers
             animateHighlight: cfg.hoverAnimation > 0

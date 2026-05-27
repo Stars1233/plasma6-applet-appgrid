@@ -60,6 +60,9 @@ PlasmoidItem {
             id: panel
             nativePopup: true
             appletInterface: kicker
+            appsModel: Plasmoid.appsModel
+            searchModel: Plasmoid.searchModel
+            runnerSourceModel: Plasmoid.runnerSourceModel
             opacity: 1.0
             onCloseRequested: kicker.expanded = false
 

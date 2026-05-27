@@ -28,6 +28,12 @@ Window {
 
     ConfigCache { id: cfg; source: Plasmoid.configuration }
 
+    // C++ models supplied by the owning plasmoid root; passed straight
+    // through to GridPanel.
+    required property var appsModel
+    required property var searchModel
+    required property var runnerSourceModel
+
     readonly property real panelShadowMargin: Kirigami.Units.gridUnit * 2
 
     // User vertical nudge for the centered panel. The config value is a
@@ -316,6 +322,9 @@ Window {
     GridPanel {
         id: panel
         anchors.centerIn: parent
+        appsModel: root.appsModel
+        searchModel: root.searchModel
+        runnerSourceModel: root.runnerSourceModel
         // Static user offset + compact-mode downward shift, kept out of
         // the anchor system so the open/close animations (which drive
         // anchors.verticalCenterOffset) are unaffected.
