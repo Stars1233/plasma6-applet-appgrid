@@ -9,7 +9,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
-import ".."
+import "../widgets"
 
 ScrollableColumn {
     id: infoView

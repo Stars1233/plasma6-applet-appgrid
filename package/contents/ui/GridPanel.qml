@@ -14,6 +14,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
 import "controllers"
+import "widgets"
 import "js/migrations.js" as Migrations
 
 Kirigami.ShadowedRectangle {

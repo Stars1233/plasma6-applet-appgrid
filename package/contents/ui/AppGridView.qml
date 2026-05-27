@@ -12,6 +12,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
 import "controllers"
+import "widgets"
 import "js/favoriteid.js" as FavoriteId
 import "js/gridnav.js" as GridNav
 

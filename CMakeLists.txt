@@ -126,10 +126,7 @@ set(APPGRID_COMMON_LIBS
 
 # QML components shared between both plasmoids
 set(SHARED_QML_FILES
-    AppContextMenu.qml
     AppGridView.qml
-    AppIconDelegate.qml
-    CategoryBar.qml
     CategoryGridView.qml
     ConfigAnimations.qml
     ConfigAppearance.qml
@@ -140,34 +137,37 @@ set(SHARED_QML_FILES
     controllers/DragSource.qml
     controllers/EdgeAutoScroller.qml
     controllers/FavoritesManager.qml
-    FavoritesReorderArea.qml
-    FavoritesTabDragHover.qml
+    controllers/HoverGate.qml
     controllers/KeyboardShortcuts.qml
+    controllers/MnemonicResolver.qml
+    controllers/PrefixDetector.qml
+    controllers/SearchSessionManager.qml
+    controllers/SelectionState.qml
+    controllers/VisibilityState.qml
+    controllers/WheelScroller.qml
+    GridPanel.qml
     js/favoriteid.js
     js/favoritesmigration.js
     js/gridnav.js
     js/migrations.js
     js/scrolleasing.js
-    SharedFavoritesProvider.qml
-    GridPanel.qml
-    GridHighlight.qml
-    controllers/HoverGate.qml
-    controllers/MnemonicResolver.qml
-    OverlayScrollBar.qml
-    PowerButtons.qml
     PowerButtonsConfig.qml
-    controllers/PrefixDetector.qml
     PrefixModeView.qml
-    RecentAppsHeader.qml
-    ScrollableColumn.qml
-    SearchBar.qml
     SearchResultsList.qml
-    controllers/SearchSessionManager.qml
-    controllers/SelectionState.qml
-    ShadowedIcon.qml
-    controllers/VisibilityState.qml
-    controllers/WheelScroller.qml
-    ShuffleOverlay.qml
+    SharedFavoritesProvider.qml
+    widgets/AppContextMenu.qml
+    widgets/AppIconDelegate.qml
+    widgets/CategoryBar.qml
+    widgets/FavoritesReorderArea.qml
+    widgets/FavoritesTabDragHover.qml
+    widgets/GridHighlight.qml
+    widgets/OverlayScrollBar.qml
+    widgets/PowerButtons.qml
+    widgets/RecentAppsHeader.qml
+    widgets/ScrollableColumn.qml
+    widgets/SearchBar.qml
+    widgets/ShadowedIcon.qml
+    widgets/ShuffleOverlay.qml
 )
 
 set(SHARED_PREFIX_QML_FILES

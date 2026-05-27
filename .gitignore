@@ -33,10 +33,7 @@ package-panel/contents/config/main.xml
 package-panel/contents/icons/dev.xarbit.appgrid.svg
 
 # Shared QML copied from package/ to package-panel/ at build time
-package-panel/contents/ui/AppContextMenu.qml
 package-panel/contents/ui/AppGridView.qml
-package-panel/contents/ui/AppIconDelegate.qml
-package-panel/contents/ui/CategoryBar.qml
 package-panel/contents/ui/CategoryGridView.qml
 package-panel/contents/ui/ConfigAnimations.qml
 package-panel/contents/ui/ConfigAppearance.qml
@@ -55,26 +52,29 @@ package-panel/contents/ui/controllers/SearchSessionManager.qml
 package-panel/contents/ui/controllers/SelectionState.qml
 package-panel/contents/ui/controllers/VisibilityState.qml
 package-panel/contents/ui/controllers/WheelScroller.qml
-package-panel/contents/ui/FavoritesReorderArea.qml
-package-panel/contents/ui/FavoritesTabDragHover.qml
 package-panel/contents/ui/js/favoriteid.js
 package-panel/contents/ui/js/favoritesmigration.js
 package-panel/contents/ui/js/gridnav.js
 package-panel/contents/ui/js/migrations.js
 package-panel/contents/ui/js/scrolleasing.js
 package-panel/contents/ui/GridPanel.qml
-package-panel/contents/ui/GridHighlight.qml
-package-panel/contents/ui/OverlayScrollBar.qml
-package-panel/contents/ui/PowerButtons.qml
 package-panel/contents/ui/PowerButtonsConfig.qml
 package-panel/contents/ui/PrefixModeView.qml
-package-panel/contents/ui/RecentAppsHeader.qml
-package-panel/contents/ui/ScrollableColumn.qml
-package-panel/contents/ui/SearchBar.qml
 package-panel/contents/ui/SearchResultsList.qml
-package-panel/contents/ui/ShadowedIcon.qml
 package-panel/contents/ui/SharedFavoritesProvider.qml
-package-panel/contents/ui/ShuffleOverlay.qml
+package-panel/contents/ui/widgets/AppContextMenu.qml
+package-panel/contents/ui/widgets/AppIconDelegate.qml
+package-panel/contents/ui/widgets/CategoryBar.qml
+package-panel/contents/ui/widgets/FavoritesReorderArea.qml
+package-panel/contents/ui/widgets/FavoritesTabDragHover.qml
+package-panel/contents/ui/widgets/GridHighlight.qml
+package-panel/contents/ui/widgets/OverlayScrollBar.qml
+package-panel/contents/ui/widgets/PowerButtons.qml
+package-panel/contents/ui/widgets/RecentAppsHeader.qml
+package-panel/contents/ui/widgets/ScrollableColumn.qml
+package-panel/contents/ui/widgets/SearchBar.qml
+package-panel/contents/ui/widgets/ShadowedIcon.qml
+package-panel/contents/ui/widgets/ShuffleOverlay.qml
 package-panel/contents/ui/prefix/
 package-panel/contents/ui/iconanims/
 
