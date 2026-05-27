@@ -62,23 +62,57 @@ AppFilterModel::AppFilterModel(QObject *parent)
     connect(this, &AppFilterModel::filterCategoryChanged, this, markGroupedDirty);
     connect(this, &QAbstractItemModel::modelReset, this, markGroupedDirty);
 
-    // storageId → source-row cache: rebuilt lazily on first read,
-    // invalidated whenever the source model changes shape. Hooks attached
-    // via sourceModelChanged so we don't need to override setSourceModel
+    // storageId → source-row cache and per-row haystack cache: rebuilt
+    // lazily on first read, invalidated together whenever the source
+    // model changes shape or row data. Hooks attached via
+    // sourceModelChanged so we don't need to override setSourceModel
     // (moc generates a duplicate definition for QSortFilterProxyModel
     // overrides that don't carry Q_INVOKABLE).
     connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]() {
         invalidateStorageIdCache();
+        invalidateHaystackCache();
         auto *src = sourceModel();
         if (!src)
             return;
-        connect(src, &QAbstractItemModel::modelReset, this,
-                &AppFilterModel::invalidateStorageIdCache);
-        connect(src, &QAbstractItemModel::rowsInserted, this,
-                &AppFilterModel::invalidateStorageIdCache);
-        connect(src, &QAbstractItemModel::rowsRemoved, this,
-                &AppFilterModel::invalidateStorageIdCache);
+        auto invalidateBoth = [this]() {
+            invalidateStorageIdCache();
+            invalidateHaystackCache();
+        };
+        connect(src, &QAbstractItemModel::modelReset, this, invalidateBoth);
+        connect(src, &QAbstractItemModel::rowsInserted, this, invalidateBoth);
+        connect(src, &QAbstractItemModel::rowsRemoved, this, invalidateBoth);
+        // Per-row data updates (e.g. icon refresh) keep the storage id
+        // map valid but invalidate the haystack for that row.
+        connect(src, &QAbstractItemModel::dataChanged, this,
+                &AppFilterModel::invalidateHaystackCache);
     });
+}
+
+void AppFilterModel::invalidateHaystackCache()
+{
+    m_haystackCache.clear();
+}
+
+QString AppFilterModel::ensureHaystack(int sourceRow) const
+{
+    const auto cached = m_haystackCache.constFind(sourceRow);
+    if (cached != m_haystackCache.constEnd())
+        return *cached;
+
+    auto *src = sourceModel();
+    if (!src)
+        return {};
+
+    const auto idx = src->index(sourceRow, 0);
+    QStringList parts{
+        idx.data(AppModel::NameRole).toString(),
+        idx.data(AppModel::GenericNameRole).toString(),
+        idx.data(AppModel::KeywordsRole).toStringList().join(QLatin1Char('\n')),
+        idx.data(AppModel::InstallSourceRole).toString(),
+    };
+    const QString hay = parts.join(QLatin1Char('\n')).toCaseFolded();
+    m_haystackCache.insert(sourceRow, hay);
+    return hay;
 }
 
 void AppFilterModel::invalidateStorageIdCache()
@@ -151,6 +185,7 @@ void AppFilterModel::setSearchText(const QString &text)
     if (m_searchText == text)
         return;
     m_searchText = text;
+    m_searchTextLower = text.toCaseFolded();
     APPGRID_INVALIDATE_ALL(); // Re-run filter + sort for relevance ranking
     emit searchTextChanged();
 }
@@ -437,31 +472,11 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
             return false;
     }
 
-    if (!m_searchText.isEmpty()) {
-        const auto name = idx.data(AppModel::NameRole).toString();
-        const auto generic = idx.data(AppModel::GenericNameRole).toString();
-        bool matched = name.contains(m_searchText, Qt::CaseInsensitive)
-                    || generic.contains(m_searchText, Qt::CaseInsensitive);
-
-        // Check desktop file keywords (e.g. "browser" finds Firefox)
-        if (!matched) {
-            const auto keywords = idx.data(AppModel::KeywordsRole).toStringList();
-            for (const auto &kw : keywords) {
-                if (kw.contains(m_searchText, Qt::CaseInsensitive)) {
-                    matched = true;
-                    break;
-                }
-            }
-        }
-
-        // Check install source (e.g. "flatpak" finds all Flatpak apps)
-        if (!matched) {
-            const auto source = idx.data(AppModel::InstallSourceRole).toString();
-            if (source.contains(m_searchText, Qt::CaseInsensitive))
-                matched = true;
-        }
-
-        if (!matched)
+    if (!m_searchTextLower.isEmpty()) {
+        // Match against the pre-folded "name\ngeneric\nkw…\nsource" haystack
+        // so a single case-sensitive contains() replaces the four
+        // case-insensitive contains() calls that used to fold per character.
+        if (!ensureHaystack(sourceRow).contains(m_searchTextLower))
             return false;
     }
 

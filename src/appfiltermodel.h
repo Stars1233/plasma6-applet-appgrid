@@ -150,9 +150,15 @@ private:
     void rebuildKnownSet();
     void invalidateStorageIdCache();
     void ensureStorageIdCache() const;
+    void invalidateHaystackCache();
+    QString ensureHaystack(int sourceRow) const;
 
     QString m_filterCategory;
     QString m_searchText;
+    // Pre-folded copy of m_searchText so filterAcceptsRow can run a
+    // case-sensitive contains() against the cached lower-cased haystack
+    // and avoid the per-character Unicode case-fold inside QString::contains.
+    QString m_searchTextLower;
     QStringList m_hiddenApps;
     QStringList m_favoriteApps;
     QStringList m_recentApps;
@@ -181,6 +187,12 @@ private:
     // (KSycoca changes). Mutable because getByStorageId is const.
     mutable QHash<QString, int> m_storageIdToSourceRow;
     mutable bool m_storageIdCacheDirty = true;
+
+    // source-row → lower-cased haystack ("name\ngeneric\nkw1\n…\nsource")
+    // used by filterAcceptsRow during search. Built lazily per row on
+    // first match attempt; cleared in lockstep with the storage-id cache
+    // when the source model changes.
+    mutable QHash<int, QString> m_haystackCache;
 
     // Lazy cache for the groupedByCategory Q_PROPERTY. Rebuilds on next
     // read after any filter/visibility change that flips the dirty flag.
