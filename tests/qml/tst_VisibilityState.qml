@@ -1,0 +1,112 @@
+/*
+    SPDX-FileCopyrightText: 2026 AppGrid Contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
+
+    Coverage for VisibilityState.qml — pins the five overlapping AND
+    chains that decide which child view of GridPanel is shown.
+*/
+
+import QtQuick
+import QtTest
+
+TestCase {
+    name: "VisibilityState"
+
+    function make(props) {
+        var c = Qt.createComponent("VisibilityState.qml")
+        verify(c.status === Component.Ready, "component error: " + c.errorString())
+        return c.createObject(null, props || {})
+    }
+
+    // --- default (no flags set) ---
+
+    function test_defaultShowsAppGridOnly() {
+        var v = make()
+        verify(!v.emptyHidden)
+        verify(!v.catBarVisible)        // showCategoryBar input is false
+        verify(!v.categoryGridVisible)  // isSortByCategory input is false
+        verify(v.appGridVisible)
+        verify(!v.searchResultsVisible)
+    }
+
+    function test_defaultWithCategoryBarShowsBoth() {
+        var v = make({ showCategoryBar: true })
+        verify(v.catBarVisible)
+        verify(v.appGridVisible)
+    }
+
+    // --- searching takes over ---
+
+    function test_searchingHidesEverythingButSearchResults() {
+        var v = make({ showCategoryBar: true, isSearching: true })
+        verify(!v.catBarVisible)
+        verify(!v.appGridVisible)
+        verify(!v.categoryGridVisible)
+        verify(v.searchResultsVisible)
+    }
+
+    function test_searchResultsHiddenByPrefixMode() {
+        // Prefix mode (e.g. ":foo") outranks search results — the
+        // prefix view replaces both; the visibility object reports
+        // search and grid both off.
+        var v = make({ isSearching: true, isPrefixMode: true })
+        verify(!v.searchResultsVisible)
+        verify(!v.appGridVisible)
+    }
+
+    // --- by-category sort swaps app grid for the category grid ---
+
+    function test_categorySortShowsCategoryGrid() {
+        var v = make({ isSortByCategory: true })
+        verify(v.categoryGridVisible)
+        verify(!v.appGridVisible)
+    }
+
+    function test_categorySortInFavoritesFallsBackToAppGrid() {
+        // Favorites view always uses the flat app grid even under
+        // by-category sort, so the user can drag-reorder freely.
+        var v = make({ isSortByCategory: true, isFavoritesActive: true })
+        verify(!v.categoryGridVisible)
+        verify(v.appGridVisible)
+    }
+
+    // --- hideGridWhenEmpty (compact mode) ---
+
+    function test_compactModeHidesEverythingUntilRevealed() {
+        var v = make({ hideGridWhenEmpty: true, showCategoryBar: true })
+        verify(v.emptyHidden)
+        verify(!v.catBarVisible)
+        verify(!v.appGridVisible)
+        verify(!v.categoryGridVisible)
+        verify(!v.searchResultsVisible)
+    }
+
+    function test_compactModeRevealedShowsGrid() {
+        var v = make({
+            hideGridWhenEmpty: true,
+            showCategoryBar: true,
+            gridRevealed: true
+        })
+        verify(!v.emptyHidden)
+        verify(v.appGridVisible)
+        verify(v.catBarVisible)
+    }
+
+    function test_compactModeIgnoredInNativePopup() {
+        // The popup variant of the plasmoid renders its own chrome —
+        // hide-when-empty stays off there even if the user toggled it.
+        var v = make({
+            nativePopup: true,
+            hideGridWhenEmpty: true,
+            showCategoryBar: true
+        })
+        verify(!v.emptyHidden)
+        verify(v.appGridVisible)
+    }
+
+    function test_searchingPiercesCompactMode() {
+        var v = make({ hideGridWhenEmpty: true, isSearching: true })
+        verify(!v.emptyHidden)
+        verify(v.searchResultsVisible)
+    }
+}

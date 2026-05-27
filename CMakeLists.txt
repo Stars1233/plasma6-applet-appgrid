@@ -161,6 +161,7 @@ set(SHARED_QML_FILES
     SearchResultsList.qml
     SelectionState.qml
     ShadowedIcon.qml
+    VisibilityState.qml
     ShuffleOverlay.qml
     WheelScroller.qml
 )

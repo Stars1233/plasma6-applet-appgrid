@@ -50,24 +50,33 @@ Kirigami.ShadowedRectangle {
     readonly property bool isSortByCategory: sortMode === 2
 
     // -- View state --
-    readonly property bool isSearching: searchBar.text.length > 0
-    readonly property bool isFavoritesActive: categoryBar.favoritesActive
     // hideGridWhenEmpty: Compact mode — suppress grid/category chrome
     // until the user types. Search and prefix views still take over once
     // the user starts entering text. _gridRevealed lets the user pop the
     // grid open manually (Down arrow from the search bar) without typing.
-    property bool _gridRevealed: false
-    readonly property bool _emptyHiddenState: !nativePopup && cfgHideGridWhenEmpty
-                                              && !isSearching && !isPrefixMode
-                                              && !_gridRevealed
-    readonly property bool showCatBar: cfgShowCategoryBar && !isSearching && !isPrefixMode
-                                       && !_emptyHiddenState
-    readonly property bool showCategoryGrid: isSortByCategory && !isFavoritesActive
-                                             && !isSearching && !isPrefixMode
-                                             && !_emptyHiddenState
-    readonly property bool showAppGrid: !isSearching && !isPrefixMode && !showCategoryGrid
-                                        && !_emptyHiddenState
-    readonly property bool showSearchResults: isSearching && !isPrefixMode
+    // The five visibility outputs and the _gridRevealed flag all live on
+    // visibility (VisibilityState.qml); the aliases below preserve the
+    // existing call sites.
+    readonly property bool isSearching: searchBar.text.length > 0
+    readonly property bool isFavoritesActive: categoryBar.favoritesActive
+
+    VisibilityState {
+        id: visibility
+        nativePopup: panel.nativePopup
+        hideGridWhenEmpty: panel.cfgHideGridWhenEmpty
+        showCategoryBar: panel.cfgShowCategoryBar
+        isSearching: panel.isSearching
+        isPrefixMode: panel.isPrefixMode
+        isFavoritesActive: panel.isFavoritesActive
+        isSortByCategory: panel.isSortByCategory
+    }
+
+    property alias _gridRevealed: visibility.gridRevealed
+    readonly property alias _emptyHiddenState: visibility.emptyHidden
+    readonly property alias showCatBar: visibility.catBarVisible
+    readonly property alias showCategoryGrid: visibility.categoryGridVisible
+    readonly property alias showAppGrid: visibility.appGridVisible
+    readonly property alias showSearchResults: visibility.searchResultsVisible
 
     readonly property string currentResultIcon: {
         if (!showSearchResults || !Plasmoid.searchModel || searchResultsList.count <= 0)
