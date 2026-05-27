@@ -13,6 +13,8 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
+import "gridnav.js" as GridNav
+
 Flickable {
     id: categoryGrid
 
@@ -104,10 +106,9 @@ Flickable {
     onGroupedAppsChanged: clearSelection()
 
     function _arrowMoveWithSelection(event, moveFn) {
-        if (multiSelectActive)
-            selection.extendOrMove(event, moveFn, function() { return currentIndex })
-        else
-            moveFn()
+        GridNav.arrowMoveWithSelection(selection, multiSelectActive,
+                                        event, moveFn,
+                                        function() { return currentIndex })
     }
 
     Shortcut {

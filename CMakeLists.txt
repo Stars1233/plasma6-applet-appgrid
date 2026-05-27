@@ -143,6 +143,7 @@ set(SHARED_QML_FILES
     FavoritesTabDragHover.qml
     KeyboardShortcuts.qml
     favoriteid.js
+    gridnav.js
     migrations.js
     SharedFavoritesProvider.qml
     GridPanel.qml

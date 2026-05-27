@@ -11,6 +11,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 import "favoriteid.js" as FavoriteId
+import "gridnav.js" as GridNav
 
 GridView {
     id: gridView
@@ -309,13 +310,11 @@ GridView {
 
     // Shift+Arrow extends the multi-selection from the anchor through the
     // new current index. Plain arrows clear selection so anchor state never
-    // drifts behind the visible cursor. Routed through SelectionState so
-    // the behaviour matches CategoryGridView byte-for-byte.
+    // drifts behind the visible cursor.
     function _arrowMoveWithSelection(event, moveFn) {
-        if (multiSelectActive)
-            selection.extendOrMove(event, moveFn, function() { return currentIndex })
-        else
-            moveFn()
+        GridNav.arrowMoveWithSelection(selection, multiSelectActive,
+                                        event, moveFn,
+                                        function() { return currentIndex })
     }
 
     Keys.onUpPressed: function(event) {
