@@ -3,7 +3,7 @@
 #
 # Standalone Nix flake. Lives at the repo root so it resolves as
 # `github:xarbit/plasma6-applet-appgrid` without `?dir=`; the derivation
-# sits at `packages/nix/package.nix`. Install/usage: packages/nix/README.md.
+# sits at `packaging/nix/package.nix`. Install/usage: packaging/nix/README.md.
 
 {
   description = "AppGrid — grid application launcher for KDE Plasma 6";
@@ -17,13 +17,13 @@
     {
       # System-independent overlay so downstream flakes get `pkgs.appgrid`.
       overlays.default = final: _prev: {
-        appgrid = final.callPackage ./packages/nix/package.nix { };
+        appgrid = final.callPackage ./packaging/nix/package.nix { };
       };
     }
     // flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        appgrid = pkgs.callPackage ./packages/nix/package.nix { };
+        appgrid = pkgs.callPackage ./packaging/nix/package.nix { };
       in {
         packages.default = appgrid;
         packages.appgrid = appgrid;
