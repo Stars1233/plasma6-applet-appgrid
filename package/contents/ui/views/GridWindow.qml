@@ -98,17 +98,17 @@ Window {
 
     // Animation styles
     readonly property var animationFiles: [
-        "animations/NoneAnimation.qml",      // 0
-        "animations/FadeAnimation.qml",       // 1
-        "animations/ScaleAnimation.qml",      // 2 (default)
-        "animations/PopAnimation.qml",        // 3
-        "animations/SlideUpAnimation.qml",    // 4
-        "animations/SlideDownAnimation.qml",  // 5
-        "animations/GlideAnimation.qml",      // 6
-        "animations/BuzzAnimation.qml",       // 7
-        "animations/TwistAnimation.qml",      // 8
-        "animations/SlamAnimation.qml",       // 9
-        "animations/GrowUpAnimation.qml"      // 10
+        "../animations/NoneAnimation.qml",      // 0
+        "../animations/FadeAnimation.qml",       // 1
+        "../animations/ScaleAnimation.qml",      // 2 (default)
+        "../animations/PopAnimation.qml",        // 3
+        "../animations/SlideUpAnimation.qml",    // 4
+        "../animations/SlideDownAnimation.qml",  // 5
+        "../animations/GlideAnimation.qml",      // 6
+        "../animations/BuzzAnimation.qml",       // 7
+        "../animations/TwistAnimation.qml",      // 8
+        "../animations/SlamAnimation.qml",       // 9
+        "../animations/GrowUpAnimation.qml"      // 10
     ]
     readonly property int animStyle: {
         var idx = Plasmoid.configuration.openAnimation

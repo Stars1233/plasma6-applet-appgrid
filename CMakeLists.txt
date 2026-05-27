@@ -126,8 +126,13 @@ set(APPGRID_COMMON_LIBS
 
 # QML components shared between both plasmoids
 set(SHARED_QML_FILES
-    AppGridView.qml
-    CategoryGridView.qml
+    views/AppGridView.qml
+    views/CategoryGridView.qml
+    views/CompactRepresentation.qml
+    views/GridPanel.qml
+    views/GridWindow.qml
+    views/PrefixModeView.qml
+    views/SearchResultsList.qml
     config/ConfigAnimations.qml
     config/ConfigAppearance.qml
     config/ConfigGeneral.qml
@@ -146,15 +151,12 @@ set(SHARED_QML_FILES
     controllers/SelectionState.qml
     controllers/VisibilityState.qml
     controllers/WheelScroller.qml
-    GridPanel.qml
     js/favoriteid.js
     js/favoritesmigration.js
     js/gridnav.js
     js/migrations.js
     js/scrolleasing.js
-    PrefixModeView.qml
     models/SharedFavoritesProvider.qml
-    SearchResultsList.qml
     widgets/AppContextMenu.qml
     widgets/AppIconDelegate.qml
     widgets/CategoryBar.qml

@@ -10,6 +10,7 @@ import QtQuick
 import org.kde.plasma.plasmoid
 
 import "controllers"
+import "views"
 import "js/migrations.js" as Migrations
 
 PlasmoidItem {

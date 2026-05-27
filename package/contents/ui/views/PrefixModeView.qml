@@ -12,7 +12,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
-import "prefix" as Prefix
+import "../prefix" as Prefix
 
 Item {
     id: prefixView

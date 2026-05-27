@@ -15,8 +15,8 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasmoid
 
-import "controllers"
-import "widgets"
+import "../controllers"
+import "../widgets"
 
 ListView {
     id: listView

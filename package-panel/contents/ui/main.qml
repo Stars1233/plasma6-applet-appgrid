@@ -10,6 +10,7 @@ import QtQuick
 import org.kde.plasma.plasmoid
 
 import "controllers"
+import "views" as Views
 import "js/migrations.js" as Migrations
 
 PlasmoidItem {
@@ -55,7 +56,7 @@ PlasmoidItem {
 
     Component {
         id: fullRepresentationComponent
-        GridPanel {
+        Views.GridPanel {
             id: panel
             nativePopup: true
             appletInterface: kicker

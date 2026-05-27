@@ -69,10 +69,10 @@ Item {
     readonly property int hoverAnimation: Plasmoid.configuration.hoverAnimation
     readonly property var iconAnimFiles: [
         "",                          // 0=None
-        "iconanims/ShakeAnim.qml",   // 1
-        "iconanims/GrowAnim.qml",    // 2
-        "iconanims/BounceAnim.qml",  // 3
-        "iconanims/SpinAnim.qml"     // 4
+        "../iconanims/ShakeAnim.qml",   // 1
+        "../iconanims/GrowAnim.qml",    // 2
+        "../iconanims/BounceAnim.qml",  // 3
+        "../iconanims/SpinAnim.qml"     // 4
         // 5=Shuffle handled separately via signal
     ]
 

@@ -33,8 +33,13 @@ package-panel/contents/config/main.xml
 package-panel/contents/icons/dev.xarbit.appgrid.svg
 
 # Shared QML copied from package/ to package-panel/ at build time
-package-panel/contents/ui/AppGridView.qml
-package-panel/contents/ui/CategoryGridView.qml
+package-panel/contents/ui/views/AppGridView.qml
+package-panel/contents/ui/views/CategoryGridView.qml
+package-panel/contents/ui/views/CompactRepresentation.qml
+package-panel/contents/ui/views/GridPanel.qml
+package-panel/contents/ui/views/GridWindow.qml
+package-panel/contents/ui/views/PrefixModeView.qml
+package-panel/contents/ui/views/SearchResultsList.qml
 package-panel/contents/ui/config/ConfigAnimations.qml
 package-panel/contents/ui/config/ConfigAppearance.qml
 package-panel/contents/ui/config/ConfigGeneral.qml
@@ -58,9 +63,6 @@ package-panel/contents/ui/js/favoritesmigration.js
 package-panel/contents/ui/js/gridnav.js
 package-panel/contents/ui/js/migrations.js
 package-panel/contents/ui/js/scrolleasing.js
-package-panel/contents/ui/GridPanel.qml
-package-panel/contents/ui/PrefixModeView.qml
-package-panel/contents/ui/SearchResultsList.qml
 package-panel/contents/ui/models/SharedFavoritesProvider.qml
 package-panel/contents/ui/widgets/AppContextMenu.qml
 package-panel/contents/ui/widgets/AppIconDelegate.qml
