@@ -33,6 +33,10 @@ GridView {
     required property int hoverAnimation
     required property bool shadowEnabled
 
+    // Disables Ctrl+Shift+Arrow favorite reordering (KAStats can't persist a
+    // manual order while alphabetical sort is on). Injected from the boundary.
+    required property bool sortFavoritesAlphabetically
+
     // Emitted when a shake-all-icons trigger fires (e.g. on grid open).
     signal shakeAllIcons()
 
@@ -456,7 +460,10 @@ GridView {
     Keys.onTabPressed: function(event) { event.accepted = true }
     Keys.onBacktabPressed: function(event) { event.accepted = true }
 
-    KeyboardShortcuts { gridView: gridView }
+    KeyboardShortcuts {
+        gridView: gridView
+        sortFavoritesAlphabetically: gridView.sortFavoritesAlphabetically
+    }
 
     Keys.onPressed: function(event) {
         // Redirect typing to search bar, but not Tab or special keys

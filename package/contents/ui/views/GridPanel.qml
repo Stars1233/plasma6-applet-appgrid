@@ -757,6 +757,7 @@ Kirigami.ShadowedRectangle {
                 iconSize: panel.gridIconSize
                 hoverAnimation: cfg.hoverAnimation
                 shadowEnabled: cfg.iconShadow
+                sortFavoritesAlphabetically: cfg.sortFavoritesAlphabetically
                 searchField: searchBar.field
                 showRecentApps: panel.cfgShowRecentApps
                 startWithFavorites: panel.cfgStartWithFavorites

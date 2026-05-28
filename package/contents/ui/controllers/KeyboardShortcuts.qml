@@ -15,7 +15,6 @@
 */
 
 import QtQuick
-import org.kde.plasma.plasmoid
 
 Item {
     id: shortcuts
@@ -25,7 +24,7 @@ Item {
     // sharedFavoritesModel, and favoritesActive.
     required property GridView gridView
 
-    ConfigCache { id: cfg; source: Plasmoid.configuration }
+    required property bool sortFavoritesAlphabetically
 
     // --- Favorites reorder (Ctrl+Shift+Arrow) ---
 
@@ -33,7 +32,7 @@ Item {
         return gridView.favoritesActive
                && gridView.sharedFavoritesModel
                && gridView.model === gridView.sharedFavoritesModel
-               && !cfg.sortFavoritesAlphabetically
+               && !sortFavoritesAlphabetically
                && gridView.currentIndex >= 0
     }
 
