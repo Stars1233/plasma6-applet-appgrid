@@ -12,23 +12,30 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.plasmoid
 
 import "controllers"
 
 Item {
     id: root
 
-    ConfigCache { id: cfg; source: Plasmoid.configuration }
+    required property int formFactor
+    required property string title
+    required property var configuration
 
-    readonly property bool vertical: (Plasmoid.formFactor === PlasmaCore.Types.Vertical)
+    // Click / keyboard activation; hover-warm the window (centre variant).
+    signal activated()
+    signal preloadRequested()
+
+    ConfigCache { id: cfg; source: root.configuration }
+
+    readonly property bool vertical: (root.formFactor === PlasmaCore.Types.Vertical)
     readonly property bool useCustomButtonImage: cfg.useCustomButtonImage
         && cfg.customButtonImage.toString().length !== 0
     readonly property bool shouldHaveLabel: !vertical && cfg.menuLabel.length > 0
     readonly property bool shouldHaveIcon: vertical || cfg.icon.length > 0
         || useCustomButtonImage
 
-    readonly property bool tooSmall: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
+    readonly property bool tooSmall: root.formFactor === PlasmaCore.Types.Horizontal
         && Math.round(2 * (root.height / 5)) <= Kirigami.Theme.smallFont.pixelSize
 
     onWidthChanged: updateSizeHints()
@@ -120,9 +127,9 @@ Item {
 
         // Build the launcher window ahead of the click, while the cursor is
         // still travelling to the icon.
-        onContainsMouseChanged: if (containsMouse) kicker.preloadWindow()
+        onContainsMouseChanged: if (containsMouse) root.preloadRequested()
 
-        Accessible.name: Plasmoid.title
+        Accessible.name: root.title
         Accessible.role: Accessible.Button
 
         Keys.onPressed: event => {
@@ -131,11 +138,11 @@ Item {
             case Qt.Key_Enter:
             case Qt.Key_Return:
             case Qt.Key_Select:
-                Plasmoid.activated();
+                root.activated();
                 break;
             }
         }
 
-        onClicked: kicker.toggleWindow()
+        onClicked: root.activated()
     }
 }

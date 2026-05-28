@@ -12,21 +12,27 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.plasmoid
 
 Item {
     id: root
 
-    readonly property bool vertical: (Plasmoid.formFactor === PlasmaCore.Types.Vertical)
-    readonly property bool useCustomButtonImage: (Plasmoid.configuration.useCustomButtonImage
-        && Plasmoid.configuration.customButtonImage.length !== 0)
+    required property int formFactor
+    required property string title
+    required property var configuration
+
+    // Click / keyboard activation — expands the native popup.
+    signal activated()
+
+    readonly property bool vertical: (root.formFactor === PlasmaCore.Types.Vertical)
+    readonly property bool useCustomButtonImage: (root.configuration.useCustomButtonImage
+        && root.configuration.customButtonImage.length !== 0)
     readonly property bool shouldHaveLabel: !vertical
-        && Plasmoid.configuration.menuLabel !== undefined
-        && Plasmoid.configuration.menuLabel !== ""
-    readonly property bool shouldHaveIcon: vertical || Plasmoid.configuration.icon !== ""
+        && root.configuration.menuLabel !== undefined
+        && root.configuration.menuLabel !== ""
+    readonly property bool shouldHaveIcon: vertical || root.configuration.icon !== ""
         || useCustomButtonImage
 
-    readonly property bool tooSmall: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
+    readonly property bool tooSmall: root.formFactor === PlasmaCore.Types.Horizontal
         && Math.round(2 * (root.height / 5)) <= Kirigami.Theme.smallFont.pixelSize
 
     onWidthChanged: updateSizeHints()
@@ -80,8 +86,8 @@ Item {
 
             active: mouseArea.containsMouse
             source: root.useCustomButtonImage
-                ? Plasmoid.configuration.customButtonImage
-                : Plasmoid.configuration.icon
+                ? root.configuration.customButtonImage
+                : root.configuration.icon
 
             roundToIconSize: !root.useCustomButtonImage
                 || (root.vertical ? implicitHeight / implicitWidth : implicitWidth / implicitHeight) === 1
@@ -98,7 +104,7 @@ Item {
 
             visible: root.shouldHaveLabel
 
-            text: Plasmoid.configuration.menuLabel || ""
+            text: root.configuration.menuLabel || ""
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.NoWrap
@@ -118,7 +124,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
 
-        Accessible.name: Plasmoid.title
+        Accessible.name: root.title
         Accessible.role: Accessible.Button
 
         Keys.onPressed: event => {
@@ -127,11 +133,11 @@ Item {
             case Qt.Key_Enter:
             case Qt.Key_Return:
             case Qt.Key_Select:
-                Plasmoid.activated();
+                root.activated();
                 break;
             }
         }
 
-        onClicked: Plasmoid.activated()
+        onClicked: root.activated()
     }
 }

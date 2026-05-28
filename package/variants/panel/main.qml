@@ -51,7 +51,12 @@ PlasmoidItem {
 
     Component {
         id: compactRepresentationComponent
-        CompactRepresentation {}
+        CompactRepresentation {
+            formFactor: Plasmoid.formFactor
+            title: Plasmoid.title
+            configuration: Plasmoid.configuration
+            onActivated: Plasmoid.activated()
+        }
     }
 
     Component {
