@@ -166,23 +166,39 @@ Kirigami.ShadowedRectangle {
         ? (height - panelHeight) / 2
         : 0
 
-    width: Math.min(panelWidth, Screen.width * 0.9)
-    height: Math.min(effectiveHeight, Screen.height * 0.9)
+    // Center variant: GridWindow centers a fixed-size panel, so the size
+    // is hard-bound to the icon-grid estimate (compact-mode aware).
+    // Panel variant: only seed the *initial* popup size via implicitWidth/
+    // Height and leave width/height + preferred size unbound, so Plasma's
+    // own popup-resize persistence owns it. A hard preferred-size binding
+    // re-asserted the estimate on every layout pass (e.g. a monitor wake)
+    // and snapped the user's edge-drag back, shrinking the popup (#146).
+    implicitWidth: nativePopup ? panelWidth : 0
+    implicitHeight: nativePopup ? panelHeight : 0
+
+    Binding on width {
+        when: !panel.nativePopup
+        value: Math.min(panel.panelWidth, Screen.width * 0.9)
+    }
+    Binding on height {
+        when: !panel.nativePopup
+        value: Math.min(panel.effectiveHeight, Screen.height * 0.9)
+    }
 
     // Set by on_EmptyHiddenStateChanged to skip the next height Behavior
     // animation. See the comment on that handler for the full rationale.
     property bool _snapHeight: false
 
     Behavior on height {
-        enabled: cfgHideGridWhenEmpty && !panel._snapHeight
+        enabled: !panel.nativePopup && cfgHideGridWhenEmpty && !panel._snapHeight
         NumberAnimation {
             duration: Kirigami.Units.longDuration
             easing.type: Easing.OutCubic
         }
     }
 
-    Layout.preferredWidth: width
-    Layout.preferredHeight: height
+    Layout.preferredWidth: nativePopup ? -1 : width
+    Layout.preferredHeight: nativePopup ? -1 : height
     Layout.minimumWidth: nativePopup ? Kirigami.Units.gridUnit * 12 : width
     Layout.minimumHeight: nativePopup ? Kirigami.Units.gridUnit * 12 : height
     radius: nativePopup ? 0
