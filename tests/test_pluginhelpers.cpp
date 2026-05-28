@@ -82,16 +82,16 @@ private Q_SLOTS:
         QVERIFY(tmp.isValid());
         QDir d(tmp.path());
         QVERIFY(d.mkdir(QStringLiteral("subdir")));
-        QFile fa(d.filePath(QStringLiteral("afile.txt")));
+        QFile fa(d.filePath(QStringLiteral("first.txt")));
         QVERIFY(fa.open(QIODevice::WriteOnly));
-        QFile fb(d.filePath(QStringLiteral("bfile.log")));
+        QFile fb(d.filePath(QStringLiteral("second.log")));
         QVERIFY(fb.open(QIODevice::WriteOnly));
 
         const QVariantList list = listDirectoryAt(tmp.path());
         const QStringList names = entryNames(list);
         QVERIFY(names.contains(QStringLiteral("subdir")));
-        QVERIFY(names.contains(QStringLiteral("afile.txt")));
-        QVERIFY(names.contains(QStringLiteral("bfile.log")));
+        QVERIFY(names.contains(QStringLiteral("first.txt")));
+        QVERIFY(names.contains(QStringLiteral("second.log")));
 
         // Every directory entry must precede every file entry (DirsFirst).
         int lastDir = -1;
@@ -110,13 +110,13 @@ private Q_SLOTS:
         QTemporaryDir tmp;
         QVERIFY(tmp.isValid());
         QDir d(tmp.path());
-        QFile fa(d.filePath(QStringLiteral("alpha.txt")));
+        QFile fa(d.filePath(QStringLiteral("first.txt")));
         QVERIFY(fa.open(QIODevice::WriteOnly));
-        QFile fb(d.filePath(QStringLiteral("beta.txt")));
+        QFile fb(d.filePath(QStringLiteral("second.log")));
         QVERIFY(fb.open(QIODevice::WriteOnly));
 
-        const QStringList names = entryNames(listDirectoryAt(tmp.path() + QStringLiteral("/alph")));
-        QCOMPARE(names, QStringList({QStringLiteral("alpha.txt")}));
+        const QStringList names = entryNames(listDirectoryAt(tmp.path() + QStringLiteral("/fir")));
+        QCOMPARE(names, QStringList({QStringLiteral("first.txt")}));
     }
 
     void listDirectoryAt_missingReturnsEmpty()
