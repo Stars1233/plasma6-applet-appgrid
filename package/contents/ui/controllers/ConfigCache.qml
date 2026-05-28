@@ -15,7 +15,6 @@
 */
 
 import QtQuick
-import org.kde.plasma.plasmoid
 
 QtObject {
     id: cache

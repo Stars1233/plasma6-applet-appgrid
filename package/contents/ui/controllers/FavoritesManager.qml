@@ -15,7 +15,6 @@
 
 import QtQuick
 
-import "../js/favoriteid.js" as FavoriteId
 import "../js/favoritesmigration.js" as FavoritesMigration
 
 Item {
