@@ -21,6 +21,7 @@ Item {
     property string argument: ""
     property Item searchField: null
     property var sharedFavoritesModel: null
+    required property bool showScrollbars
 
     signal fileOpened()
     signal directoryNavigated(string path)
@@ -32,6 +33,7 @@ Item {
     Prefix.PrefixHelpView {
         anchors.fill: parent
         visible: prefixView.mode === "help"
+        showScrollbars: prefixView.showScrollbars
     }
 
     // -- Terminal / Command --

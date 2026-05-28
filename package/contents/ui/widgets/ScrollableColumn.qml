@@ -19,13 +19,15 @@ Flickable {
 
     default property alias content: column.data
 
+    required property bool showScrollbars
+
     readonly property real _margin: Kirigami.Units.largeSpacing * 2
 
     contentWidth: width
     contentHeight: column.implicitHeight + _margin * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    PlasmaComponents.ScrollBar.vertical: OverlayScrollBar {}
+    PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: pane.showScrollbars }
 
     WheelScroller { target: pane }
 

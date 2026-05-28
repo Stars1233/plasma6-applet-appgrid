@@ -20,6 +20,8 @@ ScrollableColumn {
 
     ConfigCache { id: cfg; source: Plasmoid.configuration }
 
+    showScrollbars: cfg.showScrollbars
+
     readonly property alias _migrated: cfg.favoritesPortedToKAstats
     readonly property int _kastatsCount: sharedFavoritesModel ? sharedFavoritesModel.count : 0
     readonly property int _localCount: cfg.favoriteApps.length

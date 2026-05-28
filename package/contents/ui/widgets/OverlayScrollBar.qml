@@ -12,15 +12,12 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.plasmoid
-
-import "../controllers"
 
 PlasmaComponents.ScrollBar {
-    ConfigCache { id: cfg; source: Plasmoid.configuration }
+    required property bool showScrollbars
 
-    policy: cfg.showScrollbars ? PlasmaComponents.ScrollBar.AsNeeded
-                               : PlasmaComponents.ScrollBar.AlwaysOff
+    policy: showScrollbars ? PlasmaComponents.ScrollBar.AsNeeded
+                           : PlasmaComponents.ScrollBar.AlwaysOff
 
     opacity: active || hovered ? 1.0 : 0.0
     Behavior on opacity {

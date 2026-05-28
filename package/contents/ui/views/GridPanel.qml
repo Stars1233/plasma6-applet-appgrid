@@ -663,6 +663,7 @@ Kirigami.ShadowedRectangle {
             argument: panel.prefixArgument
             searchField: searchBar.field
             sharedFavoritesModel: panel.sharedFavoritesModel
+            showScrollbars: cfg.showScrollbars
             onFileOpened: panel.closeRequested()
             onDirectoryNavigated: function(path) {
                 searchBar.text = path
@@ -675,7 +676,7 @@ Kirigami.ShadowedRectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: panel.showSearchResults
-            PlasmaComponents.ScrollBar.vertical: OverlayScrollBar {}
+            PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: cfg.showScrollbars }
             model: panel.isSearching ? panel.searchModel : null
             iconSize: panel.gridIconSize
             showDividers: panel.cfgShowDividers
@@ -695,7 +696,7 @@ Kirigami.ShadowedRectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: panel.showCategoryGrid
-            PlasmaComponents.ScrollBar.vertical: OverlayScrollBar {}
+            PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: cfg.showScrollbars }
             searchField: searchBar.field
             appsModel: panel.appsModel
             groupedApps: panel.showCategoryGrid && panel.appsModel
@@ -733,7 +734,7 @@ Kirigami.ShadowedRectangle {
             AppGridView {
                 id: appGrid
                 anchors.fill: parent
-                PlasmaComponents.ScrollBar.vertical: OverlayScrollBar {}
+                PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: cfg.showScrollbars }
                 // In favorites tab, drive the grid from KAStats directly so
                 // reorder animations and pointer grabs work natively.
                 // Elsewhere, or when alphabetical sort is enabled (which
