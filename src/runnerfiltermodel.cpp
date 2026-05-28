@@ -45,7 +45,6 @@ bool RunnerFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourc
     if (!m_appModel)
         return true;
 
-    const auto runnerName =
-        sourceModel()->index(sourceRow, 0, sourceParent).data(Qt::DisplayRole).toString();
+    const auto runnerName = sourceModel()->index(sourceRow, 0, sourceParent).data(Qt::DisplayRole).toString();
     return !m_appNameCache.contains(runnerName.toCaseFolded());
 }

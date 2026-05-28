@@ -28,7 +28,8 @@ struct AppEntry {
  * Loads the XDG application menu hierarchy via KServiceGroup and exposes
  * each application with its name, icon, category, and desktop file path.
  */
-class AppModel : public QAbstractListModel {
+class AppModel : public QAbstractListModel
+{
     Q_OBJECT
 
 public:

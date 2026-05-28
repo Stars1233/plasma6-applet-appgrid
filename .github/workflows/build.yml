@@ -144,6 +144,11 @@ jobs:
               --header-filter='src/.*' || true
           done
 
+      - name: clang-format
+        run: |
+          git ls-files 'src/*.cpp' 'src/*.h' \
+            | xargs clang-format --dry-run -Werror
+
       - name: Run tests
         env:
           QT_QPA_PLATFORM: offscreen

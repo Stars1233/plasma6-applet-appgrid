@@ -25,16 +25,16 @@
 #include <QSysInfo>
 #include <QUrl>
 
-namespace {
+namespace
+{
 // Static JSON manifest, served from GitHub Pages — no GitHub API rate
 // limit. Updated automatically by the website on each AppGrid release.
-constexpr auto kManifestUrl = QLatin1StringView(
-    "https://appgrid.xarbit.dev/api/latest.json");
+constexpr auto kManifestUrl = QLatin1StringView("https://appgrid.xarbit.dev/api/latest.json");
 
 // Jitter the cadence so the endpoint can't fingerprint users by always
 // seeing the same wall-clock minute every day.
 constexpr int kPeriodicCheckMs = 24 * 60 * 60 * 1000;
-constexpr int kJitterCheckMs   = 2 * 60 * 60 * 1000;
+constexpr int kJitterCheckMs = 2 * 60 * 60 * 1000;
 
 // Rotate the saved ETag every N saves so it can't act as a long-term
 // per-user identifier across IP rotations.
@@ -64,8 +64,14 @@ class NoCookieJar : public QNetworkCookieJar
 {
 public:
     using QNetworkCookieJar::QNetworkCookieJar;
-    bool setCookiesFromUrl(const QList<QNetworkCookie> &, const QUrl &) override { return false; }
-    QList<QNetworkCookie> cookiesForUrl(const QUrl &) const override { return {}; }
+    bool setCookiesFromUrl(const QList<QNetworkCookie> &, const QUrl &) override
+    {
+        return false;
+    }
+    QList<QNetworkCookie> cookiesForUrl(const QUrl &) const override
+    {
+        return {};
+    }
 };
 
 } // namespace
@@ -87,8 +93,7 @@ bool UpdateChecker::isValidVersionString(const QString &v)
 {
     if (v.isEmpty() || v.size() > 64)
         return false;
-    static const QRegularExpression re(
-        QStringLiteral("^v?\\d+(\\.\\d+){0,3}(-[0-9A-Za-z.\\-]+)?(\\+[0-9A-Za-z.\\-]+)?$"));
+    static const QRegularExpression re(QStringLiteral("^v?\\d+(\\.\\d+){0,3}(-[0-9A-Za-z.\\-]+)?(\\+[0-9A-Za-z.\\-]+)?$"));
     return re.match(v).hasMatch();
 }
 
@@ -102,8 +107,7 @@ static QString stateFilePath()
 
 static int nextPeriodicInterval()
 {
-    const int jitter = QRandomGenerator::global()->bounded(
-        -kJitterCheckMs, kJitterCheckMs + 1);
+    const int jitter = QRandomGenerator::global()->bounded(-kJitterCheckMs, kJitterCheckMs + 1);
     return kPeriodicCheckMs + jitter;
 }
 
@@ -147,8 +151,7 @@ void UpdateChecker::openReleasePage()
         return;
     const QUrl url(m_releaseUrl);
     if (!isAllowedReleaseScheme(url)) {
-        qWarning("AppGrid update check: refusing release URL with scheme %s",
-                 qPrintable(url.scheme()));
+        qWarning("AppGrid update check: refusing release URL with scheme %s", qPrintable(url.scheme()));
         return;
     }
     QDesktopServices::openUrl(url);
@@ -169,9 +172,12 @@ void UpdateChecker::runCheck(bool force)
             const QString prevVersion = m_latestVersion;
             const QString prevUrl = m_releaseUrl;
             loadState();
-            if (m_latestVersion != prevVersion) emit latestVersionChanged();
-            if (m_releaseUrl != prevUrl) emit releaseUrlChanged();
-            if (m_hasUpdate != wasAvailable) emit hasUpdateChanged();
+            if (m_latestVersion != prevVersion)
+                emit latestVersionChanged();
+            if (m_releaseUrl != prevUrl)
+                emit releaseUrlChanged();
+            if (m_hasUpdate != wasAvailable)
+                emit hasUpdateChanged();
             return;
         }
     }
@@ -185,8 +191,7 @@ void UpdateChecker::runCheck(bool force)
     m_network = new QNetworkAccessManager(this);
     m_network->setCookieJar(new NoCookieJar(m_network));
     // Hostile proxy would otherwise pop a system password prompt.
-    connect(m_network, &QNetworkAccessManager::proxyAuthenticationRequired,
-            this, [](const QNetworkProxy &, QAuthenticator *) {});
+    connect(m_network, &QNetworkAccessManager::proxyAuthenticationRequired, this, [](const QNetworkProxy &, QAuthenticator *) { });
 
     QNetworkRequest req{QUrl(kManifestUrl)};
     // Minimal headers: no version-in-UA, no language leak, hint that
@@ -203,8 +208,7 @@ void UpdateChecker::runCheck(bool force)
 
     // No redirects: endpoint is hardcoded HTTPS to a domain we own. Any 3xx
     // is either misconfig or a downgrade attempt; handleReply rejects it.
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                     QNetworkRequest::ManualRedirectPolicy);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
 
     QSslConfiguration tls = QSslConfiguration::defaultConfiguration();
     tls.setProtocol(QSsl::TlsV1_2OrLater);
@@ -216,20 +220,19 @@ void UpdateChecker::runCheck(bool force)
     connect(reply, &QNetworkReply::metaDataChanged, this, [reply]() {
         const auto cl = reply->header(QNetworkRequest::ContentLengthHeader);
         if (cl.isValid() && cl.toLongLong() > kMaxResponseBytes) {
-            qWarning("AppGrid update check: Content-Length %lld exceeds cap, aborting",
-                     cl.toLongLong());
+            qWarning("AppGrid update check: Content-Length %lld exceeds cap, aborting", cl.toLongLong());
             reply->abort();
         }
     });
-    connect(reply, &QNetworkReply::downloadProgress, this,
-            [reply](qint64 bytesReceived, qint64 /*bytesTotal*/) {
+    connect(reply, &QNetworkReply::downloadProgress, this, [reply](qint64 bytesReceived, qint64 /*bytesTotal*/) {
         if (bytesReceived > kMaxResponseBytes) {
-            qWarning("AppGrid update check: response exceeded %lld bytes, aborting",
-                     static_cast<long long>(kMaxResponseBytes));
+            qWarning("AppGrid update check: response exceeded %lld bytes, aborting", static_cast<long long>(kMaxResponseBytes));
             reply->abort();
         }
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() { handleReply(reply); });
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        handleReply(reply);
+    });
 }
 
 UpdateChecker::ManifestResult UpdateChecker::parseManifest(const QByteArray &bytes)
@@ -307,8 +310,7 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
     }
 
     if (reply->error() != QNetworkReply::NoError || status != 200) {
-        qWarning("AppGrid update check: %s (HTTP %d)",
-                 qPrintable(reply->errorString()), status);
+        qWarning("AppGrid update check: %s (HTTP %d)", qPrintable(reply->errorString()), status);
         saveState();
         return;
     }
@@ -326,9 +328,7 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
     const bool currentIsPrerelease = m_currentVersion.contains(QChar(u'-'));
     QString chosenVersion = manifest.stableVersion;
     QString chosenUrl = manifest.stableUrl;
-    if (currentIsPrerelease
-        && !manifest.prereleaseVersion.isEmpty()
-        && isNewer(manifest.prereleaseVersion, manifest.stableVersion)) {
+    if (currentIsPrerelease && !manifest.prereleaseVersion.isEmpty() && isNewer(manifest.prereleaseVersion, manifest.stableVersion)) {
         chosenVersion = manifest.prereleaseVersion;
         chosenUrl = manifest.prereleaseUrl;
     }
@@ -341,9 +341,12 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
     m_releaseUrl = chosenUrl;
     m_hasUpdate = isNewer(chosenVersion, m_currentVersion);
 
-    if (m_latestVersion != prevVersion) emit latestVersionChanged();
-    if (m_releaseUrl != prevUrl) emit releaseUrlChanged();
-    if (m_hasUpdate != wasAvailable) emit hasUpdateChanged();
+    if (m_latestVersion != prevVersion)
+        emit latestVersionChanged();
+    if (m_releaseUrl != prevUrl)
+        emit releaseUrlChanged();
+    if (m_hasUpdate != wasAvailable)
+        emit hasUpdateChanged();
 
     saveState();
 }
@@ -386,13 +389,11 @@ void UpdateChecker::loadState()
 
     // Reject future lastCheck — clock skew or tampering. Otherwise the
     // periodic timer could be tricked into believing we already checked.
-    const auto lc = QDateTime::fromString(
-        obj.value(QStringLiteral("lastCheck")).toString(), Qt::ISODate);
+    const auto lc = QDateTime::fromString(obj.value(QStringLiteral("lastCheck")).toString(), Qt::ISODate);
     if (lc.isValid() && lc <= QDateTime::currentDateTimeUtc().addDays(1))
         m_lastCheck = lc;
 
-    m_hasUpdate = !m_latestVersion.isEmpty()
-        && isNewer(m_latestVersion, m_currentVersion);
+    m_hasUpdate = !m_latestVersion.isEmpty() && isNewer(m_latestVersion, m_currentVersion);
 }
 
 void UpdateChecker::saveState()
@@ -443,7 +444,7 @@ bool UpdateChecker::isNewer(const QString &candidate, const QString &current)
         const QString build = (plus < 0) ? QString() : s.mid(plus + 1);
         const int dash = head.indexOf(QLatin1Char('-'));
         const QString core = (dash < 0) ? head : head.left(dash);
-        const QString pre  = (dash < 0) ? QString() : head.mid(dash + 1);
+        const QString pre = (dash < 0) ? QString() : head.mid(dash + 1);
         return {core, pre, build};
     };
     const auto [aCore, aPre, aBuild] = split(strip(candidate));
@@ -457,9 +458,12 @@ bool UpdateChecker::isNewer(const QString &candidate, const QString &current)
     for (int i = 0; i < n; ++i) {
         const int ia = i < pa.size() ? pa[i].toInt() : 0;
         const int ib = i < pb.size() ? pb[i].toInt() : 0;
-        if (ia != ib) return ia > ib;
+        if (ia != ib)
+            return ia > ib;
     }
-    if (aPre.isEmpty() && !bPre.isEmpty()) return true;
-    if (!aPre.isEmpty() && bPre.isEmpty()) return false;
+    if (aPre.isEmpty() && !bPre.isEmpty())
+        return true;
+    if (!aPre.isEmpty() && bPre.isEmpty())
+        return false;
     return QString::compare(aPre, bPre) > 0;
 }

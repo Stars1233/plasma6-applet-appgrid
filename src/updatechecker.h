@@ -30,10 +30,22 @@ public:
     explicit UpdateChecker(const QString &currentVersion, QObject *parent = nullptr);
     ~UpdateChecker() override;
 
-    bool hasUpdate() const { return m_hasUpdate; }
-    QString latestVersion() const { return m_latestVersion; }
-    QString releaseUrl() const { return m_releaseUrl; }
-    bool enabled() const { return m_enabled; }
+    bool hasUpdate() const
+    {
+        return m_hasUpdate;
+    }
+    QString latestVersion() const
+    {
+        return m_latestVersion;
+    }
+    QString releaseUrl() const
+    {
+        return m_releaseUrl;
+    }
+    bool enabled() const
+    {
+        return m_enabled;
+    }
     void setEnabled(bool enabled);
 
     Q_INVOKABLE void checkNow();

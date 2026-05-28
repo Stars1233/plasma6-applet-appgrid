@@ -20,7 +20,8 @@
  * Also exposes convenience methods to launch apps, hide/unhide by storageId,
  * and retrieve row data as a QVariantMap.
  */
-class AppFilterModel : public QSortFilterProxyModel {
+class AppFilterModel : public QSortFilterProxyModel
+{
     Q_OBJECT
     Q_PROPERTY(QString filterCategory READ filterCategory WRITE setFilterCategory NOTIFY filterCategoryChanged)
     Q_PROPERTY(QString searchText READ searchText WRITE setSearchText NOTIFY searchTextChanged)

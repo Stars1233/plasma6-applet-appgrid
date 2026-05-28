@@ -17,7 +17,8 @@
  * (KRunner) into a single list with unified role names. Enables one
  * ListView for all search results.
  */
-class UnifiedSearchModel : public QAbstractListModel {
+class UnifiedSearchModel : public QAbstractListModel
+{
     Q_OBJECT
     Q_PROPERTY(int appResultCount READ appResultCount NOTIFY layoutChanged)
     Q_PROPERTY(int runnerResultCount READ runnerResultCount NOTIFY layoutChanged)

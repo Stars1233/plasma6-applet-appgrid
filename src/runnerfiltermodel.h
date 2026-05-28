@@ -18,7 +18,8 @@
  * app-name cache rebuilds on every source-model change so lookups stay
  * O(1) per row instead of O(app-count).
  */
-class RunnerFilterModel : public QSortFilterProxyModel {
+class RunnerFilterModel : public QSortFilterProxyModel
+{
     Q_OBJECT
 public:
     explicit RunnerFilterModel(QObject *parent = nullptr);

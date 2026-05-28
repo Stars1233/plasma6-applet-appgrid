@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include <Plasma/Applet>
 #include <KRunner/ResultsModel>
+#include <Plasma/Applet>
 #include <QRect>
 
-#include "appmodel.h"
 #include "appfiltermodel.h"
+#include "appmodel.h"
 #include "runnerfiltermodel.h"
 #include "unifiedsearchmodel.h"
 
@@ -29,7 +29,8 @@ class QWindow;
  * methods for QML to configure the overlay window, manage blur, launch
  * session actions, and integrate with the desktop (task manager, desktop icons).
  */
-class AppGridPlugin : public Plasma::Applet {
+class AppGridPlugin : public Plasma::Applet
+{
     Q_OBJECT
     Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)

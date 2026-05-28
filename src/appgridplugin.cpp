@@ -22,25 +22,25 @@
 #ifdef APPGRID_X11_SUPPORT
 #include <KX11Extras>
 #endif
-#include <kcoreaddons_version.h>
 #include <LayerShellQt/window.h>
-#include <plasma_version.h>
 #include <Plasma/Containment>
 #include <PlasmaQuick/AppletQuickItem>
-#include <QDir>
 #include <QCursor>
-#include <QGuiApplication>
+#include <QDir>
 #include <QFile>
-#include <QTextStream>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QMimeDatabase>
 #include <QProcess>
 #include <QQuickWindow>
 #include <QStandardPaths>
-#include <QXmlStreamReader>
+#include <QTextStream>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
+#include <QXmlStreamReader>
+#include <kcoreaddons_version.h>
+#include <plasma_version.h>
 
 // Known task manager plugin IDs, matching the list used by Kicker.
 AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
@@ -157,9 +157,8 @@ void AppGridPlugin::configureWayland(QWindow *window)
     layer->setScope(QStringLiteral("appgrid"));
     // Cover the full screen including panel exclusive zones
     layer->setExclusiveZone(-1);
-    layer->setAnchors(LayerShellQt::Window::Anchors(
-        LayerShellQt::Window::AnchorTop | LayerShellQt::Window::AnchorBottom
-        | LayerShellQt::Window::AnchorLeft | LayerShellQt::Window::AnchorRight));
+    layer->setAnchors(LayerShellQt::Window::Anchors(LayerShellQt::Window::AnchorTop | LayerShellQt::Window::AnchorBottom | LayerShellQt::Window::AnchorLeft
+                                                    | LayerShellQt::Window::AnchorRight));
 }
 
 void AppGridPlugin::updateScreenWayland(QWindow *window, QScreen *target, bool useActiveScreen)
@@ -178,12 +177,10 @@ void AppGridPlugin::updateScreenWayland(QWindow *window, QScreen *target, bool u
         // Old API (LayerShellQt < 6.6) — deprecated but needed for compatibility
         if (target)
             window->setScreen(target);
-QT_WARNING_PUSH
-QT_WARNING_DISABLE_DEPRECATED
-        layer->setScreenConfiguration(
-            useActiveScreen ? LayerShellQt::Window::ScreenFromCompositor
-                            : LayerShellQt::Window::ScreenFromQWindow);
-QT_WARNING_POP
+        QT_WARNING_PUSH
+        QT_WARNING_DISABLE_DEPRECATED
+        layer->setScreenConfiguration(useActiveScreen ? LayerShellQt::Window::ScreenFromCompositor : LayerShellQt::Window::ScreenFromQWindow);
+        QT_WARNING_POP
     }
 }
 
@@ -287,9 +284,7 @@ void AppGridPlugin::notifyAppLaunched(const QString &storageId)
     // Standard convention used by Kicker, Kickoff and friends: the resource
     // URL is "applications:<storage-id>", tagged with our agent so other
     // tools can attribute the launch to AppGrid.
-    KActivities::ResourceInstance::notifyAccessed(
-        QUrl(QStringLiteral("applications:") + storageId),
-        QStringLiteral("dev.xarbit.appgrid"));
+    KActivities::ResourceInstance::notifyAccessed(QUrl(QStringLiteral("applications:") + storageId), QStringLiteral("dev.xarbit.appgrid"));
 }
 
 // --- Prefix mode commands ---
@@ -397,9 +392,12 @@ bool AppGridPlugin::isDiscoverAvailable() const
 // that handles it. Returns empty for sources Discover doesn't manage.
 static QString backendForSource(const QString &source)
 {
-    if (source == QLatin1String("System"))  return QStringLiteral("packagekit");
-    if (source == QLatin1String("Flatpak")) return QStringLiteral("flatpak");
-    if (source == QLatin1String("Snap"))    return QStringLiteral("snap");
+    if (source == QLatin1String("System"))
+        return QStringLiteral("packagekit");
+    if (source == QLatin1String("Flatpak"))
+        return QStringLiteral("flatpak");
+    if (source == QLatin1String("Snap"))
+        return QStringLiteral("snap");
     return {};
 }
 
@@ -408,9 +406,12 @@ static QString backendForSource(const QString &source)
 // don't have an external dependency to verify.
 static QString toolForBackend(const QString &backend)
 {
-    if (backend == QLatin1String("packagekit")) return QStringLiteral("pkcon");
-    if (backend == QLatin1String("flatpak"))    return QStringLiteral("flatpak");
-    if (backend == QLatin1String("snap"))       return QStringLiteral("snap");
+    if (backend == QLatin1String("packagekit"))
+        return QStringLiteral("pkcon");
+    if (backend == QLatin1String("flatpak"))
+        return QStringLiteral("flatpak");
+    if (backend == QLatin1String("snap"))
+        return QStringLiteral("snap");
     return {};
 }
 
@@ -430,8 +431,7 @@ static bool discoverBackendInstalled(const QString &name)
     }
 
     const QString tool = toolForBackend(name);
-    return pluginFound
-        && (tool.isEmpty() || !QStandardPaths::findExecutable(tool).isEmpty());
+    return pluginFound && (tool.isEmpty() || !QStandardPaths::findExecutable(tool).isEmpty());
 }
 
 bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
@@ -441,8 +441,7 @@ bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
     auto service = KService::serviceByStorageId(storageId);
     if (!service)
         return false;
-    const auto resolvedPath = QStandardPaths::locate(
-        QStandardPaths::ApplicationsLocation, service->entryPath());
+    const auto resolvedPath = QStandardPaths::locate(QStandardPaths::ApplicationsLocation, service->entryPath());
     // 1.8.0 ships the menu only for Flatpak — system (PackageKit) and
     // Snap routes hit Discover's multi-backend ambiguity that we can't
     // disambiguate without spawning plasma-discover or pulling in a
@@ -619,12 +618,9 @@ QVariantMap AppGridPlugin::systemInfo()
     info[QStringLiteral("plasmaVersion")] = QStringLiteral(PLASMA_VERSION_STRING);
     info[QStringLiteral("kfVersion")] = QStringLiteral(KCOREADDONS_VERSION_STRING);
     info[QStringLiteral("qtVersion")] = QString::fromLatin1(qVersion());
-    info[QStringLiteral("sessionType")] = KWindowSystem::isPlatformWayland()
-        ? QStringLiteral("Wayland") : QStringLiteral("X11");
-    info[QStringLiteral("variant")] = m_useNativeActivation
-        ? QStringLiteral("Panel") : QStringLiteral("Center");
-    info[QStringLiteral("installType")] = isUniversalBuild()
-        ? QStringLiteral("Universal package") : QStringLiteral("Distribution package");
+    info[QStringLiteral("sessionType")] = KWindowSystem::isPlatformWayland() ? QStringLiteral("Wayland") : QStringLiteral("X11");
+    info[QStringLiteral("variant")] = m_useNativeActivation ? QStringLiteral("Panel") : QStringLiteral("Center");
+    info[QStringLiteral("installType")] = isUniversalBuild() ? QStringLiteral("Universal package") : QStringLiteral("Distribution package");
 
     // OS info from /etc/os-release
     QFile osRelease(QStringLiteral("/etc/os-release"));
@@ -647,13 +643,9 @@ QVariantMap AppGridPlugin::systemInfo()
     QStringList screenList;
     for (auto *screen : screens) {
         auto geo = screen->geometry();
-        screenList.append(QStringLiteral("%1 (%2x%3 @ %4x)")
-            .arg(screen->name())
-            .arg(geo.width()).arg(geo.height())
-            .arg(screen->devicePixelRatio()));
+        screenList.append(QStringLiteral("%1 (%2x%3 @ %4x)").arg(screen->name()).arg(geo.width()).arg(geo.height()).arg(screen->devicePixelRatio()));
     }
     info[QStringLiteral("screens")] = screenList.join(QStringLiteral(", "));
 
     return info;
 }
-

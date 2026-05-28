@@ -20,15 +20,17 @@
 // APPGRID_INVALIDATE_FILTER  — re-run filter only
 // APPGRID_INVALIDATE_ALL     — re-run filter + sort (for search relevance ranking)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 13, 0)
-#define APPGRID_INVALIDATE_FILTER() do { beginFilterChange(); endFilterChange(); } while (0)
-#define APPGRID_INVALIDATE_ALL()    invalidate()
+#define APPGRID_INVALIDATE_FILTER()                                                                                                                            \
+    do {                                                                                                                                                       \
+        beginFilterChange();                                                                                                                                   \
+        endFilterChange();                                                                                                                                     \
+    } while (0)
+#define APPGRID_INVALIDATE_ALL() invalidate()
 #else
-#define APPGRID_INVALIDATE_FILTER() \
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"") \
-    invalidateFilter(); \
+#define APPGRID_INVALIDATE_FILTER()                                                                                                                            \
+    _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"") invalidateFilter();                                         \
     _Pragma("GCC diagnostic pop")
-#define APPGRID_INVALIDATE_ALL()    invalidate()
+#define APPGRID_INVALIDATE_ALL() invalidate()
 #endif
 
 // --- Constructor ---
@@ -83,8 +85,7 @@ AppFilterModel::AppFilterModel(QObject *parent)
         connect(src, &QAbstractItemModel::rowsRemoved, this, invalidateBoth);
         // Per-row data updates (e.g. icon refresh) keep the storage id
         // map valid but invalidate the haystack for that row.
-        connect(src, &QAbstractItemModel::dataChanged, this,
-                &AppFilterModel::invalidateHaystackCache);
+        connect(src, &QAbstractItemModel::dataChanged, this, &AppFilterModel::invalidateHaystackCache);
     });
 }
 
@@ -165,9 +166,15 @@ void AppFilterModel::rebuildKnownSet()
 
 // --- Property accessors ---
 
-int AppFilterModel::count() const { return rowCount(); }
+int AppFilterModel::count() const
+{
+    return rowCount();
+}
 
-QString AppFilterModel::filterCategory() const { return m_filterCategory; }
+QString AppFilterModel::filterCategory() const
+{
+    return m_filterCategory;
+}
 
 void AppFilterModel::setFilterCategory(const QString &category)
 {
@@ -178,7 +185,10 @@ void AppFilterModel::setFilterCategory(const QString &category)
     emit filterCategoryChanged();
 }
 
-QString AppFilterModel::searchText() const { return m_searchText; }
+QString AppFilterModel::searchText() const
+{
+    return m_searchText;
+}
 
 void AppFilterModel::setSearchText(const QString &text)
 {
@@ -190,7 +200,10 @@ void AppFilterModel::setSearchText(const QString &text)
     emit searchTextChanged();
 }
 
-QStringList AppFilterModel::hiddenApps() const { return m_hiddenApps; }
+QStringList AppFilterModel::hiddenApps() const
+{
+    return m_hiddenApps;
+}
 
 void AppFilterModel::setHiddenApps(const QStringList &list)
 {
@@ -235,7 +248,10 @@ void AppFilterModel::unhideApp(const QString &storageId)
     }
 }
 
-QStringList AppFilterModel::favoriteApps() const { return m_favoriteApps; }
+QStringList AppFilterModel::favoriteApps() const
+{
+    return m_favoriteApps;
+}
 
 void AppFilterModel::setFavoriteApps(const QStringList &list)
 {
@@ -253,7 +269,10 @@ bool AppFilterModel::isFavorite(const QString &storageId) const
     return m_favoriteAppsSet.contains(storageId);
 }
 
-QStringList AppFilterModel::recentApps() const { return m_recentApps; }
+QStringList AppFilterModel::recentApps() const
+{
+    return m_recentApps;
+}
 
 void AppFilterModel::setRecentApps(const QStringList &list)
 {
@@ -265,7 +284,10 @@ void AppFilterModel::setRecentApps(const QStringList &list)
     emit recentAppsChanged();
 }
 
-int AppFilterModel::maxRecentApps() const { return m_maxRecentApps; }
+int AppFilterModel::maxRecentApps() const
+{
+    return m_maxRecentApps;
+}
 
 void AppFilterModel::setMaxRecentApps(int max)
 {
@@ -280,7 +302,10 @@ bool AppFilterModel::isRecent(const QString &storageId) const
     return m_recentAppsSet.contains(storageId);
 }
 
-int AppFilterModel::sortMode() const { return m_sortMode; }
+int AppFilterModel::sortMode() const
+{
+    return m_sortMode;
+}
 
 void AppFilterModel::setSortMode(int mode)
 {
@@ -309,7 +334,10 @@ void AppFilterModel::setLaunchCountsMap(const QVariantMap &map)
     emit launchCountsChanged();
 }
 
-QStringList AppFilterModel::knownApps() const { return m_knownApps; }
+QStringList AppFilterModel::knownApps() const
+{
+    return m_knownApps;
+}
 
 void AppFilterModel::setKnownApps(const QStringList &list)
 {
@@ -337,7 +365,10 @@ void AppFilterModel::markAllKnown()
     setKnownApps(all);
 }
 
-bool AppFilterModel::showFavoritesOnly() const { return m_showFavoritesOnly; }
+bool AppFilterModel::showFavoritesOnly() const
+{
+    return m_showFavoritesOnly;
+}
 
 void AppFilterModel::setShowFavoritesOnly(bool enabled)
 {
@@ -376,7 +407,10 @@ int AppFilterModel::getLaunchCount(const QString &storageId) const
 
 // --- Default apps (mimeapps.list) ---
 
-QStringList AppFilterModel::defaultApps() const { return m_defaultApps; }
+QStringList AppFilterModel::defaultApps() const
+{
+    return m_defaultApps;
+}
 
 void AppFilterModel::setDefaultApps(const QStringList &list)
 {
@@ -423,8 +457,7 @@ void AppFilterModel::reloadDefaultApps()
 {
     QSet<QString> all;
     const QStringList paths = {
-        QStandardPaths::writableLocation(QStandardPaths::ConfigLocation)
-            + QStringLiteral("/mimeapps.list"),
+        QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + QStringLiteral("/mimeapps.list"),
         QStringLiteral("/usr/share/applications/mimeapps.list"),
     };
     for (const auto &path : paths) {
@@ -483,9 +516,8 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
     // In "All" view (no category, no search), hide recents from the main grid
     // (they are shown in the header section instead).
     // Skip when: sorting by most-used, showing favorites, or filtering by category/search.
-    if (m_sortMode == Alphabetical && !m_showFavoritesOnly
-        && m_filterCategory.isEmpty() && m_searchText.isEmpty()
-        && !m_recentAppsSet.isEmpty() && m_recentAppsSet.contains(sid))
+    if (m_sortMode == Alphabetical && !m_showFavoritesOnly && m_filterCategory.isEmpty() && m_searchText.isEmpty() && !m_recentAppsSet.isEmpty()
+        && m_recentAppsSet.contains(sid))
         return false;
 
     return true;
@@ -533,8 +565,7 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
         const auto rightSid = right.data(AppModel::StorageIdRole).toString();
         // O(1) position lookup; m_favoritePositions kept in sync by
         // rebuildFavoriteSet(). Missing sid → sort to end via INT_MAX.
-        return m_favoritePositions.value(leftSid, std::numeric_limits<int>::max())
-             < m_favoritePositions.value(rightSid, std::numeric_limits<int>::max());
+        return m_favoritePositions.value(leftSid, std::numeric_limits<int>::max()) < m_favoritePositions.value(rightSid, std::numeric_limits<int>::max());
     }
 
     // When searching, rank by match relevance first
@@ -687,7 +718,10 @@ QVariantMap AppFilterModel::get(int proxyRow) const
     return map;
 }
 
-bool AppFilterModel::sortFavoritesAlphabetically() const { return m_sortFavoritesAlphabetically; }
+bool AppFilterModel::sortFavoritesAlphabetically() const
+{
+    return m_sortFavoritesAlphabetically;
+}
 
 void AppFilterModel::setSortFavoritesAlphabetically(bool enabled)
 {

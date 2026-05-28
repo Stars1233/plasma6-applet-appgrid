@@ -35,9 +35,12 @@ void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
 
     const auto roles = model->roleNames();
     for (auto it = roles.begin(); it != roles.end(); ++it) {
-        if (it.value() == "subtext") m_runnerSubtextRole = it.key();
-        if (it.value() == "category") m_runnerCategoryRole = it.key();
-        if (it.value() == "urls") m_runnerUrlsRole = it.key();
+        if (it.value() == "subtext")
+            m_runnerSubtextRole = it.key();
+        if (it.value() == "category")
+            m_runnerCategoryRole = it.key();
+        if (it.value() == "urls")
+            m_runnerUrlsRole = it.key();
     }
 }
 
@@ -68,7 +71,8 @@ int UnifiedSearchModel::runnerResultCount() const
 
 int UnifiedSearchModel::rowCount(const QModelIndex &parent) const
 {
-    if (parent.isValid()) return 0;
+    if (parent.isValid())
+        return 0;
     return appResultCount() + runnerResultCount();
 }
 
@@ -99,30 +103,43 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
     if (isApp) {
         const auto srcIdx = m_appModel->index(row, 0);
         switch (role) {
-        case NameRole:        return srcIdx.data(AppModel::NameRole);
-        case IconRole:        return srcIdx.data(AppModel::IconRole);
+        case NameRole:
+            return srcIdx.data(AppModel::NameRole);
+        case IconRole:
+            return srcIdx.data(AppModel::IconRole);
         case SubtextRole: {
             auto comment = srcIdx.data(AppModel::CommentRole).toString();
             return comment.isEmpty() ? srcIdx.data(AppModel::GenericNameRole) : comment;
         }
-        case CategoryRole:    return srcIdx.data(AppModel::CategoryRole);
-        case StorageIdRole:   return srcIdx.data(AppModel::StorageIdRole);
-        case DesktopFileRole: return srcIdx.data(AppModel::DesktopFileRole);
-        case IsNewRole:       return m_appModel->isNewApp(srcIdx.data(AppModel::StorageIdRole).toString());
-        case InstallSourceRole: return srcIdx.data(AppModel::InstallSourceRole);
-        default: return {};
+        case CategoryRole:
+            return srcIdx.data(AppModel::CategoryRole);
+        case StorageIdRole:
+            return srcIdx.data(AppModel::StorageIdRole);
+        case DesktopFileRole:
+            return srcIdx.data(AppModel::DesktopFileRole);
+        case IsNewRole:
+            return m_appModel->isNewApp(srcIdx.data(AppModel::StorageIdRole).toString());
+        case InstallSourceRole:
+            return srcIdx.data(AppModel::InstallSourceRole);
+        default:
+            return {};
         }
     } else {
         const int runnerRow = row - ac;
         const auto srcIdx = m_runnerModel->index(runnerRow, 0);
         switch (role) {
-        case NameRole:        return srcIdx.data(Qt::DisplayRole);
-        case IconRole:        return srcIdx.data(Qt::DecorationRole);
-        case SubtextRole:     return m_runnerSubtextRole >= 0 ? srcIdx.data(m_runnerSubtextRole) : QVariant();
-        case CategoryRole:    return m_runnerCategoryRole >= 0 ? srcIdx.data(m_runnerCategoryRole) : QVariant();
+        case NameRole:
+            return srcIdx.data(Qt::DisplayRole);
+        case IconRole:
+            return srcIdx.data(Qt::DecorationRole);
+        case SubtextRole:
+            return m_runnerSubtextRole >= 0 ? srcIdx.data(m_runnerSubtextRole) : QVariant();
+        case CategoryRole:
+            return m_runnerCategoryRole >= 0 ? srcIdx.data(m_runnerCategoryRole) : QVariant();
         case StorageIdRole:
         case DesktopFileRole: {
-            if (m_runnerUrlsRole < 0) return QString();
+            if (m_runnerUrlsRole < 0)
+                return QString();
             const auto urls = srcIdx.data(m_runnerUrlsRole).value<QList<QUrl>>();
             for (const auto &url : urls) {
                 const auto path = url.toLocalFile();
@@ -134,9 +151,12 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
             }
             return QString();
         }
-        case IsNewRole:       return false;
-        case InstallSourceRole: return QString();
-        default: return {};
+        case IsNewRole:
+            return false;
+        case InstallSourceRole:
+            return QString();
+        default:
+            return {};
         }
     }
     return {};
@@ -168,7 +188,8 @@ QHash<int, QByteArray> UnifiedSearchModel::roleNames() const
 QVariantMap UnifiedSearchModel::get(int row) const
 {
     QVariantMap map;
-    if (row < 0 || row >= rowCount()) return map;
+    if (row < 0 || row >= rowCount())
+        return map;
     const auto idx = index(row, 0);
     const auto roles = roleNames();
     for (auto it = roles.begin(); it != roles.end(); ++it)

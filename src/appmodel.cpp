@@ -108,16 +108,26 @@ QHash<int, QByteArray> AppModel::roleNames() const
 static QString translateCategory(const QString &name)
 {
     // Each string must appear literally for xgettext extraction
-    if (name == QLatin1String("Utilities"))   return i18nd("dev.xarbit.appgrid", "Utilities");
-    if (name == QLatin1String("Development")) return i18nd("dev.xarbit.appgrid", "Development");
-    if (name == QLatin1String("Graphics"))    return i18nd("dev.xarbit.appgrid", "Graphics");
-    if (name == QLatin1String("Internet"))    return i18nd("dev.xarbit.appgrid", "Internet");
-    if (name == QLatin1String("Multimedia"))  return i18nd("dev.xarbit.appgrid", "Multimedia");
-    if (name == QLatin1String("Office"))      return i18nd("dev.xarbit.appgrid", "Office");
-    if (name == QLatin1String("Games"))       return i18nd("dev.xarbit.appgrid", "Games");
-    if (name == QLatin1String("Education"))   return i18nd("dev.xarbit.appgrid", "Education");
-    if (name == QLatin1String("System"))      return i18nd("dev.xarbit.appgrid", "System");
-    if (name == QLatin1String("Other"))       return i18nd("dev.xarbit.appgrid", "Other");
+    if (name == QLatin1String("Utilities"))
+        return i18nd("dev.xarbit.appgrid", "Utilities");
+    if (name == QLatin1String("Development"))
+        return i18nd("dev.xarbit.appgrid", "Development");
+    if (name == QLatin1String("Graphics"))
+        return i18nd("dev.xarbit.appgrid", "Graphics");
+    if (name == QLatin1String("Internet"))
+        return i18nd("dev.xarbit.appgrid", "Internet");
+    if (name == QLatin1String("Multimedia"))
+        return i18nd("dev.xarbit.appgrid", "Multimedia");
+    if (name == QLatin1String("Office"))
+        return i18nd("dev.xarbit.appgrid", "Office");
+    if (name == QLatin1String("Games"))
+        return i18nd("dev.xarbit.appgrid", "Games");
+    if (name == QLatin1String("Education"))
+        return i18nd("dev.xarbit.appgrid", "Education");
+    if (name == QLatin1String("System"))
+        return i18nd("dev.xarbit.appgrid", "System");
+    if (name == QLatin1String("Other"))
+        return i18nd("dev.xarbit.appgrid", "Other");
     return name;
 }
 
@@ -182,10 +192,7 @@ void AppModel::loadApplications()
         if (!group || !group->isValid())
             return;
 
-        const auto entries = group->entries(true /* sorted */,
-                                            true /* excludeNoDisplay */,
-                                            false /* allowSeparators */,
-                                            true /* sortByGenericName */);
+        const auto entries = group->entries(true /* sorted */, true /* excludeNoDisplay */, false /* allowSeparators */, true /* sortByGenericName */);
 
         for (const auto &entry : entries) {
             if (entry->isType(KST_KServiceGroup)) {
@@ -255,8 +262,7 @@ void AppModel::loadApplications()
 
             // Detect install source from exec line and resolved path
             const auto exec = service->exec();
-            const auto resolvedPath = QStandardPaths::locate(
-                QStandardPaths::ApplicationsLocation, service->entryPath());
+            const auto resolvedPath = QStandardPaths::locate(QStandardPaths::ApplicationsLocation, service->entryPath());
             appEntry.installSource = detectInstallSource(exec, resolvedPath);
 
             if (systemMode) {
