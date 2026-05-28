@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 AppGrid Contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Pure formatting / mechanical style commits that would otherwise pollute
+# `git blame`. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub applies this file automatically.
+
+# style: adopt KDE clang-format and reformat src
+e706d05e7afdd5c2be508fcf6c4a5fc997a2e82f
+
+# style: mark const getters [[nodiscard]], group Q_PROPERTY
+4359c9fa9a12299c77829dd80c7f3a6d1f932347
