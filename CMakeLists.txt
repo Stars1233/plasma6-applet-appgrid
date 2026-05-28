@@ -124,69 +124,34 @@ set(APPGRID_COMMON_LIBS
     Plasma::Activities
 )
 
-# QML components shared between both plasmoids
-set(SHARED_QML_FILES
-    views/AppGridView.qml
-    views/CategoryGridView.qml
-    views/CompactRepresentation.qml
-    views/GridPanel.qml
-    views/GridWindow.qml
-    views/PrefixModeView.qml
-    views/SearchResultsList.qml
-    config/ConfigAnimations.qml
-    config/ConfigAppearance.qml
-    config/ConfigGeneral.qml
-    config/ConfigHiddenApps.qml
-    config/ConfigSearch.qml
-    config/ConfigSession.qml
-    config/PowerButtonsConfig.qml
-    controllers/ConfigCache.qml
-    controllers/DragSource.qml
-    controllers/EdgeAutoScroller.qml
-    controllers/FavoritesManager.qml
-    controllers/HoverGate.qml
-    controllers/KeyboardShortcuts.qml
-    controllers/MnemonicResolver.qml
-    controllers/PrefixDetector.qml
-    controllers/SearchSessionManager.qml
-    controllers/SelectionState.qml
-    controllers/VisibilityState.qml
-    controllers/WheelScroller.qml
-    js/favoriteid.js
-    js/favoritesmigration.js
-    js/gridnav.js
-    js/migrations.js
-    js/scrolleasing.js
-    models/SharedFavoritesProvider.qml
-    widgets/AppContextMenu.qml
-    widgets/AppIconDelegate.qml
-    widgets/CategoryBar.qml
-    widgets/FavoritesReorderArea.qml
-    widgets/FavoritesTabDragHover.qml
-    widgets/GridHighlight.qml
-    widgets/OverlayScrollBar.qml
-    widgets/PowerButtons.qml
-    widgets/RecentAppsHeader.qml
-    widgets/ScrollableColumn.qml
-    widgets/SearchBar.qml
-    widgets/ShadowedIcon.qml
-    widgets/ShuffleOverlay.qml
-)
+# Assemble a complete plasmoid package for ${variant} under the build tree
+# from the single package/ source: the entire shared base (package/contents/)
+# plus the variant-only entry files in package/variants/${variant}/, which
+# mirror their contents/ui/ destination paths.
+#
+# Both variants share all of contents/ and differ only in the entry files
+# (main.qml + its compact representation), which live outside contents/ under
+# variants/. So the base is globbed wholesale rather than enumerated: a new
+# shared QML file (or whole folder, e.g. animations/) is staged automatically,
+# with no list to forget.
+#
+# Each variant is staged into its own tree because plasma_install_package()
+# ships a whole directory — installing package/ in place would leak every
+# variant's entry files into every plasmoid. Adding a variant = a new
+# package/variants/<name>/ folder plus a stage+install pair below.
+function(appgrid_stage_variant dest variant)
+    set(_base ${CMAKE_CURRENT_SOURCE_DIR}/package/contents)
+    file(GLOB_RECURSE _shared_files RELATIVE ${_base} CONFIGURE_DEPENDS ${_base}/*)
+    foreach(shared_file ${_shared_files})
+        configure_file(${_base}/${shared_file} ${dest}/contents/${shared_file} COPYONLY)
+    endforeach()
 
-set(SHARED_PREFIX_QML_FILES
-    prefix/PrefixHelpView.qml
-    prefix/PrefixCommandView.qml
-    prefix/PrefixInfoView.qml
-    prefix/PrefixHiddenView.qml
-    prefix/PrefixFileBrowser.qml
-)
-
-set(SHARED_ICONANIM_QML_FILES
-    iconanims/ShakeAnim.qml
-    iconanims/GrowAnim.qml
-    iconanims/BounceAnim.qml
-    iconanims/SpinAnim.qml
-)
+    set(_variant_dir ${CMAKE_CURRENT_SOURCE_DIR}/package/variants/${variant})
+    file(GLOB_RECURSE _entry_files RELATIVE ${_variant_dir} CONFIGURE_DEPENDS ${_variant_dir}/*)
+    foreach(entry_file ${_entry_files})
+        configure_file(${_variant_dir}/${entry_file} ${dest}/contents/ui/${entry_file} COPYONLY)
+    endforeach()
+endfunction()
 
 # --- Main plasmoid (Center variant: custom Window with centered popup) ---
 
@@ -227,14 +192,17 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata.json
     @ONLY
 )
+
+set(APPGRID_CENTER_PACKAGE ${CMAKE_BINARY_DIR}/package-center)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/metadata.json.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/package/metadata.json
+    ${APPGRID_CENTER_PACKAGE}/metadata.json
     @ONLY
 )
+appgrid_stage_variant(${APPGRID_CENTER_PACKAGE} center)
 
 install(TARGETS dev.xarbit.appgrid DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
-plasma_install_package(package dev.xarbit.appgrid)
+plasma_install_package(${APPGRID_CENTER_PACKAGE} dev.xarbit.appgrid)
 
 # --- Panel plasmoid (native Plasma popup near panel icon) ---
 
@@ -276,58 +244,17 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata-panel.json
     @ONLY
 )
+
+set(APPGRID_PANEL_PACKAGE ${CMAKE_BINARY_DIR}/package-panel)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/metadata-panel.json.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/metadata.json
+    ${APPGRID_PANEL_PACKAGE}/metadata.json
     @ONLY
 )
-
-# Copy shared QML components into the popup package at build time
-foreach(qml_file ${SHARED_QML_FILES})
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/${qml_file}
-        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/ui/${qml_file}
-        COPYONLY
-    )
-endforeach()
-
-# Config schema and category list are single-sourced; panel ignores
-# center-only entries at runtime/UI.
-foreach(config_file main.xml config.qml)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/${config_file}
-        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/config/${config_file}
-        COPYONLY
-    )
-endforeach()
-
-# Plasmoid icon — single source.
-foreach(icon_file dev.xarbit.appgrid.svg)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/icons/${icon_file}
-        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/icons/${icon_file}
-        COPYONLY
-    )
-endforeach()
-
-foreach(qml_file ${SHARED_PREFIX_QML_FILES})
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/${qml_file}
-        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/ui/${qml_file}
-        COPYONLY
-    )
-endforeach()
-
-foreach(qml_file ${SHARED_ICONANIM_QML_FILES})
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/${qml_file}
-        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/ui/${qml_file}
-        COPYONLY
-    )
-endforeach()
+appgrid_stage_variant(${APPGRID_PANEL_PACKAGE} panel)
 
 install(TARGETS dev.xarbit.appgrid.panel DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
-plasma_install_package(package-panel dev.xarbit.appgrid.panel)
+plasma_install_package(${APPGRID_PANEL_PACKAGE} dev.xarbit.appgrid.panel)
 
 message(STATUS "AppGrid ENABLE_X11=${ENABLE_X11}")
 

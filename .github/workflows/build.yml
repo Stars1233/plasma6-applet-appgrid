@@ -118,7 +118,7 @@ jobs:
             --skip='build*,*.po,*.pot,po,*.svg' \
             --ignore-words-list='growin' \
             --quiet-level=2 \
-            src/ package/contents/ package-panel/contents/ tests/ README.md
+            src/ package/contents/ package/variants/ tests/ README.md
 
       - name: REUSE compliance
         run: reuse lint || echo "::warning::REUSE lint failed — non-blocking"
@@ -156,7 +156,8 @@ jobs:
         run: |
           set -e
           mkdir -p /tmp/pkg-validate
-          for pkg in package package-panel; do
+          # Both variants are assembled under build/ by the configure step above.
+          for pkg in build/package-center build/package-panel; do
             out=$(kpackagetool6 --type Plasma/Applet --install "$pkg" --packageroot /tmp/pkg-validate 2>&1)
             echo "$out"
             if echo "$out" | grep -qE "^Error:"; then
@@ -178,11 +179,14 @@ jobs:
           fi
 
       - name: Lint QML
+        # Lint against the assembled packages (build/ from the configure step)
+        # so each variant's main.qml resolves its sibling controllers/views.
         run: |
           /usr/lib/qt6/bin/qmllint -I /usr/lib/qt6/qml \
-            package/contents/ui/*.qml \
-            package/contents/ui/iconanims/*.qml \
-            package/contents/ui/prefix/*.qml
+            build/package-center/contents/ui/main.qml \
+            build/package-panel/contents/ui/main.qml \
+            build/package-center/contents/ui/iconanims/*.qml \
+            build/package-center/contents/ui/prefix/*.qml
 
       - name: Lint PKGBUILD
         run: namcap PKGBUILD
