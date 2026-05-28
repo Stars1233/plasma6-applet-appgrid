@@ -28,9 +28,9 @@ ConfigModel {
         source: "config/ConfigSearch.qml"
     }
     ConfigCategory {
-        name: i18nc("@title:group", "Session")
-        icon: "system-shutdown"
-        source: "config/ConfigSession.qml"
+        name: i18nc("@title:group", "Header Actions")
+        icon: "configure-toolbars"
+        source: "config/ConfigHeaderActions.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Hidden Apps")

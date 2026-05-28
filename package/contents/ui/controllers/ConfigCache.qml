@@ -83,6 +83,7 @@ QtObject {
 
     readonly property list<string> powerButtonOrder: source.powerButtonOrder
     readonly property list<string> powerButtonsHidden: source.powerButtonsHidden
+    readonly property list<string> headerActions: source.headerActions
     readonly property bool showActionLabels: source.showActionLabels
 
     // --- Update checker (universal builds) ---

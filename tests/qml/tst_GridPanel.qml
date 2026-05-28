@@ -65,10 +65,12 @@ TestCase {
         property string terminalShell: ""
         property var powerButtonOrder: []
         property var powerButtonsHidden: []
+        property var headerActions: []
         property bool showActionLabels: false
         property bool checkForUpdates: false
         // One-shot migration flags written by migrations.js on construction.
         property bool powerButtonsMigrated: true
+        property bool headerActionsMigrated: true
         property bool iconMigratedFrom17: true
     }
 

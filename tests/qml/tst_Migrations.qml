@@ -53,6 +53,39 @@ TestCase {
         verify(cfg.powerButtonsMigrated)
     }
 
+    // --- migrateHeaderActions ---
+
+    function test_headerActionsAlreadyMigratedIsNoop() {
+        var cfg = {
+            headerActionsMigrated: true,
+            headerActions: ["lock:bar"],
+            powerButtonOrder: ["sleep"], powerButtonsHidden: []
+        }
+        Migrations.migrateHeaderActions(cfg)
+        compare(cfg.headerActions, ["lock:bar"])
+        verify(cfg.headerActionsMigrated)
+    }
+
+    function test_headerActionsFoldsLegacyOrderAndHidden() {
+        var cfg = {
+            powerButtonOrder: ["sleep", "session"],
+            powerButtonsHidden: ["logout"]
+        }
+        Migrations.migrateHeaderActions(cfg)
+        verify(cfg.headerActions.indexOf("sleep:bar") >= 0)
+        verify(cfg.headerActions.indexOf("lock:menu") >= 0)
+        verify(cfg.headerActions.indexOf("logout:off") >= 0)
+        verify(cfg.headerActionsMigrated)
+    }
+
+    function test_headerActionsFlagsOnFreshInstall() {
+        // Empty legacy config still yields the default layout + flips the flag.
+        var cfg = { powerButtonOrder: [], powerButtonsHidden: [] }
+        Migrations.migrateHeaderActions(cfg)
+        verify(cfg.headerActions.length > 0)
+        verify(cfg.headerActionsMigrated)
+    }
+
     // --- migrateLauncherIcon ---
 
     function test_launcherIconAlreadyMigratedIsNoop() {

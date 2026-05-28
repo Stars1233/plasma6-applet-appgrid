@@ -9,6 +9,7 @@
 //     import "migrations.js" as Migrations
 
 .pragma library
+.import "headeractions.js" as HeaderActions
 
 // Legacy showSessionButtons toggle hid the whole power row. Carry that
 // intent into the per-button hidden list introduced in 1.8.0.
@@ -19,6 +20,18 @@ function migratePowerButtons(cfg) {
         cfg.powerButtonsHidden =
             ["sleep", "restart", "shutdown", "session", "lock", "logout", "switchuser"]
     cfg.powerButtonsMigrated = true
+}
+
+// 1.9.0 unified the power/session/update buttons into one configurable
+// headerActions layout. Fold the legacy powerButtonOrder/powerButtonsHidden
+// into it once so upgrading users keep their arrangement (#111). Run after
+// migratePowerButtons, which populates powerButtonsHidden this reads.
+function migrateHeaderActions(cfg) {
+    if (cfg.headerActionsMigrated)
+        return
+    cfg.headerActions =
+        HeaderActions.migrateFromLegacy(cfg.powerButtonOrder, cfg.powerButtonsHidden)
+    cfg.headerActionsMigrated = true
 }
 
 // 1.8.0 changed the default launcher icon from start-here-kde-symbolic to

@@ -56,7 +56,7 @@ Kirigami.ShadowedRectangle {
     required property var runCommand
     required property var runRunnerResult
 
-    // Update-checker handle (null on distro packages); forwarded to PowerButtons.
+    // Update-checker handle (null on distro packages); forwarded to HeaderActionStrip.
     required property var updateChecker
 
     // KAStats favorites client id, built from the plasmoid id at the root.
@@ -295,6 +295,7 @@ Kirigami.ShadowedRectangle {
 
     Component.onCompleted: {
         Migrations.migratePowerButtons(panel.configuration)
+        Migrations.migrateHeaderActions(panel.configuration)
         syncModelFromConfig()
     }
     onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
@@ -357,7 +358,7 @@ Kirigami.ShadowedRectangle {
     function resetState() {
         contextMenu.close()
         categoryBar.closeCategoryMenu()
-        powerButtons.closeMenus()
+        headerActionStrip.closeMenus()
         _resetSearchSession()
 
         // Restore starting tab
@@ -471,7 +472,7 @@ Kirigami.ShadowedRectangle {
             // buttons hide on search — implicitHeight ignores hidden
             // children, so derive it from both regardless of visibility.
             Layout.preferredHeight: Math.max(searchBar.implicitHeight,
-                                             powerButtons.implicitHeight)
+                                             headerActionStrip.implicitHeight)
 
             SearchBar {
                 id: searchBar
@@ -598,12 +599,11 @@ Kirigami.ShadowedRectangle {
                 onEnd: if (panel.showSearchResults) searchResultsList.goEnd()
             }
 
-            PowerButtons {
-                id: powerButtons
+            HeaderActionStrip {
+                id: headerActionStrip
                 visible: !panel.isSearching
                 showActionLabels: cfg.showActionLabels
-                powerButtonsHidden: cfg.powerButtonsHidden
-                powerButtonOrder: cfg.powerButtonOrder
+                headerActions: cfg.headerActions
                 updateChecker: panel.updateChecker
                 onActionTriggered: panel.closeRequested()
             }

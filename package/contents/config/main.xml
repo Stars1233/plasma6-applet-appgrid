@@ -54,6 +54,14 @@
       <label>Whether the legacy showSessionButtons toggle has been migrated to the per-button config.</label>
       <default>false</default>
     </entry>
+    <entry name="headerActions" type="StringList">
+      <label>Header actions in display order as "id:placement" (placement = bar, menu, or off). Empty falls back to the built-in default; missing known ids are appended at their default placement.</label>
+      <default>updateCheck:bar,sleep:bar,restart:bar,shutdown:bar,lock:menu,logout:menu,switchuser:menu</default>
+    </entry>
+    <entry name="headerActionsMigrated" type="Bool">
+      <label>Whether the legacy powerButtonOrder/powerButtonsHidden config has been folded into headerActions.</label>
+      <default>false</default>
+    </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
       <default>false</default>
