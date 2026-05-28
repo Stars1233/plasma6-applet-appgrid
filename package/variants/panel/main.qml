@@ -69,6 +69,7 @@ PlasmoidItem {
             runCommand: function(cmd, shell) { Plasmoid.runCommand(cmd, shell) }
             runRunnerResult: function(idx) { return Plasmoid.runRunnerResult(idx) }
             updateChecker: Plasmoid.updateChecker
+            favoritesClientInstance: "dev.xarbit.appgrid.favorites.instance-" + Plasmoid.id
             opacity: 1.0
             onCloseRequested: kicker.expanded = false
 

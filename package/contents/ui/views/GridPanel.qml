@@ -59,6 +59,9 @@ Kirigami.ShadowedRectangle {
     // Update-checker handle (null on distro packages); forwarded to PowerButtons.
     required property var updateChecker
 
+    // KAStats favorites client id, built from the plasmoid id at the root.
+    required property string favoritesClientInstance
+
     // -- Configuration (single source of truth for all config reads) --
     ConfigCache { id: cfg; source: panel.configuration }
     readonly property alias columns: cfg.gridColumns
@@ -303,6 +306,11 @@ Kirigami.ShadowedRectangle {
     FavoritesManager {
         id: favorites
         appsModel: panel.appsModel
+        clientInstance: panel.favoritesClientInstance
+        sortFavoritesAlphabetically: cfg.sortFavoritesAlphabetically
+        favoritesPortedToKAstats: cfg.favoritesPortedToKAstats
+        legacyFavorites: cfg.favoriteApps
+        markPorted: function() { panel.configuration.favoritesPortedToKAstats = true }
     }
     readonly property alias favoriteIdRole: favorites.favoriteIdRole
     readonly property alias sharedFavoritesModel: favorites.sharedFavoritesModel

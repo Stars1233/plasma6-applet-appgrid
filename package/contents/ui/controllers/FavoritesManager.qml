@@ -14,7 +14,6 @@
 */
 
 import QtQuick
-import org.kde.plasma.plasmoid
 
 import "../js/favoriteid.js" as FavoriteId
 import "../js/favoritesmigration.js" as FavoritesMigration
@@ -26,6 +25,20 @@ Item {
 
     property var appsModel: null
 
+    // KAStats client id for the favorites provider. Production builds it
+    // from the plasmoid id; the default keeps tests isolated from the
+    // user's real favorites store.
+    property string clientInstance: "dev.xarbit.appgrid.favorites.instance-test"
+
+    // Config inputs, injected from the boundary's ConfigCache.
+    required property bool sortFavoritesAlphabetically
+    required property bool favoritesPortedToKAstats
+    required property list<string> legacyFavorites
+
+    // Persists the one-shot "ported to KAStats" flag — replaces the direct
+    // config write. A no-op stub in tests.
+    required property var markPorted
+
     // --- Outputs (panel re-exposes these via aliases) ---
 
     // KAStatsFavoritesModel doesn't publish roleNames() to QML, so we
@@ -36,12 +49,10 @@ Item {
     readonly property int _kickerFavoriteIdRole: 259
     readonly property var sharedFavoritesModel: sharedFavoritesLoader.item
 
-    ConfigCache { id: cfg; source: Plasmoid.configuration }
-
     // Drives whether the live model gets mirrored into AppFilterModel.
     // Only alpha-sort needs that; drag-reorder reads the shared model
     // directly.
-    readonly property alias mirrorRequired: cfg.sortFavoritesAlphabetically
+    readonly property bool mirrorRequired: manager.sortFavoritesAlphabetically
 
     // No layout; pure controller.
     visible: false
@@ -61,7 +72,7 @@ Item {
                 return
             }
             if (status === Loader.Ready && item) {
-                item.initForClient("dev.xarbit.appgrid.favorites.instance-" + Plasmoid.id)
+                item.initForClient(manager.clientInstance)
                 if (item.count > 0) {
                     const probe = item.data(item.index(0, 0), manager._kickerFavoriteIdRole)
                     if (typeof probe === "string") {
@@ -94,12 +105,12 @@ Item {
         // model signal. Skip mirror; nothing useful to do.
         if (favoriteIdRole < 0) return
 
-        if (cfg.favoritesPortedToKAstats) {
+        if (manager.favoritesPortedToKAstats) {
             _mirrorFavorites()
             return
         }
 
-        const local = cfg.favoriteApps
+        const local = manager.legacyFavorites
         if (local.length > 0) {
             // 1.7.x upgrade path. KAStatsFavoritesModel has no clear()
             // and portOldFavorites only re-ranks, so any entry already
@@ -147,10 +158,10 @@ Item {
         interval: 0
         repeat: false
         onTriggered: {
-            if (!cfg.favoritesPortedToKAstats
+            if (!manager.favoritesPortedToKAstats
                     && manager.sharedFavoritesModel
                     && manager.sharedFavoritesModel.count > 0) {
-                Plasmoid.configuration.favoritesPortedToKAstats = true
+                manager.markPorted()
             }
             if (manager.mirrorRequired)
                 manager._mirrorFavorites()
