@@ -8,7 +8,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-include(GNUInstallDirs)
+# ECM ships KDEInstallDirs, which defines the KDE_INSTALL_* paths this build
+# installs into. Include it before find_package(Qt6) — Qt pulls in
+# GNUInstallDirs, and if that runs first the KDE_INSTALL_* dirs get shadowed
+# by CMAKE_INSTALL_*, which ECM warns about.
+find_package(ECM 6.0 REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+include(KDEInstallDirs)
 
 # X11 support — disable when targeting Plasma 6.8+ (Wayland-only)
 option(ENABLE_X11 "Enable X11 session support" ON)
