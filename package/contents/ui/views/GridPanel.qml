@@ -56,6 +56,9 @@ Kirigami.ShadowedRectangle {
     required property var runCommand
     required property var runRunnerResult
 
+    // Update-checker handle (null on distro packages); forwarded to PowerButtons.
+    required property var updateChecker
+
     // -- Configuration (single source of truth for all config reads) --
     ConfigCache { id: cfg; source: panel.configuration }
     readonly property alias columns: cfg.gridColumns
@@ -580,6 +583,10 @@ Kirigami.ShadowedRectangle {
             PowerButtons {
                 id: powerButtons
                 visible: !panel.isSearching
+                showActionLabels: cfg.showActionLabels
+                powerButtonsHidden: cfg.powerButtonsHidden
+                powerButtonOrder: cfg.powerButtonOrder
+                updateChecker: panel.updateChecker
                 onActionTriggered: panel.closeRequested()
             }
 

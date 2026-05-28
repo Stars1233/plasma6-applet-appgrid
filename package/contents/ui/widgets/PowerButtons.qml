@@ -12,10 +12,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.plasmoid
 import org.kde.plasma.private.sessions as Sessions
-
-import "../controllers"
 
 RowLayout {
     id: powerButtons
@@ -25,9 +22,11 @@ RowLayout {
 
     spacing: Kirigami.Units.smallSpacing
 
-    ConfigCache { id: cfg; source: Plasmoid.configuration }
-
-    readonly property alias showLabels: cfg.showActionLabels
+    required property bool showActionLabels
+    required property list<string> powerButtonsHidden
+    required property list<string> powerButtonOrder
+    // Update-checker handle; null on distro packages and in tests (button hides).
+    required property var updateChecker
 
     // The live Session dropdown, so closeMenus() can reach it.
     property var _sessionMenu: null
@@ -35,16 +34,15 @@ RowLayout {
     Sessions.SessionManagement { id: sm }
     Sessions.SessionsModel { id: sessionsModel }
 
-    readonly property alias hiddenButtons: cfg.powerButtonsHidden
-    function isHidden(id) { return hiddenButtons.indexOf(id) >= 0 }
+    function isHidden(id) { return powerButtons.powerButtonsHidden.indexOf(id) >= 0 }
 
     readonly property list<string> defaultSlotOrder: ["sleep", "restart", "shutdown", "session"]
 
     // Top-level slots in configured order, hidden ones removed. An empty
     // config means "default order" (kcfg StringList defaults are unreliable).
     readonly property var orderedSlots: {
-        const order = cfg.powerButtonOrder.length > 0
-                      ? cfg.powerButtonOrder : defaultSlotOrder
+        const order = powerButtons.powerButtonOrder.length > 0
+                      ? powerButtons.powerButtonOrder : defaultSlotOrder
         return order.filter(s => !isHidden(s))
     }
 
@@ -74,25 +72,25 @@ RowLayout {
     // Update indicator — universal builds only, not part of the slot config.
     PlasmaComponents.ToolButton {
         id: updateButton
-        visible: !!Plasmoid.updateChecker
-                 && Plasmoid.updateChecker.enabled === true
-                 && Plasmoid.updateChecker.hasUpdate === true
+        visible: !!powerButtons.updateChecker
+                 && powerButtons.updateChecker.enabled === true
+                 && powerButtons.updateChecker.hasUpdate === true
         icon.name: "system-software-update"
         icon.color: Kirigami.Theme.neutralTextColor
-        text: powerButtons.showLabels
+        text: powerButtons.showActionLabels
               ? i18nd("dev.xarbit.appgrid", "Update available")
               : ""
-        display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+        display: powerButtons.showActionLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
                                          : PlasmaComponents.AbstractButton.IconOnly
-        PlasmaComponents.ToolTip.text: Plasmoid.updateChecker
+        PlasmaComponents.ToolTip.text: powerButtons.updateChecker
             ? i18nd("dev.xarbit.appgrid", "AppGrid %1 is available — click to view release notes",
-                    Plasmoid.updateChecker.latestVersion)
+                    powerButtons.updateChecker.latestVersion)
             : ""
         PlasmaComponents.ToolTip.visible: hovered
         PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
         onClicked: {
-            if (Plasmoid.updateChecker)
-                Plasmoid.updateChecker.openReleasePage()
+            if (powerButtons.updateChecker)
+                powerButtons.updateChecker.openReleasePage()
             powerButtons.actionTriggered()
         }
 
@@ -153,12 +151,12 @@ RowLayout {
             visible: isSession ? (sessionItems.length > 0)
                                : (info !== undefined && info.available)
             icon.name: slotIcon
-            text: powerButtons.showLabels ? slotLabel : ""
-            display: powerButtons.showLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
+            text: powerButtons.showActionLabels ? slotLabel : ""
+            display: powerButtons.showActionLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
                                              : PlasmaComponents.AbstractButton.IconOnly
             checked: useSessionMenu && sessionMenu.visible
             PlasmaComponents.ToolTip.text: slotLabel
-            PlasmaComponents.ToolTip.visible: !powerButtons.showLabels && hovered
+            PlasmaComponents.ToolTip.visible: !powerButtons.showActionLabels && hovered
             PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
             onClicked: {
                 if (soloSession)

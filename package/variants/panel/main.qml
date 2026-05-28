@@ -68,6 +68,7 @@ PlasmoidItem {
             runInTerminal: function(cmd, shell) { Plasmoid.runInTerminal(cmd, shell) }
             runCommand: function(cmd, shell) { Plasmoid.runCommand(cmd, shell) }
             runRunnerResult: function(idx) { return Plasmoid.runRunnerResult(idx) }
+            updateChecker: Plasmoid.updateChecker
             opacity: 1.0
             onCloseRequested: kicker.expanded = false
 

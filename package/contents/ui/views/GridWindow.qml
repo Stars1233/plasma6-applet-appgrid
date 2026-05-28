@@ -40,6 +40,7 @@ Window {
     required property var runInTerminal
     required property var runCommand
     required property var runRunnerResult
+    required property var updateChecker
 
     readonly property real panelShadowMargin: Kirigami.Units.gridUnit * 2
 
@@ -337,6 +338,7 @@ Window {
         runInTerminal: root.runInTerminal
         runCommand: root.runCommand
         runRunnerResult: root.runRunnerResult
+        updateChecker: root.updateChecker
         // Static user offset + compact-mode downward shift, kept out of
         // the anchor system so the open/close animations (which drive
         // anchors.verticalCenterOffset) are unaffected.
