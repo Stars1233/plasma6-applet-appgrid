@@ -21,6 +21,7 @@ Item {
     property string appComment: ""
     property string installSource: ""
     property bool showTooltip: false
+    property bool hoverHighlight: true
     property bool isCurrentItem: false
     property bool isNew: false
     property bool hideLabel: false
@@ -113,6 +114,22 @@ Item {
         visible: pointerDrag.active || touchDrag.active
     }
 
+    // Soft hover / keyboard-current highlight — neutral grey fill, no border,
+    // matching Dolphin's icon-view hover (KItemListWidget draws an unselected
+    // hover as QPalette::Text at alpha 0.06, rounded, borderless). Mouse hover
+    // is gated by hoverHighlight; keyboard navigation always shows it so the
+    // current item stays visible. Multi-selection uses the accent halo below.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius
+        color: Qt.rgba(Kirigami.Theme.textColor.r,
+                       Kirigami.Theme.textColor.g,
+                       Kirigami.Theme.textColor.b, 0.06)
+        visible: ((root.hoverHighlight && delegateMouse.containsMouse) || root.isCurrentItem)
+                 && !root.selected && !(pointerDrag.active || touchDrag.active)
+    }
+
     // -- Multi-select halo --
     // Persistent accent fill+border for items in the selection. Sits below
     // the content (z is default) so the icon and label stay legible.
@@ -147,7 +164,8 @@ Item {
                 anchors.fill: parent
                 source: root.displayIcon || root.appIcon || "application-x-executable"
                 shadowEnabled: root.shadowEnabled
-                active: delegateMouse.containsMouse || root.isCurrentItem
+                // No icon brighten — hover is shown by the Rectangle above (#106).
+                active: false
                 transformOrigin: Item.Center
             }
 

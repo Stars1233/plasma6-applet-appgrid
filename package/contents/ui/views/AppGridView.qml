@@ -29,6 +29,7 @@ GridView {
     // Icon delegate config, injected from the boundary's ConfigCache.
     required property int hoverAnimation
     required property bool shadowEnabled
+    property bool hoverHighlight: true
 
     // Disables Ctrl+Shift+Arrow favorite reordering (KAStats can't persist a
     // manual order while alphabetical sort is on). Injected from the boundary.
@@ -498,6 +499,7 @@ GridView {
         iconSize: gridView.iconSize
         hoverAnimation: gridView.hoverAnimation
         shadowEnabled: gridView.shadowEnabled
+        hoverHighlight: gridView.hoverHighlight
         currentRecentIndex: gridView.recentIndex
         gridHasFocus: gridView.activeFocus
         favoritesActive: gridView.favoritesActive
@@ -579,6 +581,7 @@ GridView {
             iconSize: gridView.iconSize
             hoverAnimation: gridView.hoverAnimation
             shadowEnabled: gridView.shadowEnabled
+            hoverHighlight: gridView.hoverHighlight
             isNew: !delegateRoot._fromShared
                    && gridView.showNewAppBadge && gridView.appsModel
                    ? gridView.appsModel.isNewApp(delegateRoot._sid) : false

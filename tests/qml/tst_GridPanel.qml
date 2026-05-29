@@ -36,6 +36,7 @@ TestCase {
         property bool dimBackground: true
         property int verticalOffset: 0
         property bool showTooltips: true
+        property bool hoverHighlight: true
         property bool showNewAppBadge: true
         property bool iconShadow: false
         property bool overrideRadius: false

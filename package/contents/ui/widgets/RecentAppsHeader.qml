@@ -21,6 +21,7 @@ Column {
     // Icon delegate config, injected from the boundary's ConfigCache.
     required property int hoverAnimation
     required property bool shadowEnabled
+    property bool hoverHighlight: true
     property int currentRecentIndex: -1
     property bool gridHasFocus: false
     property bool favoritesActive: false
@@ -104,6 +105,7 @@ Column {
                     iconSize: recentHeader.iconSize
                     hoverAnimation: recentHeader.hoverAnimation
                     shadowEnabled: recentHeader.shadowEnabled
+                    hoverHighlight: recentHeader.hoverHighlight
                     storageId: recentDelegate.modelData
                     desktopFile: recentDelegate.appData.desktopFile || ""
                     dragSource: recentHeader.dragSource

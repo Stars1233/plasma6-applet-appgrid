@@ -30,6 +30,7 @@ Flickable {
     // Icon delegate config, injected from the boundary's ConfigCache.
     required property int hoverAnimation
     required property bool shadowEnabled
+    property bool hoverHighlight: true
     property bool showRecents: false
     property bool showDividers: true
     property bool showTooltips: true
@@ -346,6 +347,7 @@ Flickable {
             iconSize: categoryGrid.iconSize
             hoverAnimation: categoryGrid.hoverAnimation
             shadowEnabled: categoryGrid.shadowEnabled
+            hoverHighlight: categoryGrid.hoverHighlight
             currentRecentIndex: categoryGrid.recentIndex
             gridHasFocus: categoryGrid.activeFocus
             favoritesActive: false
@@ -429,6 +431,7 @@ Flickable {
                                 iconSize: categoryGrid.iconSize
                                 hoverAnimation: categoryGrid.hoverAnimation
                                 shadowEnabled: categoryGrid.shadowEnabled
+                                hoverHighlight: categoryGrid.hoverHighlight
                                 isCurrentItem: categoryGrid.currentIndex === parent.flatIndex && categoryGrid.activeFocus
                                 isNew: categoryGrid.showNewAppBadge && categoryGrid.appsModel
                                     ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false

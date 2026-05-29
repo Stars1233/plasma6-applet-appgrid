@@ -39,6 +39,7 @@ QtObject {
     readonly property bool dimBackground: source.dimBackground
     readonly property int verticalOffset: source.verticalOffset
     readonly property bool showTooltips: source.showTooltips
+    readonly property bool hoverHighlight: source.hoverHighlight
     readonly property bool showNewAppBadge: source.showNewAppBadge
     readonly property bool iconShadow: source.iconShadow
     readonly property bool overrideRadius: source.overrideRadius

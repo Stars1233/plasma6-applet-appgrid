@@ -86,6 +86,10 @@
       <label>Whether to show tooltips on app icon hover.</label>
       <default>true</default>
     </entry>
+    <entry name="hoverHighlight" type="Bool">
+      <label>Whether to draw a soft highlight behind an app icon on mouse hover.</label>
+      <default>true</default>
+    </entry>
     <entry name="showNewAppBadge" type="Bool">
       <label>Whether to show a green badge on newly installed apps.</label>
       <default>true</default>

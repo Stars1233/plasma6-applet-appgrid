@@ -21,6 +21,7 @@ KCM.SimpleKCM {
     property alias cfg_showTooltips: showTooltips.checked
     property alias cfg_showNewAppBadge: showNewAppBadge.checked
     property alias cfg_iconShadow: iconShadow.checked
+    property alias cfg_hoverHighlight: hoverHighlight.checked
     property alias cfg_backgroundOpacity: backgroundOpacity.value
     property alias cfg_enableBlur: enableBlur.checked
     property alias cfg_dimBackground: dimBackground.checked
@@ -49,6 +50,10 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: iconShadow
             text: i18nd("dev.xarbit.appgrid", "Drop shadow behind app icons")
+        }
+        QQC2.CheckBox {
+            id: hoverHighlight
+            text: i18nd("dev.xarbit.appgrid", "Highlight icons on hover")
         }
 
         Item {
