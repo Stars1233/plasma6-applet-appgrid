@@ -33,4 +33,18 @@ TestCase {
         compare(SearchResultNav.nextIndex(0, 1, -1, false), 0)
         compare(SearchResultNav.nextIndex(0, 1, 1, true), 0)
     }
+
+    function test_emptyListReturnsNoIndex() {
+        compare(SearchResultNav.nextIndex(0, 0, 1, false), -1)
+        compare(SearchResultNav.nextIndex(-1, 0, -1, false), -1)
+    }
+
+    function test_noSelectionDownGoesToFirstAdvance() {
+        // currentIndex -1 (nothing selected) clamps to 0, Down skips the top → 1
+        compare(SearchResultNav.nextIndex(-1, 5, 1, false), 1)
+    }
+
+    function test_noSelectionUpStaysAtTop() {
+        compare(SearchResultNav.nextIndex(-1, 5, -1, false), 0)
+    }
 }
