@@ -218,8 +218,15 @@ Kirigami.ShadowedRectangle {
     Layout.preferredHeight: nativePopup ? -1 : height
     Layout.minimumWidth: nativePopup ? Kirigami.Units.gridUnit * 12 : width
     Layout.minimumHeight: nativePopup ? Kirigami.Units.gridUnit * 12 : height
-    radius: nativePopup ? 0
-            : (cfg.overrideRadius ? cfg.cornerRadius : Kirigami.Units.cornerRadius)
+    readonly property int requestedRadius: cfg.overrideRadius ? cfg.cornerRadius
+                                                              : Kirigami.Units.cornerRadius
+    // Half the smaller dimension is the geometric max for a valid rounded rect.
+    // In compact mode the panel collapses to roughly the search bar; a larger
+    // radius produces a degenerate shape and gaps in the matching blur region
+    // (#151). The blur region reads this same `radius` via GridWindow, so the
+    // visible panel and its blur stay consistent at every animated height.
+    readonly property int maxValidRadius: Math.floor(Math.min(width, height) / 2)
+    radius: nativePopup ? 0 : Math.min(requestedRadius, maxValidRadius)
 
     readonly property real bgOpacity: cfg.backgroundOpacity / 100
     color: nativePopup ? "transparent"
