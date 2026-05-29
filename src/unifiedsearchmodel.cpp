@@ -159,7 +159,6 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
             return {};
         }
     }
-    return {};
 }
 
 QHash<int, QByteArray> UnifiedSearchModel::roleNames() const

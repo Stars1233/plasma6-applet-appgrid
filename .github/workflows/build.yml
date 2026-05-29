@@ -69,7 +69,7 @@ jobs:
             libplasma kpackage kio kservice ki18n kiconthemes \
             kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
             plasma-workspace appstream appstream-qt namcap \
-            python-pip clang
+            python-pip clang cppcheck
           python3 -m pip install --break-system-packages codespell reuse
 
       - name: Checkout
@@ -130,19 +130,23 @@ jobs:
           CXX: clang++
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
-            -DBUILD_TESTING=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            -DBUILD_TESTING=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DAPPGRID_STRICT_WARNINGS=ON
           cmake --build build -j$(nproc)
 
       - name: clang-tidy
         run: |
           # Strip gcc-only flags that clang-tidy (clang-based) doesn't recognize
           sed -i 's/-mno-direct-extern-access//g' build/compile_commands.json
-          for src in src/appmodel.cpp src/appfiltermodel.cpp src/appgridplugin.cpp; do
-            clang-tidy -p build "$src" \
-              --quiet \
-              --warnings-as-errors='' \
-              --header-filter='src/.*' || true
-          done
+          run-clang-tidy -p build -quiet -warnings-as-errors='*' 'src/.*\.cpp'
+
+      - name: cppcheck
+        run: |
+          cppcheck --enable=warning,style,performance,portability --library=qt \
+            --inline-suppr --std=c++20 --language=c++ --quiet --error-exitcode=1 \
+            --suppress=returnByReference --suppress=useStlAlgorithm \
+            --suppress=knownConditionTrueFalse:src/appgridplugin.cpp \
+            -I src $(git ls-files 'src/*.cpp')
 
       - name: clang-format
         run: |

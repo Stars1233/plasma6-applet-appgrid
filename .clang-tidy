@@ -10,7 +10,14 @@ Checks: >
   modernize-use-override,
   modernize-make-unique,
   readability-misleading-indentation,
-  readability-redundant-declaration
+  readability-redundant-declaration,
+  clang-analyzer-*,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-include-cleaner,
+  -misc-use-anonymous-namespace,
+  -misc-const-correctness
 
 WarningsAsErrors: ''
 HeaderFilterRegex: 'src/.*'

@@ -500,8 +500,8 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
     }
 
     if (!m_filterCategory.isEmpty()) {
-        const auto categories = idx.data(AppModel::CategoriesRole).toStringList();
-        if (!categories.contains(m_filterCategory))
+        const auto itemCategories = idx.data(AppModel::CategoriesRole).toStringList();
+        if (!itemCategories.contains(m_filterCategory))
             return false;
     }
 

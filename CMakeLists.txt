@@ -27,6 +27,11 @@ option(BUILD_TESTING "Build the test suite" OFF)
 # updates. The universal tarball CI job turns it ON.
 option(APPGRID_UNIVERSAL_BUILD "Compile in the in-app update checker for universal tarball releases" OFF)
 
+# Compiler warnings. Off by default so distro/makepkg builds stay quiet and a
+# new compiler warning can never break a user's build. CI turns this ON to add
+# -Wall/-Wextra -Werror, so warnings fail the pipeline instead.
+option(APPGRID_STRICT_WARNINGS "Enable -Wall/-Wextra and treat warnings as errors (CI gate)" OFF)
+
 # Resolved version baked into the binary (update checker + i: view):
 #   1. APPGRID_VERSION_OVERRIDE wins (CI injects exact tag here).
 #   2. On a release tag → CMAKE_PROJECT_VERSION (clean "1.9.0").
@@ -252,6 +257,16 @@ endif()
 if(APPGRID_UNIVERSAL_BUILD)
     target_link_libraries(dev.xarbit.appgrid.panel PRIVATE Qt6::Network)
     target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE APPGRID_UNIVERSAL_BUILD)
+endif()
+
+if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(_appgrid_warnings -Wall -Wextra -Wunused -Wshadow -Wnon-virtual-dtor -Werror)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND _appgrid_warnings -Wunreachable-code-aggressive)
+    endif()
+    foreach(_tgt dev.xarbit.appgrid dev.xarbit.appgrid.panel)
+        target_compile_options(${_tgt} PRIVATE ${_appgrid_warnings})
+    endforeach()
 endif()
 
 configure_file(

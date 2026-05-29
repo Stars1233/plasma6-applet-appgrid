@@ -255,7 +255,7 @@ void AppGridPlugin::setBlurBehind(QWindow *window, bool enable, int x, int y, in
     if (enable && w > 0 && h > 0) {
         // Build a rounded-rect region by subtracting square corners
         // and adding elliptical arcs.
-        const int d = radius * 2;
+        const int diameter = radius * 2;
         QRegion rect(x, y, w, h);
 
         QRegion corners;
@@ -265,10 +265,10 @@ void AppGridPlugin::setBlurBehind(QWindow *window, bool enable, int x, int y, in
         corners += QRegion(x + w - radius, y + h - radius, radius, radius);
         rect -= corners;
 
-        rect += QRegion(x, y, d, d, QRegion::Ellipse);
-        rect += QRegion(x + w - d, y, d, d, QRegion::Ellipse);
-        rect += QRegion(x, y + h - d, d, d, QRegion::Ellipse);
-        rect += QRegion(x + w - d, y + h - d, d, d, QRegion::Ellipse);
+        rect += QRegion(x, y, diameter, diameter, QRegion::Ellipse);
+        rect += QRegion(x + w - diameter, y, diameter, diameter, QRegion::Ellipse);
+        rect += QRegion(x, y + h - diameter, diameter, diameter, QRegion::Ellipse);
+        rect += QRegion(x + w - diameter, y + h - diameter, diameter, diameter, QRegion::Ellipse);
 
         region = rect;
     }
