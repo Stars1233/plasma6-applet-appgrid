@@ -609,8 +609,10 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
         const auto leftSid = left.data(AppModel::StorageIdRole).toString();
         const auto rightSid = right.data(AppModel::StorageIdRole).toString();
         // O(1) position lookup; m_favoritePositions kept in sync by
-        // rebuildFavoriteSet(). Missing sid → sort to end via INT_MAX.
-        return m_favoritePositions.value(leftSid, std::numeric_limits<int>::max()) < m_favoritePositions.value(rightSid, std::numeric_limits<int>::max());
+        // rebuildFavoriteSet(). A sid missing from the map gets the
+        // sentinel position so it sorts after every real entry.
+        constexpr int kSortToEnd = std::numeric_limits<int>::max();
+        return m_favoritePositions.value(leftSid, kSortToEnd) < m_favoritePositions.value(rightSid, kSortToEnd);
     }
 
     // When searching, rank by match relevance first
