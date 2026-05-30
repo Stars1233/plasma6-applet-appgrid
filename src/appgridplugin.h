@@ -11,6 +11,7 @@
 
 #include "appfiltermodel.h"
 #include "appmodel.h"
+#include "frecencyprovider.h"
 #include "runnerfiltermodel.h"
 #include "unifiedsearchmodel.h"
 
@@ -92,6 +93,14 @@ public:
      */
     Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
 
+    /**
+     * Enable/disable the search-time frecency bias (opt-in via ConfigSearch).
+     * Routes to FrecencyProvider (start/stop the KAStats query) and to the
+     * filter model's tiebreak switch. Idempotent; safe to call on every
+     * config change.
+     */
+    Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
+
     // --- Prefix mode commands ---
 
     /** Run @p command in the user's preferred terminal emulator using @p shell. */
@@ -154,6 +163,7 @@ private:
     KRunner::ResultsModel *m_runnerModel = nullptr;
     RunnerFilterModel m_runnerFilterModel;
     UnifiedSearchModel m_searchModel;
+    FrecencyProvider m_frecencyProvider;
 #ifdef APPGRID_UNIVERSAL_BUILD
     mutable UpdateChecker *m_updateChecker = nullptr;
 #endif

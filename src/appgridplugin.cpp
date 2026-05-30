@@ -62,6 +62,13 @@ AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const
     m_runnerFilterModel.setAppModel(&m_filterModel);
     m_searchModel.setAppModel(&m_filterModel);
     m_searchModel.setRunnerModel(&m_runnerFilterModel);
+
+    // The FrecencyProvider stays dormant until QML opts in (the search-bias
+    // toggle). When active, every refresh of the KAStats ranking forwards
+    // directly into the filter model's tiebreak input.
+    connect(&m_frecencyProvider, &FrecencyProvider::scoresChanged, this, [this]() {
+        m_filterModel.setFrecencyScores(m_frecencyProvider.scores());
+    });
     QQuickWindow::setDefaultAlphaBuffer(true);
 
     // Warm the AppStream pool in the background now, so the first right-click
@@ -299,6 +306,17 @@ void AppGridPlugin::notifyAppLaunched(const QString &storageId)
     // URL is "applications:<storage-id>", tagged with our agent so other
     // tools can attribute the launch to AppGrid.
     KActivities::ResourceInstance::notifyAccessed(QUrl(QStringLiteral("applications:") + storageId), QStringLiteral("dev.xarbit.appgrid"));
+}
+
+void AppGridPlugin::setSearchUsesFrecency(bool enabled)
+{
+    // Order matters: flip the filter model's usage flag first, then drive the
+    // provider. On enable, the flag is already true when the provider's first
+    // scoresChanged arrives → one invalidate. On disable, the flag is already
+    // false when the provider's teardown clears its scores → no spurious
+    // invalidate from the cleared hash.
+    m_filterModel.setSearchUsesFrecency(enabled);
+    m_frecencyProvider.setEnabled(enabled);
 }
 
 // --- Prefix mode commands ---

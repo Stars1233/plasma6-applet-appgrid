@@ -40,14 +40,19 @@ PlasmoidItem {
     Component.onCompleted: {
         Migrations.migrateLauncherIcon(Plasmoid.configuration)
         _syncUpdateChecker()
+        _syncFrecency()
     }
     Connections {
         target: Plasmoid.configuration
         function onCheckForUpdatesChanged() { appgrid._syncUpdateChecker() }
+        function onSearchUsesFrecencyChanged() { appgrid._syncFrecency() }
     }
     function _syncUpdateChecker() {
         if (Plasmoid.updateChecker)
             Plasmoid.updateChecker.enabled = cfg.checkForUpdates
+    }
+    function _syncFrecency() {
+        Plasmoid.setSearchUsesFrecency(cfg.searchUsesFrecency)
     }
 
     Component {

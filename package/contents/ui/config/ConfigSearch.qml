@@ -14,6 +14,7 @@ KCM.SimpleKCM {
 
     property alias cfg_searchAll: searchAll.checked
     property alias cfg_useExtraRunners: useExtraRunners.checked
+    property alias cfg_searchUsesFrecency: searchUsesFrecency.checked
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -38,6 +39,18 @@ KCM.SimpleKCM {
             icon.name: "settings-configure"
             enabled: useExtraRunners.checked
             onClicked: KCM.KCMLauncher.openSystemSettings("kcm_plasmasearch")
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: searchUsesFrecency
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Ranking:")
+            text: i18nd("dev.xarbit.appgrid", "Prefer frequently-used apps in search results (KActivities)")
+            QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
+                "Uses system-wide KActivities frecency (frequency + recency) data so apps you've launched a lot lately surface above equally-ranked alternatives. Affects only search results — the app grid keeps its own predictable ordering.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
     }
 }

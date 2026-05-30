@@ -78,6 +78,7 @@ QtObject {
 
     readonly property bool searchAll: source.searchAll
     readonly property bool useExtraRunners: source.useExtraRunners
+    readonly property bool searchUsesFrecency: source.searchUsesFrecency
     readonly property string terminalShell: source.terminalShell
 
     // --- Power / session ---

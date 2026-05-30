@@ -154,6 +154,10 @@
       <label>Whether to use additional KRunner plugins for search.</label>
       <default>true</default>
     </entry>
+    <entry name="searchUsesFrecency" type="Bool">
+      <label>Bias search result ranking with KActivities frecency (frequency + recency) scores so apps you use a lot recently surface above equally-scored alternatives.</label>
+      <default>false</default>
+    </entry>
     <entry name="gridColumns" type="Int">
       <label>Maximum number of icons per row.</label>
       <default>7</default>

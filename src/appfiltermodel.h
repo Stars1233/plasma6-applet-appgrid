@@ -97,6 +97,12 @@ public:
     // Load defaults from system + user mimeapps.list and update m_defaultApps.
     Q_INVOKABLE void reloadDefaultApps();
 
+    // Opt-in: substitute KActivities frecency scores for the raw launchCount
+    // tiebreak inside search ranking. Off by default; the grid sort is never
+    // touched by this regardless of state (see #95 close-out + ConfigSearch).
+    void setFrecencyScores(const QHash<QString, int> &scores);
+    void setSearchUsesFrecency(bool enabled);
+
     // Pure parser: extract storage IDs from the [Default Applications]
     // section of a mimeapps.list file. Empty list on missing/invalid file.
     [[nodiscard]] static QStringList parseMimeAppsDefaults(const QString &filePath);
@@ -166,6 +172,8 @@ private:
     int m_maxRecentApps = 6;
     int m_sortMode = Alphabetical;
     QHash<QString, int> m_launchCounts;
+    QHash<QString, int> m_frecencyScores;
+    bool m_searchUsesFrecency = false;
     QStringList m_knownApps;
     bool m_showFavoritesOnly = false;
     bool m_sortFavoritesAlphabetically = false;

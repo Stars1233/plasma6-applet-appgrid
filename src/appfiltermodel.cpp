@@ -334,6 +334,24 @@ void AppFilterModel::setLaunchCountsMap(const QVariantMap &map)
     emit launchCountsChanged();
 }
 
+void AppFilterModel::setFrecencyScores(const QHash<QString, int> &scores)
+{
+    if (m_frecencyScores == scores)
+        return;
+    m_frecencyScores = scores;
+    if (m_searchUsesFrecency && !m_searchText.isEmpty())
+        invalidate();
+}
+
+void AppFilterModel::setSearchUsesFrecency(bool enabled)
+{
+    if (m_searchUsesFrecency == enabled)
+        return;
+    m_searchUsesFrecency = enabled;
+    if (!m_searchText.isEmpty())
+        invalidate();
+}
+
 QStringList AppFilterModel::knownApps() const
 {
     return m_knownApps;
@@ -602,8 +620,14 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
 
         const auto leftSid = left.data(AppModel::StorageIdRole).toString();
         const auto rightSid = right.data(AppModel::StorageIdRole).toString();
-        const int leftCount = m_launchCounts.value(leftSid, 0);
-        const int rightCount = m_launchCounts.value(rightSid, 0);
+        // Frecency (when opted in via ConfigSearch) substitutes the raw
+        // launchCount everywhere the search tiebreak / tier-promotion looks
+        // it up — same code paths, time-weighted input.
+        const auto &counts = (m_searchUsesFrecency && !m_frecencyScores.isEmpty())
+                                 ? m_frecencyScores
+                                 : m_launchCounts;
+        const int leftCount = counts.value(leftSid, 0);
+        const int rightCount = counts.value(rightSid, 0);
 
         if (leftRel != rightRel) {
             // Promotion: a heavily used app may jump up exactly one tier

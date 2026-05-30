@@ -29,6 +29,8 @@ private slots:
     void midwordSubstringCannotBeatGeneric();
     void midwordSubstringStaysBelowKeywordEvenWhenUsed();
     void zeroCountDoesNotCrossTier();
+    void frecencyTiebreakReplacesLaunchCount();
+    void frecencyFallsBackToLaunchCountWhenMapEmpty();
 
 private:
     QString nameAt(int proxyRow) const;
@@ -291,6 +293,54 @@ void TestSearchRanking::zeroCountDoesNotCrossTier()
     });
     m_filter.setSearchText(QStringLiteral("terminal"));
     QCOMPARE(nameAt(0), QStringLiteral("Alacritty")); // generic tier 2 beats keyword tier 3
+}
+
+void TestSearchRanking::frecencyTiebreakReplacesLaunchCount()
+{
+    // Same tier (both prefix). Launch counts say A wins; flipping the
+    // opt-in frecency map should make B win since the search tiebreak now
+    // reads frecency scores instead of launch counts.
+    m_source.setApps({
+        {QStringLiteral("Kate-A"), {}, {}, {}, {}, QStringLiteral("kate-a.desktop"), {}, {}, {}},
+        {QStringLiteral("Kate-B"), {}, {}, {}, {}, QStringLiteral("kate-b.desktop"), {}, {}, {}},
+    });
+    QVariantMap counts;
+    counts[QStringLiteral("kate-a.desktop")] = 50;
+    counts[QStringLiteral("kate-b.desktop")] = 0;
+    m_filter.setLaunchCountsMap(counts);
+    m_filter.setSearchText(QStringLiteral("kate"));
+    QCOMPARE(nameAt(0), QStringLiteral("Kate-A"));
+
+    QHash<QString, int> frec;
+    frec.insert(QStringLiteral("kate-a.desktop"), 0);
+    frec.insert(QStringLiteral("kate-b.desktop"), 100);
+    m_filter.setFrecencyScores(frec);
+    m_filter.setSearchUsesFrecency(true);
+    QCOMPARE(nameAt(0), QStringLiteral("Kate-B"));
+
+    m_filter.setSearchUsesFrecency(false);
+    m_filter.setFrecencyScores({});
+}
+
+void TestSearchRanking::frecencyFallsBackToLaunchCountWhenMapEmpty()
+{
+    // Frecency toggled on but no scores fetched yet (KAStats may not have
+    // populated). Ranking must keep using launch counts instead of treating
+    // every app as zero-frecency.
+    m_source.setApps({
+        {QStringLiteral("Kate-A"), {}, {}, {}, {}, QStringLiteral("kate-a.desktop"), {}, {}, {}},
+        {QStringLiteral("Kate-B"), {}, {}, {}, {}, QStringLiteral("kate-b.desktop"), {}, {}, {}},
+    });
+    QVariantMap counts;
+    counts[QStringLiteral("kate-a.desktop")] = 50;
+    counts[QStringLiteral("kate-b.desktop")] = 0;
+    m_filter.setLaunchCountsMap(counts);
+    m_filter.setSearchUsesFrecency(true);
+    m_filter.setFrecencyScores({});
+    m_filter.setSearchText(QStringLiteral("kate"));
+    QCOMPARE(nameAt(0), QStringLiteral("Kate-A"));
+
+    m_filter.setSearchUsesFrecency(false);
 }
 
 QTEST_MAIN(TestSearchRanking)

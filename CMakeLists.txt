@@ -112,11 +112,14 @@ find_package(LayerShellQt REQUIRED)
 find_package(KF6Runner ${KF6_MIN_VERSION} REQUIRED)
 find_package(Plasma REQUIRED)
 find_package(PlasmaQuick REQUIRED)
-# Write-side only: KActivities::ResourceInstance::notifyAccessed broadcasts
-# AppGrid launches to the system-wide KActivities database so Kickoff / KRunner /
-# Plasma Activities see AppGrid as a contributing launcher. We do NOT read from
-# KActivities — see #95 close-out for the rationale.
+# Write-side: KActivities::ResourceInstance::notifyAccessed broadcasts AppGrid
+# launches to the system-wide KActivities database so Kickoff / KRunner / Plasma
+# Activities see AppGrid as a contributing launcher.
+# Read-side: PlasmaActivitiesStats exposes the frecency-ordered ResultModel that
+# powers the opt-in "Bias results by recent usage" search ranking (see
+# FrecencyProvider). The grid sort intentionally stays off this — #95 close-out.
 find_package(PlasmaActivities REQUIRED)
+find_package(PlasmaActivitiesStats REQUIRED)
 # AppStream metadata pool — resolves an app's .desktop id to its canonical
 # component id across all backends (distro/PackageKit, Flatpak, Snap) for
 # the "Manage in Discover" action. Same resolver Kicker and Discover use.
@@ -137,6 +140,7 @@ set(APPGRID_COMMON_LIBS
     Plasma::PlasmaQuick
     KF6::Runner
     Plasma::Activities
+    Plasma::ActivitiesStats
     AppStreamQt
 )
 
@@ -187,6 +191,8 @@ set(APPGRID_SOURCES
     src/runnerfiltermodel.h
     src/unifiedsearchmodel.cpp
     src/unifiedsearchmodel.h
+    src/frecencyprovider.cpp
+    src/frecencyprovider.h
 )
 if(APPGRID_UNIVERSAL_BUILD)
     list(APPEND APPGRID_SOURCES src/updatechecker.cpp src/updatechecker.h)
@@ -241,6 +247,8 @@ set(APPGRID_PANEL_SOURCES
     src/runnerfiltermodel.h
     src/unifiedsearchmodel.cpp
     src/unifiedsearchmodel.h
+    src/frecencyprovider.cpp
+    src/frecencyprovider.h
 )
 if(APPGRID_UNIVERSAL_BUILD)
     list(APPEND APPGRID_PANEL_SOURCES src/updatechecker.cpp src/updatechecker.h)
