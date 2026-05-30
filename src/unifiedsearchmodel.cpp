@@ -35,11 +35,11 @@ void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
 
     const auto roles = model->roleNames();
     for (auto it = roles.begin(); it != roles.end(); ++it) {
-        if (it.value() == "subtext")
+        if (it.value() == QByteArrayLiteral("subtext"))
             m_runnerSubtextRole = it.key();
-        if (it.value() == "category")
+        if (it.value() == QByteArrayLiteral("category"))
             m_runnerCategoryRole = it.key();
-        if (it.value() == "urls")
+        if (it.value() == QByteArrayLiteral("urls"))
             m_runnerUrlsRole = it.key();
     }
 }
