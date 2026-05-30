@@ -54,6 +54,11 @@ public:
 
     [[nodiscard]] Q_INVOKABLE QVariantMap get(int row) const;
 
+    // Secondary actions for a KRunner row (e.g. calculator "Copy result").
+    // Empty list for app rows or when the runner provides no actions.
+    // Each entry is {id, icon, text} so QML can populate a menu directly.
+    [[nodiscard]] Q_INVOKABLE QVariantList runnerActions(int row) const;
+
 private Q_SLOTS:
     void onSourceChanged();
     void doReset();
@@ -64,5 +69,6 @@ private:
     int m_runnerSubtextRole = -1;
     int m_runnerCategoryRole = -1;
     int m_runnerUrlsRole = -1;
+    int m_runnerActionsRole = -1;
     bool m_resetPending = false;
 };

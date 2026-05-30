@@ -7,6 +7,8 @@
 
 #include "appmodel.h"
 
+#include <KRunner/Action>
+
 #include <QFileInfo>
 #include <QList>
 #include <QUrl>
@@ -41,6 +43,8 @@ void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
             m_runnerCategoryRole = it.key();
         if (it.value() == QByteArrayLiteral("urls"))
             m_runnerUrlsRole = it.key();
+        if (it.value() == QByteArrayLiteral("actions"))
+            m_runnerActionsRole = it.key();
     }
 }
 
@@ -182,6 +186,34 @@ QHash<int, QByteArray> UnifiedSearchModel::roleNames() const
         {InstallSourceRole, "installSource"},
     };
     return kRoleNames;
+}
+
+QVariantList UnifiedSearchModel::runnerActions(int row) const
+{
+    if (!m_runnerModel || m_runnerActionsRole < 0)
+        return {};
+    const int ac = appResultCount();
+    if (row < ac || row >= rowCount())
+        return {};
+    // ResultsModel exposes ActionsRole as a QVariantList of QVariant-wrapped
+    // KRunner::Action — *not* as a typed QList<KRunner::Action>. Unwrap each
+    // element individually rather than .value<KRunner::Actions>(), which
+    // silently returns empty on the type mismatch.
+    const auto srcIdx = m_runnerModel->index(row - ac, 0);
+    const auto rawList = srcIdx.data(m_runnerActionsRole).toList();
+    QVariantList result;
+    result.reserve(rawList.size());
+    for (const auto &item : rawList) {
+        const auto action = item.value<KRunner::Action>();
+        if (action.id().isEmpty() && action.text().isEmpty())
+            continue;
+        QVariantMap map;
+        map[QStringLiteral("id")] = action.id();
+        map[QStringLiteral("icon")] = action.iconSource();
+        map[QStringLiteral("text")] = action.text();
+        result.append(map);
+    }
+    return result;
 }
 
 QVariantMap UnifiedSearchModel::get(int row) const

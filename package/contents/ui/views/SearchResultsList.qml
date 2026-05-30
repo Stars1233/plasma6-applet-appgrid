@@ -27,6 +27,7 @@ ListView {
 
     signal launched(int index)
     signal contextMenuRequested(int index, string storageId, string desktopFile)
+    signal runnerActionTriggered(int index, int actionIndex)
 
     clip: true
     reuseItems: true
@@ -191,6 +192,38 @@ ListView {
         }
     }
 
+    // Shared popup for KRunner secondary actions (e.g. calculator
+    // "Copy result"). Rebuilt on demand from the row's runnerActions.
+    PlasmaComponents.Menu {
+        id: runnerActionMenu
+        property int targetIndex: -1
+        property var actionList: []
+        Instantiator {
+            model: runnerActionMenu.actionList
+            delegate: PlasmaComponents.MenuItem {
+                required property var modelData
+                required property int index
+                icon.name: modelData.icon || ""
+                text: modelData.text || ""
+                onClicked: {
+                    listView.runnerActionTriggered(runnerActionMenu.targetIndex, index)
+                    runnerActionMenu.close()
+                }
+            }
+            onObjectAdded: (idx, obj) => runnerActionMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => runnerActionMenu.removeItem(obj)
+        }
+    }
+
+    function _popupRunnerActions(rowIndex, anchor, x, y) {
+        const actions = listView.model ? listView.model.runnerActions(rowIndex) : []
+        if (actions.length === 0)
+            return
+        runnerActionMenu.targetIndex = rowIndex
+        runnerActionMenu.actionList = actions
+        runnerActionMenu.popup(anchor, x, y)
+    }
+
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
@@ -223,7 +256,17 @@ ListView {
 
         TapHandler {
             acceptedButtons: Qt.RightButton
-            onTapped: listView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")
+            onTapped: function(eventPoint) {
+                if (model.resultType === "app") {
+                    listView.contextMenuRequested(model.index,
+                                                  model.storageId || "",
+                                                  model.desktopFile || "")
+                } else {
+                    listView._popupRunnerActions(model.index, resultDelegate,
+                                                 eventPoint.position.x,
+                                                 eventPoint.position.y)
+                }
+            }
         }
 
         HoverHandler {
@@ -284,15 +327,29 @@ ListView {
             }
 
             PlasmaComponents.ToolButton {
-                visible: resultDelegate.highlighted
+                id: overflowButton
+                readonly property bool isApp: model.resultType === "app"
+                // Runner overflow only when KRunner actually exposes actions
+                // for this row (calculator yes, many runners no) — otherwise
+                // the button would pop an empty menu.
+                readonly property bool hasRunnerActions: !isApp && listView.model
+                    && listView.model.runnerActions(model.index).length > 0
+                visible: resultDelegate.highlighted && (isApp || hasRunnerActions)
                 Layout.alignment: Qt.AlignVCenter
                 icon.name: "overflow-menu"
                 PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "More options")
                 PlasmaComponents.ToolTip.visible: hovered
                 PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                onClicked: listView.contextMenuRequested(model.index,
-                                                        model.storageId || "",
-                                                        model.desktopFile || "")
+                onClicked: {
+                    if (isApp) {
+                        listView.contextMenuRequested(model.index,
+                                                      model.storageId || "",
+                                                      model.desktopFile || "")
+                    } else {
+                        listView._popupRunnerActions(model.index, overflowButton,
+                                                     0, overflowButton.height)
+                    }
+                }
             }
         }
 

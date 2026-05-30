@@ -138,6 +138,8 @@ TestCase {
             runInTerminal: function(cmd, shell) {},
             runCommand: function(cmd, shell) {},
             runRunnerResult: function(idx) { return false },
+            runRunnerAction: function(idx, actIdx) { return false },
+            runnerSubstitutionText: function(idx) { return "" },
             updateChecker: null,
             favoritesClientInstance: "dev.xarbit.appgrid.favorites.instance-test",
             appActions: function(sid) { return [] },

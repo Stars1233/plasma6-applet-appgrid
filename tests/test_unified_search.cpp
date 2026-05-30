@@ -33,6 +33,9 @@ private slots:
     void getReturnsAllRolesForRow();
     void dataReturnsEmptyForInvalidIndex();
     void roleNamesContainsAllPublicRoles();
+    void runnerActionsEmptyForAppRow();
+    void runnerActionsEmptyWhenSourceLacksActionsRole();
+    void runnerActionsEmptyForOutOfRangeRow();
 
 private:
     StubAppModel m_appSource;
@@ -227,6 +230,29 @@ void TestUnifiedSearch::roleNamesContainsAllPublicRoles()
     QVERIFY(names.values().contains(QByteArray("shortcutNumber")));
     QVERIFY(names.values().contains(QByteArray("isSectionBoundary")));
     QVERIFY(names.values().contains(QByteArray("sourceIndex")));
+}
+
+void TestUnifiedSearch::runnerActionsEmptyForAppRow()
+{
+    StubApp app;
+    app.name = QStringLiteral("A");
+    app.desktopFile = QStringLiteral("a.desktop");
+    app.storageId = QStringLiteral("a.desktop");
+    m_appSource.setApps({app});
+    m_runnerSource.setStringList({QStringLiteral("calc")});
+    QCOMPARE(m_unified.runnerActions(0), QVariantList());
+}
+
+void TestUnifiedSearch::runnerActionsEmptyWhenSourceLacksActionsRole()
+{
+    m_runnerSource.setStringList({QStringLiteral("calc")});
+    QCOMPARE(m_unified.runnerActions(0), QVariantList());
+}
+
+void TestUnifiedSearch::runnerActionsEmptyForOutOfRangeRow()
+{
+    QCOMPARE(m_unified.runnerActions(-1), QVariantList());
+    QCOMPARE(m_unified.runnerActions(999), QVariantList());
 }
 
 QTEST_MAIN(TestUnifiedSearch)

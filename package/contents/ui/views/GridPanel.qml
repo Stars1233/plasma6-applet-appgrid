@@ -56,6 +56,8 @@ Kirigami.ShadowedRectangle {
     required property var runInTerminal
     required property var runCommand
     required property var runRunnerResult
+    required property var runRunnerAction
+    required property var runnerSubstitutionText
 
     // Update-checker handle (null on distro packages); forwarded to HeaderActionStrip.
     required property var updateChecker
@@ -403,10 +405,18 @@ Kirigami.ShadowedRectangle {
         if (!item) return
         if (item.resultType === "app") {
             launchApp(item.sourceIndex)
-        } else {
-            if (panel.runRunnerResult(item.sourceIndex))
-                closeRequested()
+            return
         }
+        // KRunner UX: calculator hits paste the result back into the
+        // search field so the user can keep extending the expression.
+        var subst = panel.runnerSubstitutionText(item.sourceIndex)
+        if (subst.length > 0) {
+            searchBar.field.text = subst
+            searchBar.field.cursorPosition = subst.length
+            return
+        }
+        if (panel.runRunnerResult(item.sourceIndex))
+            closeRequested()
     }
 
     // One launch step: KActivities broadcast plus the model launch. Shared
@@ -732,6 +742,12 @@ Kirigami.ShadowedRectangle {
             onContextMenuRequested: function(index, storageId, desktopFile) {
                 if (storageId)
                     contextMenu.showForApp(-1, storageId, desktopFile)
+            }
+            onRunnerActionTriggered: function(index, actionIndex) {
+                var item = panel.searchModel.get(index)
+                if (!item) return
+                if (panel.runRunnerAction(item.sourceIndex, actionIndex))
+                    closeRequested()
             }
         }
 

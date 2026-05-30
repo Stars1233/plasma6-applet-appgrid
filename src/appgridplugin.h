@@ -115,6 +115,17 @@ public:
     /** Run a KRunner result by model index. Returns true if the UI should close. */
     Q_INVOKABLE bool runRunnerResult(int index);
 
+    /** Run secondary action @p actionIndex on the KRunner result at @p index. */
+    Q_INVOKABLE bool runRunnerAction(int index, int actionIndex);
+
+    /**
+     * For runner results where the user typically wants to keep iterating
+     * on the search bar (calculator: paste the result and keep typing),
+     * returns the text to substitute into the query. Empty for runner
+     * rows whose normal action is "run" (file open, web shortcut, …).
+     */
+    Q_INVOKABLE QString runnerSubstitutionText(int index);
+
     /** Returns application-defined actions (jumplist) for the given storageId. */
     Q_INVOKABLE QVariantList appActions(const QString &storageId);
 
@@ -157,6 +168,11 @@ private:
     void configureX11(QWindow *window);
 #endif
     void updateScreenWayland(QWindow *window, QScreen *target, bool useActiveScreen);
+
+    // Maps a UnifiedSearchModel runner-row index (proxy) to a ResultsModel
+    // source QModelIndex. Returns an invalid QModelIndex on out-of-range so
+    // callers can early-out without repeating the bounds check.
+    [[nodiscard]] QModelIndex runnerSourceIndex(int proxyIndex) const;
 
     AppModel m_appModel;
     AppFilterModel m_filterModel;

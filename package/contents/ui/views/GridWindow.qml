@@ -40,6 +40,8 @@ Window {
     required property var runInTerminal
     required property var runCommand
     required property var runRunnerResult
+    required property var runRunnerAction
+    required property var runnerSubstitutionText
     required property var updateChecker
     required property string favoritesClientInstance
     required property var appActions
@@ -345,6 +347,8 @@ Window {
         runInTerminal: root.runInTerminal
         runCommand: root.runCommand
         runRunnerResult: root.runRunnerResult
+        runRunnerAction: root.runRunnerAction
+        runnerSubstitutionText: root.runnerSubstitutionText
         updateChecker: root.updateChecker
         favoritesClientInstance: root.favoritesClientInstance
         appActions: root.appActions

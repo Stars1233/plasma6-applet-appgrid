@@ -16,6 +16,8 @@
 #include <KIO/ApplicationLauncherJob>
 #include <KIO/CommandLauncherJob>
 #include <KIO/OpenUrlJob>
+#include <KRunner/AbstractRunner>
+#include <KRunner/QueryMatch>
 #include <KRunner/ResultsModel>
 #include <KService>
 #include <KTerminalLauncherJob>
@@ -135,14 +137,37 @@ UpdateChecker *AppGridPlugin::updateChecker() const
 }
 #endif
 
+QModelIndex AppGridPlugin::runnerSourceIndex(int proxyIndex) const
+{
+    if (!m_runnerModel || proxyIndex < 0 || proxyIndex >= m_runnerFilterModel.rowCount())
+        return {};
+    return m_runnerFilterModel.mapToSource(m_runnerFilterModel.index(proxyIndex, 0));
+}
+
 bool AppGridPlugin::runRunnerResult(int index)
 {
-    if (!m_runnerModel || index < 0 || index >= m_runnerFilterModel.rowCount())
-        return false;
-    // Map from filter proxy index to source model index
-    const auto proxyIdx = m_runnerFilterModel.index(index, 0);
-    const auto sourceIdx = m_runnerFilterModel.mapToSource(proxyIdx);
-    return m_runnerModel->run(sourceIdx);
+    const auto sourceIdx = runnerSourceIndex(index);
+    return sourceIdx.isValid() && m_runnerModel->run(sourceIdx);
+}
+
+bool AppGridPlugin::runRunnerAction(int index, int actionIndex)
+{
+    const auto sourceIdx = runnerSourceIndex(index);
+    return sourceIdx.isValid() && m_runnerModel->runAction(sourceIdx, actionIndex);
+}
+
+QString AppGridPlugin::runnerSubstitutionText(int index)
+{
+    const auto sourceIdx = runnerSourceIndex(index);
+    if (!sourceIdx.isValid())
+        return {};
+    // calculator is the only KRunner plugin where "keep iterating the
+    // expression" beats "run and close". Extend the list as other in-place
+    // runners earn their place.
+    const auto match = m_runnerModel->getQueryMatch(sourceIdx);
+    if (!match.runner() || match.runner()->id() != QLatin1String("calculator"))
+        return {};
+    return match.text();
 }
 
 // --- Window management ---

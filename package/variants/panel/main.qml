@@ -78,6 +78,8 @@ PlasmoidItem {
             runInTerminal: function(cmd, shell) { Plasmoid.runInTerminal(cmd, shell) }
             runCommand: function(cmd, shell) { Plasmoid.runCommand(cmd, shell) }
             runRunnerResult: function(idx) { return Plasmoid.runRunnerResult(idx) }
+            runRunnerAction: function(idx, actIdx) { return Plasmoid.runRunnerAction(idx, actIdx) }
+            runnerSubstitutionText: function(idx) { return Plasmoid.runnerSubstitutionText(idx) }
             updateChecker: Plasmoid.updateChecker
             // Stable, instance-independent client id so favorites survive
             // widget remove/re-add (Plasmoid.id changes each time) — #147.
