@@ -64,6 +64,46 @@ private Q_SLOTS:
         QCOMPARE(parseOsPrettyName(QStringLiteral("NAME=Foo\nID=foo\n")), QString());
     }
 
+    // CRLF endings (e.g. an os-release file written or copied via Windows
+    // tooling) used to leak a trailing \r into the value because the
+    // closing quote-strip didn't see endsWith('"').
+    void parseOsPrettyName_handlesCrlf()
+    {
+        QCOMPARE(parseOsPrettyName(QStringLiteral("PRETTY_NAME=\"Foo\"\r\n")),
+                 QStringLiteral("Foo"));
+        QCOMPARE(parseOsPrettyName(QStringLiteral("PRETTY_NAME=Bar\r\n")),
+                 QStringLiteral("Bar"));
+    }
+
+    // Comment lines must not be matched as the key.
+    void parseOsPrettyName_skipsCommentLines()
+    {
+        const QString contents = QStringLiteral(
+            "# generated header\n"
+            "NAME=Foo\n"
+            "# PRETTY_NAME=\"NOT THIS\"\n"
+            "PRETTY_NAME=\"Real\"\n");
+        QCOMPARE(parseOsPrettyName(contents), QStringLiteral("Real"));
+    }
+
+    // An indented line is tolerated thanks to the per-line trim;
+    // documents that current behavior rather than relying on it.
+    void parseOsPrettyName_toleratesLeadingWhitespace()
+    {
+        QCOMPARE(parseOsPrettyName(QStringLiteral("    PRETTY_NAME=Indented\n")),
+                 QStringLiteral("Indented"));
+    }
+
+    // The first matching key wins; later definitions are ignored
+    // (matches how shell `source` evaluation would treat the file).
+    void parseOsPrettyName_returnsFirstMatch()
+    {
+        const QString contents = QStringLiteral(
+            "PRETTY_NAME=First\n"
+            "PRETTY_NAME=Second\n");
+        QCOMPARE(parseOsPrettyName(contents), QStringLiteral("First"));
+    }
+
     void expandTilde_expandsLeading()
     {
         QCOMPARE(expandTilde(QStringLiteral("~/Documents")), QDir::homePath() + QStringLiteral("/Documents"));

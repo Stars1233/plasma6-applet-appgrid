@@ -27,7 +27,11 @@ QStringList parseShells(const QString &contents)
 QString parseOsPrettyName(const QString &contents)
 {
     const auto lines = contents.split(QLatin1Char('\n'));
-    for (const auto &line : lines) {
+    for (const auto &raw : lines) {
+        // Trim so a stray CR from CRLF endings doesn't break the quote-strip
+        // below (PRETTY_NAME="…\r" wouldn't endsWith('"') and the value
+        // would leak through with a trailing carriage return).
+        const QString line = raw.trimmed();
         if (line.startsWith(QLatin1String("PRETTY_NAME="))) {
             QString val = line.mid(12);
             if (val.startsWith(QLatin1Char('"')) && val.endsWith(QLatin1Char('"')))
