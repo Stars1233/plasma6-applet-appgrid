@@ -525,21 +525,45 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
 
 // --- Sorting ---
 
+// True when `needle` appears at a word boundary in `haystack` — i.e. at the
+// start, or just after a non-alphanumeric character. Prevents a query like
+// "ter" from matching "ghostwriter" or "booster" as a meaningful substring;
+// those still match via the deeper mid-word fallback below.
+static bool containsAtWordBoundary(const QString &haystack, const QString &needle)
+{
+    if (needle.isEmpty())
+        return false;
+    int from = 0;
+    while (true) {
+        const int idx = haystack.indexOf(needle, from, Qt::CaseInsensitive);
+        if (idx < 0)
+            return false;
+        if (idx == 0 || !haystack.at(idx - 1).isLetterOrNumber())
+            return true;
+        from = idx + 1;
+    }
+}
+
 // Search relevance: lower score = better match.
-// 0 = name prefix, 1 = name substring, 2 = generic name, 3 = keyword, 4 = no match.
+//   0 = name prefix
+//   1 = word-boundary substring in name
+//   2 = word-boundary substring in generic name
+//   3 = keyword contains
+//   4 = mid-word substring in name (deep fallback — never out-ranks 0..3)
+//   5 = no match
 static int searchRelevance(const QModelIndex &idx, const QString &query)
 {
     if (query.isEmpty())
-        return 4;
+        return 5;
 
     const auto name = idx.data(AppModel::NameRole).toString();
     if (name.startsWith(query, Qt::CaseInsensitive))
         return 0;
-    if (name.contains(query, Qt::CaseInsensitive))
+    if (containsAtWordBoundary(name, query))
         return 1;
 
     const auto generic = idx.data(AppModel::GenericNameRole).toString();
-    if (generic.contains(query, Qt::CaseInsensitive))
+    if (containsAtWordBoundary(generic, query))
         return 2;
 
     const auto keywords = idx.data(AppModel::KeywordsRole).toStringList();
@@ -548,7 +572,10 @@ static int searchRelevance(const QModelIndex &idx, const QString &query)
             return 3;
     }
 
-    return 4;
+    if (name.contains(query, Qt::CaseInsensitive))
+        return 4;
+
+    return 5;
 }
 
 bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
@@ -579,12 +606,18 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
         const int rightCount = m_launchCounts.value(rightSid, 0);
 
         if (leftRel != rightRel) {
-            // Most-used apps can jump up exactly one relevance tier:
-            // e.g. a heavily used keyword-match beats a never-launched
-            // generic-match, but a strong prefix-match always wins over a
-            // distant keyword-match.
-            if (std::abs(leftRel - rightRel) <= 1 && leftCount != rightCount)
+            // Promotion: a heavily used app may jump up exactly one tier
+            // (so a frequent keyword-match outranks a never-launched
+            // generic-match). The endpoint tiers are inviolate, never
+            // crossed by launch count:
+            //   0 — name prefix (must always win)
+            //   4 — mid-word substring fallback (must always lose)
+            const bool endpointInvolved =
+                leftRel == 0 || rightRel == 0 || leftRel == 4 || rightRel == 4;
+            if (!endpointInvolved && std::abs(leftRel - rightRel) <= 1
+                && leftCount != rightCount) {
                 return leftCount > rightCount;
+            }
             return leftRel < rightRel;
         }
 

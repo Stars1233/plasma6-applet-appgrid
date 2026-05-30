@@ -24,6 +24,10 @@ private slots:
     void launchCountStillBeatsDefaultAcrossTiers();
     void mostUsedJumpsOneTierUp();
     void mostUsedCannotJumpTwoTiers();
+    void mostUsedCannotDethronePrefix();
+    void wordBoundarySubstringBeatsMidword();
+    void midwordSubstringCannotBeatGeneric();
+    void midwordSubstringStaysBelowKeywordEvenWhenUsed();
     void zeroCountDoesNotCrossTier();
 
 private:
@@ -71,14 +75,18 @@ void TestSearchRanking::prefixBeatsSubstring()
 
 void TestSearchRanking::substringBeatsGeneric()
 {
+    // A word-boundary substring in the name (tier 1) beats a generic-name
+    // match (tier 2). "Pro-Browse" has "Browse" at a word boundary (after
+    // the hyphen); mid-word substrings would not qualify for tier 1 — see
+    // midwordSubstringCannotBeatGeneric.
     m_source.setApps({
         {QStringLiteral("Firefox"), {}, {}, {}, QStringLiteral("Web Browser"), QStringLiteral("a"), {}, {}, {}},
         {QStringLiteral("Konqueror"), {}, {}, {}, QStringLiteral("Web Browser"), QStringLiteral("b"), {}, {}, {}},
-        {QStringLiteral("ProBrowse"), {}, {}, {}, QStringLiteral("File Manager"), QStringLiteral("c"), {}, {}, {}}, // name substring
+        {QStringLiteral("Pro-Browse"), {}, {}, {}, QStringLiteral("File Manager"), QStringLiteral("c"), {}, {}, {}},
     });
     m_filter.setSearchText(QStringLiteral("brow"));
     QCOMPARE(m_filter.count(), 3);
-    QCOMPARE(nameAt(0), QStringLiteral("ProBrowse")); // substring beats generic
+    QCOMPARE(nameAt(0), QStringLiteral("Pro-Browse"));
 }
 
 void TestSearchRanking::genericBeatsKeyword()
@@ -196,6 +204,78 @@ void TestSearchRanking::mostUsedCannotJumpTwoTiers()
     m_filter.setSearchText(QStringLiteral("calc"));
     QCOMPARE(nameAt(0), QStringLiteral("Calc-Pro"));
     QCOMPARE(nameAt(1), QStringLiteral("MathBox"));
+}
+
+void TestSearchRanking::mostUsedCannotDethronePrefix()
+{
+    // Terminal matches "ter" as a name-prefix (tier 0); Spotter matches it
+    // only as a substring (tier 1). Even with overwhelming launch count on
+    // Spotter, the prefix tier is inviolate — Terminal stays on top.
+    m_source.setApps({
+        {QStringLiteral("Spotter"), {}, {}, {}, {},
+         QStringLiteral("spotter.desktop"), {}, {}, {}},
+        {QStringLiteral("Terminal"), {}, {}, {}, {},
+         QStringLiteral("terminal.desktop"), {}, {}, {}},
+    });
+    QVariantMap counts;
+    counts[QStringLiteral("spotter.desktop")] = 500;
+    counts[QStringLiteral("terminal.desktop")] = 0;
+    m_filter.setLaunchCountsMap(counts);
+    m_filter.setSearchText(QStringLiteral("ter"));
+    QCOMPARE(nameAt(0), QStringLiteral("Terminal"));
+    QCOMPARE(nameAt(1), QStringLiteral("Spotter"));
+}
+
+void TestSearchRanking::wordBoundarySubstringBeatsMidword()
+{
+    // "Library Manager" hits "lib" at a word boundary (start of name → tier 0
+    // prefix). "Calibre" hits "lib" mid-word ("Ca**lib**re") → tier 4 fallback.
+    // Library wins decisively.
+    m_source.setApps({
+        {QStringLiteral("Calibre"), {}, {}, {}, {}, QStringLiteral("a"), {}, {}, {}},
+        {QStringLiteral("Library Manager"), {}, {}, {}, {}, QStringLiteral("b"), {}, {}, {}},
+    });
+    m_filter.setSearchText(QStringLiteral("lib"));
+    QCOMPARE(nameAt(0), QStringLiteral("Library Manager"));
+    QCOMPARE(nameAt(1), QStringLiteral("Calibre"));
+}
+
+void TestSearchRanking::midwordSubstringCannotBeatGeneric()
+{
+    // "ghostwriter" contains "ter" mid-word → tier 4 fallback. The other app
+    // has "Terminal Emulator" as its generic name → tier 2. Generic wins.
+    m_source.setApps({
+        {QStringLiteral("ghostwriter"), {}, {}, {}, {},
+         QStringLiteral("ghostwriter.desktop"), {}, {}, {}},
+        {QStringLiteral("Alacritty"), {}, {}, {},
+         QStringLiteral("Terminal Emulator"), QStringLiteral("alacritty.desktop"),
+         {}, {}, {}},
+    });
+    m_filter.setSearchText(QStringLiteral("ter"));
+    QCOMPARE(nameAt(0), QStringLiteral("Alacritty"));
+    QCOMPARE(nameAt(1), QStringLiteral("ghostwriter"));
+}
+
+void TestSearchRanking::midwordSubstringStaysBelowKeywordEvenWhenUsed()
+{
+    // ghostwriter is heavily launched and matches "ter" only mid-word
+    // (tier 4 fallback). Ghostty matches via the "terminal" keyword (tier 3).
+    // The fallback tier is inviolate from below — Ghostty still wins.
+    m_source.setApps({
+        {QStringLiteral("ghostwriter"), {}, {}, {}, {},
+         QStringLiteral("ghostwriter.desktop"), {}, {}, {}},
+        {QStringLiteral("Ghostty"), {}, {}, {},
+         QStringLiteral("GPU-Accelerated Console"),
+         QStringLiteral("ghostty.desktop"),
+         {QStringLiteral("terminal")}, {}, {}},
+    });
+    QVariantMap counts;
+    counts[QStringLiteral("ghostwriter.desktop")] = 500;
+    counts[QStringLiteral("ghostty.desktop")] = 0;
+    m_filter.setLaunchCountsMap(counts);
+    m_filter.setSearchText(QStringLiteral("ter"));
+    QCOMPARE(nameAt(0), QStringLiteral("Ghostty"));
+    QCOMPARE(nameAt(1), QStringLiteral("ghostwriter"));
 }
 
 void TestSearchRanking::zeroCountDoesNotCrossTier()
