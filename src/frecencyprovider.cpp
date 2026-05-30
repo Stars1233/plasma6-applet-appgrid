@@ -46,13 +46,8 @@ void FrecencyProvider::setEnabled(bool enabled)
 
     // Seed the chain with an explicit Query — the `Select | Order` overload
     // is not provided, so we cannot start the chain with two bare enums.
-    const auto query = KAStats::Query(KASTerms::UsedResources)
-                     | KASTerms::HighScoredFirst
-                     | KASTerms::Agent::any()
-                     | KASTerms::Type::any()
-                     | KASTerms::Activity::any()
-                     | KASTerms::Url::startsWith(QStringLiteral("applications:"))
-                     | KASTerms::Limit(kFrecencyLimit);
+    const auto query = KAStats::Query(KASTerms::UsedResources) | KASTerms::HighScoredFirst | KASTerms::Agent::any() | KASTerms::Type::any()
+        | KASTerms::Activity::any() | KASTerms::Url::startsWith(QStringLiteral("applications:")) | KASTerms::Limit(kFrecencyLimit);
 
     m_model = new KAStats::ResultModel(query, this);
     connect(m_model, &QAbstractItemModel::modelReset, this, &FrecencyProvider::rebuildScores);

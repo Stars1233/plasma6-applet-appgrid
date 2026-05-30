@@ -623,9 +623,7 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
         // Frecency (when opted in via ConfigSearch) substitutes the raw
         // launchCount everywhere the search tiebreak / tier-promotion looks
         // it up — same code paths, time-weighted input.
-        const auto &counts = (m_searchUsesFrecency && !m_frecencyScores.isEmpty())
-                                 ? m_frecencyScores
-                                 : m_launchCounts;
+        const auto &counts = (m_searchUsesFrecency && !m_frecencyScores.isEmpty()) ? m_frecencyScores : m_launchCounts;
         const int leftCount = counts.value(leftSid, 0);
         const int rightCount = counts.value(rightSid, 0);
 
@@ -636,10 +634,8 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
             // crossed by launch count:
             //   0 — name prefix (must always win)
             //   4 — mid-word substring fallback (must always lose)
-            const bool endpointInvolved =
-                leftRel == 0 || rightRel == 0 || leftRel == 4 || rightRel == 4;
-            if (!endpointInvolved && std::abs(leftRel - rightRel) <= 1
-                && leftCount != rightCount) {
+            const bool endpointInvolved = leftRel == 0 || rightRel == 0 || leftRel == 4 || rightRel == 4;
+            if (!endpointInvolved && std::abs(leftRel - rightRel) <= 1 && leftCount != rightCount) {
                 return leftCount > rightCount;
             }
             return leftRel < rightRel;
