@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a new capability or a change to existing behaviour
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check the open issues and Discussions to
+        avoid duplicates. Briefly is fine — we'll iterate together.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The user-facing pain point or workflow gap that motivates the change.
+      placeholder: "Heavily-used apps still rank below incidental hits in search because the launch count is treated as an all-time total."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: How you'd like it to work. Sketches, mockups, or pseudo-code welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you weighed and rejected.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does this live?
+      multiple: true
+      options:
+        - Search / ranking
+        - Grid / categories
+        - Favorites
+        - Prefix modes (i:, h:, t:, :, /, ?, …)
+        - Config / settings
+        - Visual / theming
+        - Packaging / build
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else

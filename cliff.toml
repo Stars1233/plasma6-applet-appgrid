@@ -1,0 +1,51 @@
+# git-cliff configuration. Renders CHANGELOG.md from Conventional-Commit
+# messages — see https://git-cliff.org for the full reference.
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to AppGrid are documented here.\n
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{{ commit.message | upper_first }}\
+{% if commit.github.pr_number %} (#{{ commit.github.pr_number }}){% endif %}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+    { message = "^feat",     group = "Added" },
+    { message = "^fix",      group = "Fixed" },
+    { message = "^perf",     group = "Performance" },
+    { message = "^refactor", group = "Refactored" },
+    { message = "^polish",   group = "Polish" },
+    { message = "^docs",     group = "Documentation" },
+    { message = "^build",    group = "Build" },
+    { message = "^ci",       group = "CI" },
+    { message = "^chore",    group = "Chores" },
+    { message = "^test",     group = "Tests" },
+    { message = "^revert",   group = "Reverted" },
+    { message = "^Merge",    skip = true },
+]
+protect_breaking_commits = true
+filter_commits = false
+tag_pattern = "v[0-9]*"
+skip_tags = "v[0-9]+\\.[0-9]+\\.[0-9]+-rc\\."
+ignore_tags = ""
+topo_order = false
+sort_commits = "oldest"

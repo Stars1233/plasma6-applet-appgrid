@@ -1,0 +1,170 @@
+name: Bug report
+description: Something broke or behaves wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in the
+        sections below — the version and environment details cut the
+        triage round-trips down a lot.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you submit
+      description: Quick checks that cut duplicates and stale reports.
+      options:
+        - label: I searched [open and closed issues](https://github.com/xarbit/plasma6-applet-appgrid/issues?q=is%3Aissue) for this problem.
+          required: true
+        - label: I'm on the latest stable AppGrid release (or current `main`).
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: One or two sentences describing the misbehaviour.
+      placeholder: "Compact mode renders the panel border bleeding past the rounded corners when the radius is set above 32."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Numbered list. Smaller is better.
+      placeholder: |
+        1. Open AppGrid settings.
+        2. Enable Compact mode.
+        3. Set custom corner radius to 40.
+        4. Apply, then open the launcher.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: input
+    id: appgrid-version
+    attributes:
+      label: AppGrid version
+      description: 'Type `i:` in the search bar — the System Info view shows it.'
+      placeholder: "1.9.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Did this work in an earlier version?
+      options:
+        - "Yes — it used to work"
+        - "No — broken since I installed AppGrid"
+        - "Don't know / first install"
+    validations:
+      required: true
+
+  - type: input
+    id: last-good-version
+    attributes:
+      label: Last known good version
+      description: If you ticked "Yes — it used to work", the most recent version that didn't show this bug.
+      placeholder: "1.8.5"
+
+  - type: dropdown
+    id: variant
+    attributes:
+      label: Variant
+      options:
+        - Center (custom window)
+        - Panel (Plasma popup)
+    validations:
+      required: true
+
+  - type: input
+    id: plasma
+    attributes:
+      label: Plasma version
+      placeholder: "6.4.5"
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distro
+      placeholder: "Arch Linux, Fedora 41, openSUSE Tumbleweed, …"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      description: How did you get AppGrid?
+      options:
+        - Distro package (official repos)
+        - AUR (plasma6-applets-appgrid)
+        - AUR -git (plasma6-applets-appgrid-git)
+        - AUR -rc (plasma6-applets-appgrid-rc)
+        - Terra
+        - Fedora COPR
+        - Debian / Ubuntu PPA
+        - openSUSE OBS
+        - Nix flake
+        - Universal tarball (~/.local install)
+        - Built from source
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: session
+    attributes:
+      label: Session
+      options:
+        - Wayland
+        - X11
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics card / driver
+      description: Vendor, model and driver. Helps with rendering, blur and animation bugs.
+      placeholder: "AMD Radeon RX 7900 XT, Mesa 25.x — or — NVIDIA RTX 4090, 565.77"
+
+  - type: input
+    id: plasma-theme
+    attributes:
+      label: Plasma theme
+      description: Global + Plasma style name. Only matters for visual bugs.
+      placeholder: "Breeze (default), Breeze Dark, Layan, …"
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / video
+      description: Drag and drop. Optional but very welcome for visual bugs.
+
+  - type: textarea
+    id: log
+    attributes:
+      label: plasmashell log (optional)
+      description: |
+        For crashes or runtime errors. Capture a fresh session and reproduce:
+        `plasmashell --replace 2>&1 | tee /tmp/plasmashell.log` — then paste
+        the relevant `appgrid` / `qml` lines here.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Plasma theme, custom config, related issues, etc.
