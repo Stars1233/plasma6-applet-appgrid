@@ -40,19 +40,61 @@ controllers under `tests/qml/`. New behaviour should land with coverage.
 
 ## Style
 
-- C++: `clang-format -i` and `clang-tidy` are enforced by CI; the config
-  files live at the repo root. Run `clang-format -i src/<file>` before
-  pushing.
-- QML: `qmllint -I /usr/lib/qt6/qml package/contents/ui/<file>.qml`. The
-  config sits at `.qmllint.ini`.
-- Comments: explain *why* — the hidden constraint, the bug fix, the
-  invariant. Don't restate *what* the code does. No multi-paragraph
-  docstrings on internal helpers.
-- Identifiers: descriptive names; underscores reserved for private
-  state-flag properties (`_snapHeight`, `_gridRevealed`).
+- C++: `clang-format -i` and `clang-tidy` are enforced by CI; the
+  config files live at the repo root. Running `clang-format -i
+  src/<file>` before pushing saves a CI round-trip.
+- QML: `qmllint -I /usr/lib/qt6/qml package/contents/ui/<file>.qml`.
+  The config sits at `.qmllint.ini`.
+- Comments: try to explain the *why* — the hidden constraint, the bug
+  fix, the invariant — and skip restating *what* the code already
+  says. Short over long; multi-paragraph docstrings on internal
+  helpers usually aren't pulling their weight.
+- Identifiers: descriptive names work best; underscores are reserved
+  for private state-flag properties (`_snapHeight`, `_gridRevealed`).
 - KDE-flavoured idioms: prefer Kirigami / PlasmaComponents over raw
-  Qt Quick Controls where a themed equivalent exists; respect
-  `Kirigami.Units` for sizing and spacing.
+  Qt Quick Controls where a themed equivalent exists, and try to use
+  `Kirigami.Units` for sizing and spacing so the launcher scales with
+  the user's theme.
+
+## AI-assisted code
+
+AI-assisted contributions are welcome — any assistant, commercial,
+open, or local. AI is here, and it isn't going anywhere.
+
+To be straight about it: I work in the field and use AI at work and
+on personal projects. I don't fully trust the output, and I'd suggest
+you don't either. It's a tool — a very helpful one — and like any
+tool it can be used well or poorly. Just be honest about where it
+helped.
+
+We don't vibe-code here — the usual software-engineering practices
+still apply. The bar for an AI-assisted patch is the same as for any
+other patch:
+
+- **Understand it.** If you can't walk a reviewer through why each
+  non-trivial line is there, please take another pass before sending
+  it. "The model wrote it" isn't enough on its own.
+- **See it through.** Finish what you start — loose ends are easy
+  to miss in a review. When you decouple, finish the pattern across
+  the boundary files; when you rename, rename everywhere; when you
+  refactor or remove, sweep for dead code (unused includes, orphan
+  helpers, comments referring to what you just deleted).
+- **Test it.** New behaviour should ship with coverage. CI runs
+  clang-format, clang-tidy, codespell, cppcheck, qmllint, ctest, and
+  the QtQuickTest harness — running them locally first saves a CI
+  round-trip
+  (`cmake --preset ci && cmake --build --preset ci && ctest --preset ci`).
+- **Follow the style above.** KDE idioms, comments that explain the
+  *why* and stay current, named properties over magic numbers, no
+  dead or stale code.
+- **Skim the diff before sending it.** Models sometimes invent APIs,
+  leave debug prints, fold in unrelated edits, or quietly tweak code
+  you didn't intend to change. Easier to catch yourself than in a
+  review.
+
+Tools are great when they help. Either way, the patch carries your
+name. As the project grows we're trying to keep the codebase coherent
+and the patterns clean — your care helps a lot.
 
 ## Commit messages
 
@@ -74,21 +116,25 @@ subject (`fix(search): … (#151)`) when applicable.
 
 - Fork → branch → push → PR against `main` (stable bugs against
   `maintenance/<series>`).
-- Keep PRs focused. Unrelated cleanups belong in their own PR.
+- Try to keep PRs focused; unrelated cleanups tend to land more
+  smoothly in their own PR.
 - CI gates the merge: clang-format, clang-tidy, codespell, qmllint,
   cppcheck, tests. Failures block — fix locally before pushing.
-- New user-facing strings: wrap in `i18nd("dev.xarbit.appgrid", …)` or
-  `i18ndc(...)` with a translator context.
-- Don't commit pre-built packages, screenshots, or local-only notes.
-  `.gitignore` already covers `*.pkg.tar.zst`, `notes/`, `result/`, etc.
+- User-facing strings should be wrapped in
+  `i18nd("dev.xarbit.appgrid", …)` (or `i18ndc(...)` with a
+  translator context).
+- Pre-built packages, screenshots, and local-only notes are already
+  gitignored (`*.pkg.tar.zst`, `notes/`, `result/`, …) — please keep
+  it that way.
 
 ## Reporting bugs / requesting features
 
-Use the issue templates under
-[`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/). Include AppGrid
-version (Settings → `i:` view), Plasma version, distro, and reproducer
-steps. Triage labels follow `bug`, `enhancement`,
-`upstream-limitation`, `regression`, `needs-info`.
+Please use the issue templates under
+[`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/). They prompt for
+the things triage almost always needs — AppGrid version (Settings →
+`i:` view), Plasma version, distro, install method, and reproducer
+steps. Triage labels follow `bug`, `enhancement`, `upstream-limitation`,
+`regression`, `needs-info`.
 
 ## License
 
