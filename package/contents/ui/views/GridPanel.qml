@@ -621,26 +621,48 @@ Kirigami.ShadowedRectangle {
                 onEnd: if (panel.showSearchResults) searchResultsList.goEnd()
             }
 
-            HeaderActionStrip {
-                id: headerActionStrip
-                visible: !panel.isSearching
-                showActionLabels: cfg.showActionLabels
-                headerActions: cfg.headerActions
-                updateChecker: panel.updateChecker
-                onActionTriggered: panel.closeRequested()
-            }
-
-            // Current search-result icon, shown in place of the power
-            // buttons while searching. Fixed size — a fillHeight icon rounds
-            // to different standard sizes as the header reflows, making it
-            // visibly jump.
-            ShadowedIcon {
-                visible: panel.showSearchResults && panel.currentResultIcon !== ""
-                source: panel.currentResultIcon
-                shadowEnabled: cfg.iconShadow
+            // Right-side header slot. Reserves the strip's width even
+            // while searching so the search field doesn't reflow on the
+            // first keystroke. The strip and the search-result icon both
+            // anchor inside, swapped by opacity/enabled.
+            Item {
+                id: headerSlot
                 Layout.alignment: Qt.AlignVCenter
-                Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                Layout.preferredHeight: Math.max(headerActionStrip.implicitHeight,
+                                                 Kirigami.Units.iconSizes.medium)
+                // Monotonic snapshot of the strip's natural width — never
+                // shrinks, so per-button visibility toggles and the
+                // opacity-based hide-on-search don't change the slot.
+                property real _reservedWidth: 0
+                Layout.preferredWidth: _reservedWidth
+
+                HeaderActionStrip {
+                    id: headerActionStrip
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    opacity: panel.isSearching ? 0 : 1
+                    enabled: !panel.isSearching
+                    showActionLabels: cfg.showActionLabels
+                    headerActions: cfg.headerActions
+                    updateChecker: panel.updateChecker
+                    onActionTriggered: panel.closeRequested()
+                    onImplicitWidthChanged: if (implicitWidth > headerSlot._reservedWidth)
+                                                headerSlot._reservedWidth = implicitWidth
+                }
+
+                // Current search-result icon, shown in place of the power
+                // buttons while searching. Fixed size — a fillHeight icon
+                // rounds to different standard sizes as the header reflows,
+                // making it visibly jump.
+                ShadowedIcon {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Kirigami.Units.iconSizes.medium
+                    height: Kirigami.Units.iconSizes.medium
+                    visible: panel.showSearchResults && panel.currentResultIcon !== ""
+                    source: panel.currentResultIcon
+                    shadowEnabled: cfg.iconShadow
+                }
             }
         }
 
