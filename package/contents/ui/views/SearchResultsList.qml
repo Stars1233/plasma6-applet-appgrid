@@ -27,7 +27,7 @@ ListView {
 
     signal launched(int index)
     signal contextMenuRequested(int index, string storageId, string desktopFile)
-    signal runnerActionTriggered(int index, int actionIndex)
+    signal runnerContextMenuRequested(int index)
 
     clip: true
     reuseItems: true
@@ -192,38 +192,6 @@ ListView {
         }
     }
 
-    // Shared popup for KRunner secondary actions (e.g. calculator
-    // "Copy result"). Rebuilt on demand from the row's runnerActions.
-    PlasmaComponents.Menu {
-        id: runnerActionMenu
-        property int targetIndex: -1
-        property var actionList: []
-        Instantiator {
-            model: runnerActionMenu.actionList
-            delegate: PlasmaComponents.MenuItem {
-                required property var modelData
-                required property int index
-                icon.name: modelData.icon || ""
-                text: modelData.text || ""
-                onClicked: {
-                    listView.runnerActionTriggered(runnerActionMenu.targetIndex, index)
-                    runnerActionMenu.close()
-                }
-            }
-            onObjectAdded: (idx, obj) => runnerActionMenu.insertItem(idx, obj)
-            onObjectRemoved: (idx, obj) => runnerActionMenu.removeItem(obj)
-        }
-    }
-
-    function _popupRunnerActions(rowIndex, anchor, x, y) {
-        const actions = listView.model ? listView.model.runnerActions(rowIndex) : []
-        if (actions.length === 0)
-            return
-        runnerActionMenu.targetIndex = rowIndex
-        runnerActionMenu.actionList = actions
-        runnerActionMenu.popup(anchor, x, y)
-    }
-
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
@@ -256,15 +224,13 @@ ListView {
 
         TapHandler {
             acceptedButtons: Qt.RightButton
-            onTapped: function(eventPoint) {
+            onTapped: {
                 if (model.resultType === "app") {
                     listView.contextMenuRequested(model.index,
                                                   model.storageId || "",
                                                   model.desktopFile || "")
                 } else {
-                    listView._popupRunnerActions(model.index, resultDelegate,
-                                                 eventPoint.position.x,
-                                                 eventPoint.position.y)
+                    listView.runnerContextMenuRequested(model.index)
                 }
             }
         }
@@ -346,8 +312,7 @@ ListView {
                                                       model.storageId || "",
                                                       model.desktopFile || "")
                     } else {
-                        listView._popupRunnerActions(model.index, overflowButton,
-                                                     0, overflowButton.height)
+                        listView.runnerContextMenuRequested(model.index)
                     }
                 }
             }

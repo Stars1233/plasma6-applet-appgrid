@@ -43,6 +43,8 @@ Item {
     required property var canManageInDiscover
     required property var openInDiscover
     required property var setHiddenApps
+    //   runRunnerAction(rowIdx, actionIdx) — dispatch a KRunner secondary action
+    required property var runRunnerAction
 
     // Popup snapshot — populated by showForApp() before popping the
     // appropriate Menu. Lives here so both child Menus + their dynamic
@@ -58,6 +60,11 @@ Item {
                                           && popupSelectedSids.length >= 2
     property int popupNonFavCount: 0
     property int popupFavCount: 0
+    // KRunner row context: the RunnerFilterModel proxy row (the
+    // sourceIndex on a runner row from UnifiedSearchModel.get) whose
+    // secondary actions the runnerMenu is showing, plus the list itself.
+    property int popupRunnerSourceIndex: -1
+    property var popupRunnerActions: []
 
     // Favorites-mutation rows lock out while a drag-reorder is in flight
     // to avoid clobbering KAStats state mid-move.
@@ -123,9 +130,18 @@ Item {
             singleMenu.popup()
     }
 
+    function showForRunner(runnerSourceIndex, actions) {
+        if (!actions || actions.length === 0)
+            return
+        popupRunnerSourceIndex = runnerSourceIndex
+        popupRunnerActions = actions
+        runnerMenu.popup()
+    }
+
     function close() {
         singleMenu.close()
         bulkMenu.close()
+        runnerMenu.close()
     }
 
     function _desktopFileFor(sid) {
@@ -357,6 +373,39 @@ Item {
             icon.name: "edit-select-none"
             text: i18nd("dev.xarbit.appgrid", "Remove from Selection")
             onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+        }
+    }
+
+    // KRunner secondary actions (e.g. calculator "Copy result"). Same menu
+    // owner as the app context menus so bounds/padding/close-tracking fixes
+    // apply once.
+    PlasmaComponents.Menu {
+        id: runnerMenu
+
+        // PlasmaComponents.Menu defaults to max(background.implicitHeight,
+        // content) + padding so a KSvg-frame minimum bleeds through as
+        // dead space for short menus; force content-driven sizing here,
+        // the app menus stay tall enough on their own that they don't
+        // need this.
+        implicitHeight: contentItem.implicitHeight + topPadding + bottomPadding
+
+        onAboutToHide: contextMenu._trackClose()
+        onAboutToShow: contextMenu._stopMenuBounce(runnerMenu)
+
+        Instantiator {
+            model: contextMenu.popupRunnerActions
+            delegate: PlasmaComponents.MenuItem {
+                required property var modelData
+                required property int index
+                icon.name: modelData.icon || ""
+                text: modelData.text || ""
+                onClicked: {
+                    contextMenu.runRunnerAction(contextMenu.popupRunnerSourceIndex, index)
+                    runnerMenu.close()
+                }
+            }
+            onObjectAdded: (idx, obj) => runnerMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => runnerMenu.removeItem(obj)
         }
     }
 }

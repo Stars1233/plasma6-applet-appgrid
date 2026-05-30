@@ -743,11 +743,11 @@ Kirigami.ShadowedRectangle {
                 if (storageId)
                     contextMenu.showForApp(-1, storageId, desktopFile)
             }
-            onRunnerActionTriggered: function(index, actionIndex) {
+            onRunnerContextMenuRequested: function(index) {
                 var item = panel.searchModel.get(index)
                 if (!item) return
-                if (panel.runRunnerAction(item.sourceIndex, actionIndex))
-                    closeRequested()
+                var actions = panel.searchModel.runnerActions(index)
+                contextMenu.showForRunner(item.sourceIndex, actions)
             }
         }
 
@@ -883,6 +883,10 @@ Kirigami.ShadowedRectangle {
         canManageInDiscover: panel.canManageInDiscover
         openInDiscover: panel.openInDiscover
         setHiddenApps: function(list) { panel.configuration.hiddenApps = list }
+        runRunnerAction: function(rowIdx, actIdx) {
+            if (panel.runRunnerAction(rowIdx, actIdx))
+                closeRequested()
+        }
 
         onBulkLaunchRequested: function(sids) { panel._requestBulkLaunch(sids) }
         onBulkHideRequested: function(sids) {
