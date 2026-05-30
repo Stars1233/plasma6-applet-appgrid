@@ -110,5 +110,15 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Compact mode:")
             text: i18nd("dev.xarbit.appgrid", "Hide app grid until I start typing")
         }
+        QQC2.Label {
+            visible: hideGridWhenEmpty.visible
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+            text: i18nd("dev.xarbit.appgrid",
+                "Tip: press the Down arrow key to reveal the grid without typing.")
+            font: Kirigami.Theme.smallFont
+            opacity: 0.7
+            wrapMode: Text.WordWrap
+        }
     }
 }
