@@ -42,7 +42,6 @@
 #include <QProcess>
 #include <QQuickWindow>
 #include <QStandardPaths>
-#include <QTextStream>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
@@ -330,12 +329,9 @@ static QString validatedShell(const QString &shell)
 
     QFile file(QStringLiteral("/etc/shells"));
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while (!in.atEnd()) {
-            const auto line = in.readLine().trimmed();
-            if (!line.isEmpty() && !line.startsWith(QLatin1Char('#')) && line == shell)
-                return shell;
-        }
+        const QString contents = QString::fromUtf8(file.readAll());
+        if (PluginHelpers::parseShells(contents).contains(shell))
+            return shell;
     }
 
     qWarning() << "AppGrid: shell not in /etc/shells, falling back to /bin/sh:" << shell;

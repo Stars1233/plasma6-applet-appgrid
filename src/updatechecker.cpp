@@ -161,6 +161,11 @@ void UpdateChecker::runCheck(bool force)
 {
     if (!force && !m_enabled)
         return;
+    // Already checking — let the in-flight reply finish before rebuilding
+    // the QNAM. Avoids parenting a fresh request to a QNAM that's about to
+    // delete a still-pending reply.
+    if (m_replyInFlight)
+        return;
 
     // Sibling-plasmoid de-dup: cache freshly written by the other variant
     // means we can just reload + emit instead of hitting the network.
@@ -215,6 +220,7 @@ void UpdateChecker::runCheck(bool force)
     req.setSslConfiguration(tls);
 
     QNetworkReply *reply = m_network->get(req);
+    m_replyInFlight = true;
     // Size cap: catch over-large Content-Length up front AND a server that
     // streams more than it advertised.
     connect(reply, &QNetworkReply::metaDataChanged, this, [reply]() {
@@ -232,6 +238,7 @@ void UpdateChecker::runCheck(bool force)
     });
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         handleReply(reply);
+        m_replyInFlight = false;
     });
 }
 

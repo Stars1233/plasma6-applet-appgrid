@@ -91,5 +91,9 @@ private:
     int m_etagAge = 0;
     // Parent-owned, torn down + rebuilt each check (TLS session ticket reset).
     QNetworkAccessManager *m_network = nullptr;
+    // Re-entrancy guard: rapid runCheck() calls (config toggle + periodic
+    // timer firing close together) would otherwise tear down the QNAM while
+    // a reply is still parented to it, dropping the in-flight check silently.
+    bool m_replyInFlight = false;
     QTimer m_periodicTimer;
 };
