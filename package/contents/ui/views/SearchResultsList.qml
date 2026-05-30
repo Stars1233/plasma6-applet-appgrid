@@ -211,7 +211,10 @@ ListView {
         highlighted: listView.currentIndex === model.index
         // PlasmaExtras.Highlight on the ListView draws all row backgrounds.
         background: null
-        readonly property color labelColor: highlighted
+        // text stays at textColor on selection (the
+        // PlasmaExtras.Highlight tint is translucent, not an opaque
+        // highlightColor fill), only press flips to highlightedTextColor.
+        readonly property color labelColor: down
             ? Kirigami.Theme.highlightedTextColor
             : Kirigami.Theme.textColor
 
