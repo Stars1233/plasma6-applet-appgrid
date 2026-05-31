@@ -55,6 +55,7 @@ All notable changes to AppGrid are documented here.
 - *(menu)* Show App context menu for KRunner-served app rows (#157.3)
 - *(menu)* Hide "Add to Selection" from search-results context (#157.1)
 - *(ui)* Hide clear button during header-slot shrink (#157.5)
+- *(ui)* Swallow right-clicks on empty panel area (#158)
 
 ### Performance
 
