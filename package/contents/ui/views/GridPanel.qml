@@ -577,34 +577,43 @@ Kirigami.ShadowedRectangle {
                 onEnd: if (panel.showSearchResults) searchResultsList.goEnd()
             }
 
-            // Right-side header slot. Reserves the strip's width even
-            // while searching so the search field doesn't reflow on the
-            // first keystroke. The strip and the search-result icon both
-            // anchor inside, swapped by opacity/enabled.
+            // Right-side header slot. Animates its allocated width
+            // between the strip's natural width (idle) and the search-
+            // result icon's width (searching). Behavior on
+            // Layout.preferredWidth turns what would be a hard reflow
+            // jump on the first keystroke into a smooth shrink, while
+            // leaving zero dead space at the steady state.
             Item {
                 id: headerSlot
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: Math.max(headerActionStrip.implicitHeight,
                                                  Kirigami.Units.iconSizes.medium)
-                // Monotonic snapshot of the strip's natural width — never
-                // shrinks, so per-button visibility toggles and the
-                // opacity-based hide-on-search don't change the slot.
-                property real _reservedWidth: 0
-                Layout.preferredWidth: _reservedWidth
+                readonly property real _iconReservation: Kirigami.Units.iconSizes.medium
+                Layout.preferredWidth: panel.isSearching
+                    ? (panel.showSearchResults && panel.currentResultIcon !== ""
+                         ? _iconReservation : 0)
+                    : headerActionStrip.implicitWidth
+                Behavior on Layout.preferredWidth {
+                    NumberAnimation {
+                        duration: Kirigami.Units.shortDuration
+                        easing.type: Easing.OutQuart
+                    }
+                }
+                clip: true
 
                 HeaderActionStrip {
                     id: headerActionStrip
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    opacity: panel.isSearching ? 0 : 1
-                    enabled: !panel.isSearching
+                    // `visible: false` (not opacity:0) so the buttons stop
+                    // hit-testing — hovering the empty slot mid-animation
+                    // otherwise pops their tooltips.
+                    visible: !panel.isSearching
                     showActionLabels: cfg.showActionLabels
                     headerActions: cfg.headerActions
                     updateChecker: panel.updateChecker
                     sessionActions: sessionActions
                     onActionTriggered: panel.closeRequested()
-                    onImplicitWidthChanged: if (implicitWidth > headerSlot._reservedWidth)
-                                                headerSlot._reservedWidth = implicitWidth
                 }
 
                 // Current search-result icon, shown in place of the power
@@ -614,8 +623,8 @@ Kirigami.ShadowedRectangle {
                 ShadowedIcon {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Kirigami.Units.iconSizes.medium
-                    height: Kirigami.Units.iconSizes.medium
+                    width: headerSlot._iconReservation
+                    height: headerSlot._iconReservation
                     visible: panel.showSearchResults && panel.currentResultIcon !== ""
                     source: panel.currentResultIcon
                     shadowEnabled: cfg.iconShadow
