@@ -96,6 +96,9 @@ RowLayout {
             icon.width: Kirigami.Units.iconSizes.small
             icon.height: Kirigami.Units.iconSizes.small
             onClicked: searchBar.clear()
+            PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Clear search")
+            PlasmaComponents.ToolTip.visible: hovered
+            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
             Accessible.name: i18nd("dev.xarbit.appgrid", "Clear search")
         }
     }
