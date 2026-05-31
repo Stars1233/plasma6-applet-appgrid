@@ -13,14 +13,9 @@ ConfigModel {
         source: "config/ConfigGeneral.qml"
     }
     ConfigCategory {
-        name: i18nc("@title:group", "Appearance")
+        name: i18nc("@title:group", "Appearance/Animations")
         icon: "preferences-desktop-theme-applications"
         source: "config/ConfigAppearance.qml"
-    }
-    ConfigCategory {
-        name: i18nc("@title:group", "Animations")
-        icon: "preferences-desktop-effects"
-        source: "config/ConfigAnimations.qml"
     }
     ConfigCategory {
         name: i18nc("@title:group", "Search")

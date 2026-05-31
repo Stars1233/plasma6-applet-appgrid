@@ -30,6 +30,9 @@ KCM.SimpleKCM {
     property alias cfg_overrideRadius: overrideRadius.checked
     property alias cfg_cornerRadius: cornerRadius.value
     property alias cfg_hideGridWhenEmpty: hideGridWhenEmpty.checked
+    property alias cfg_openAnimation: openAnimation.currentIndex
+    property alias cfg_hoverAnimation: hoverAnimation.currentIndex
+    property alias cfg_shakeOnOpen: shakeOnOpen.checked
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -125,6 +128,48 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             opacity: 0.7
             wrapMode: Text.WordWrap
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        // -- Animations (folded in from the former Animations tab) --
+
+        QQC2.ComboBox {
+            id: openAnimation
+            visible: !page.isPanel
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Open/close:")
+            model: [
+                i18nd("dev.xarbit.appgrid", "None"),
+                i18nd("dev.xarbit.appgrid", "Fade"),
+                i18nd("dev.xarbit.appgrid", "Scale"),
+                i18nd("dev.xarbit.appgrid", "Pop"),
+                i18nd("dev.xarbit.appgrid", "Slide Up"),
+                i18nd("dev.xarbit.appgrid", "Slide Down"),
+                i18nd("dev.xarbit.appgrid", "Glide"),
+                i18nd("dev.xarbit.appgrid", "Buzz"),
+                i18nd("dev.xarbit.appgrid", "Twist"),
+                i18nd("dev.xarbit.appgrid", "Slam"),
+                i18nd("dev.xarbit.appgrid", "Grow Up")
+            ]
+        }
+
+        QQC2.ComboBox {
+            id: hoverAnimation
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Icon hover:")
+            model: [
+                i18nd("dev.xarbit.appgrid", "None"),
+                i18nd("dev.xarbit.appgrid", "Shake"),
+                i18nd("dev.xarbit.appgrid", "Grow"),
+                i18nd("dev.xarbit.appgrid", "Bounce"),
+                i18nd("dev.xarbit.appgrid", "Spin"),
+                i18nd("dev.xarbit.appgrid", "Shuffle")
+            ]
+        }
+
+        QQC2.CheckBox {
+            id: shakeOnOpen
+            text: i18nd("dev.xarbit.appgrid", "Animate icons when the launcher opens")
+            enabled: hoverAnimation.currentIndex > 0
         }
     }
 }
