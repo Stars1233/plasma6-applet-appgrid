@@ -55,6 +55,10 @@ Item {
     property var popupActions: []
     property list<string> popupSelectedSids: []
     property bool popupIsSelected: false
+    // Whether the originating view supports multi-select. Search-results
+    // + recents don't; gates the "Add/Remove from Selection" item out of
+    // the single menu so it stops looking like a silent no-op.
+    property bool popupCanSelect: true
     readonly property bool isMultiSelect: popupIsSelected
                                           && popupSelectedSids.length >= 2
     property int popupNonFavCount: 0
@@ -95,7 +99,7 @@ Item {
             menu.contentItem.boundsBehavior = Flickable.StopAtBounds
     }
 
-    function showForApp(storageId, desktopFile, selectedSids) {
+    function showForApp(storageId, desktopFile, selectedSids, canSelect = true) {
         if (storageId && _lastClosedStorageId === storageId) {
             _lastClosedStorageId = ""
             reopenGuard.stop()
@@ -105,6 +109,7 @@ Item {
         popupDesktopFile = desktopFile
         popupSelectedSids = selectedSids || []
         popupIsSelected = popupSelectedSids.indexOf(storageId) >= 0
+        popupCanSelect = canSelect
         const prefixed = FavoriteId.toPrefixed(storageId)
         popupIsFavorite = sharedFavoritesModel
                           ? sharedFavoritesModel.isFavorite(prefixed)
@@ -226,15 +231,28 @@ Item {
             }
         }
 
-        PlasmaComponents.MenuItem {
-            icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
-            text: contextMenu.popupIsSelected
-                  ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
-                  : i18nd("dev.xarbit.appgrid", "Add to Selection")
-            onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+        // Instantiator + active rather than `visible: false` so the row
+        // doesn't leave a blank padding gap when the originating view
+        // (search-results, prefix view) has no multi-select.
+        Instantiator {
+            active: contextMenu.popupCanSelect
+            delegate: PlasmaComponents.MenuItem {
+                icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
+                text: contextMenu.popupIsSelected
+                      ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
+                      : i18nd("dev.xarbit.appgrid", "Add to Selection")
+                onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+            }
+            onObjectAdded: (idx, obj) => singleMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
         }
 
-        PlasmaComponents.MenuSeparator {}
+        Instantiator {
+            active: contextMenu.popupCanSelect
+            delegate: PlasmaComponents.MenuSeparator {}
+            onObjectAdded: (idx, obj) => singleMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
+        }
 
         PlasmaComponents.MenuItem {
             icon.name: "pin"

@@ -714,8 +714,10 @@ Kirigami.ShadowedRectangle {
             searchField: searchBar.field
             onLaunched: function(index) { panel.launchSearchResult(index) }
             onContextMenuRequested: function(index, storageId, desktopFile) {
+                // search-results has no multi-select; passing canSelect=false
+                // hides the otherwise-no-op "Add to Selection" item.
                 if (storageId)
-                    contextMenu.showForApp(storageId, desktopFile)
+                    contextMenu.showForApp(storageId, desktopFile, [], false)
             }
             onRunnerContextMenuRequested: function(index) {
                 var item = panel.searchModel.get(index)
