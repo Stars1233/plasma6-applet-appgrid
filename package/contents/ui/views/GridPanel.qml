@@ -17,6 +17,7 @@ import "../widgets"
 import "../js/launchcounts.js" as LaunchCounts
 import "../js/migrations.js" as Migrations
 import "../js/searchresultnav.js" as SearchResultNav
+import "../js/themecolors.js" as ThemeColors
 
 Kirigami.ShadowedRectangle {
     id: panel
@@ -218,10 +219,7 @@ Kirigami.ShadowedRectangle {
 
     readonly property real bgOpacity: cfg.backgroundOpacity / 100
     color: nativePopup ? "transparent"
-           : Qt.rgba(Kirigami.Theme.backgroundColor.r,
-                     Kirigami.Theme.backgroundColor.g,
-                     Kirigami.Theme.backgroundColor.b,
-                     bgOpacity)
+                       : ThemeColors.tint(Kirigami.Theme.backgroundColor, bgOpacity)
 
     border.width: nativePopup ? 0 : 1
     border.color: nativePopup ? "transparent"

@@ -9,6 +9,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "../widgets"
+import "../js/themecolors.js" as ThemeColors
 
 ScrollableColumn {
     PlasmaComponents.Label {
@@ -77,9 +78,7 @@ ScrollableColumn {
                                             prefixText.implicitWidth + Kirigami.Units.largeSpacing)
                     implicitHeight: prefixText.implicitHeight + Kirigami.Units.smallSpacing * 2
                     radius: Kirigami.Units.cornerRadius
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                   Kirigami.Theme.highlightColor.g,
-                                   Kirigami.Theme.highlightColor.b, 0.15)
+                    color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.15)
 
                     PlasmaComponents.Label {
                         id: prefixText

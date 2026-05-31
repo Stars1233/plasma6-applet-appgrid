@@ -10,6 +10,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
+import "../js/themecolors.js" as ThemeColors
 
 Column {
     id: recentHeader
@@ -82,13 +83,9 @@ Column {
                     width: recentHeader.cellWidth - Kirigami.Units.smallSpacing * 2
                     height: recentHeader.cellHeight - Kirigami.Units.smallSpacing * 2
                     radius: Kirigami.Units.cornerRadius
-                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                   Kirigami.Theme.highlightColor.g,
-                                   Kirigami.Theme.highlightColor.b, 0.2)
+                    color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.2)
                     border.width: 1
-                    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                          Kirigami.Theme.highlightColor.g,
-                                          Kirigami.Theme.highlightColor.b, 0.6)
+                    border.color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.6)
                     visible: recentHeader.currentRecentIndex === recentDelegate.index && recentHeader.gridHasFocus
                 }
 

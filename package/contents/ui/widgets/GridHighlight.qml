@@ -11,6 +11,8 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 
+import "../js/themecolors.js" as ThemeColors
+
 Rectangle {
     property real cellWidth: 0
     property real cellHeight: 0
@@ -19,11 +21,7 @@ Rectangle {
     width: cellWidth - Kirigami.Units.smallSpacing * 2
     height: cellHeight - Kirigami.Units.smallSpacing * 2
     radius: Kirigami.Units.cornerRadius
-    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                   Kirigami.Theme.highlightColor.g,
-                   Kirigami.Theme.highlightColor.b, 0.2)
+    color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.2)
     border.width: 1
-    border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                          Kirigami.Theme.highlightColor.g,
-                          Kirigami.Theme.highlightColor.b, 0.6)
+    border.color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.6)
 }

@@ -16,6 +16,7 @@ import org.kde.plasma.extras as PlasmaExtras
 
 import "../controllers"
 import "../widgets"
+import "../js/themecolors.js" as ThemeColors
 
 ListView {
     id: listView
@@ -173,13 +174,9 @@ ListView {
         implicitWidth: badgeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
         implicitHeight: Kirigami.Units.gridUnit * 1.5
         radius: Kirigami.Units.cornerRadius
-        color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                       Kirigami.Theme.highlightColor.g,
-                       Kirigami.Theme.highlightColor.b, 0.15)
+        color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.15)
         border.width: 1
-        border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                              Kirigami.Theme.textColor.g,
-                              Kirigami.Theme.textColor.b, 0.2)
+        border.color: ThemeColors.tint(Kirigami.Theme.textColor, 0.2)
         Accessible.ignored: true
 
         PlasmaComponents.Label {

@@ -11,6 +11,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
+import "../js/themecolors.js" as ThemeColors
 
 Item {
     id: root
@@ -123,9 +124,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
         radius: Kirigami.Units.cornerRadius
-        color: Qt.rgba(Kirigami.Theme.textColor.r,
-                       Kirigami.Theme.textColor.g,
-                       Kirigami.Theme.textColor.b, 0.06)
+        color: ThemeColors.tint(Kirigami.Theme.textColor, 0.06)
         visible: ((root.hoverHighlight && delegateMouse.containsMouse) || root.isCurrentItem)
                  && !root.selected && !(pointerDrag.active || touchDrag.active)
     }
@@ -137,14 +136,10 @@ Item {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
         radius: Kirigami.Units.cornerRadius
-        color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                       Kirigami.Theme.highlightColor.g,
-                       Kirigami.Theme.highlightColor.b, 0.18)
+        color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.18)
         border.width: root.selectionAnchor ? 2 : 1
-        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                              Kirigami.Theme.highlightColor.g,
-                              Kirigami.Theme.highlightColor.b,
-                              root.selectionAnchor ? 0.9 : 0.55)
+        border.color: ThemeColors.tint(Kirigami.Theme.highlightColor,
+                                       root.selectionAnchor ? 0.9 : 0.55)
         visible: root.selected && !(pointerDrag.active || touchDrag.active)
     }
 
