@@ -458,6 +458,10 @@ Kirigami.ShadowedRectangle {
 
             SearchBar {
                 id: searchBar
+                // Hide the X while the header slot is mid-animation so it
+                // doesn't appear to slide in from the right with the
+                // growing field; snaps in once the layout settles.
+                clearButtonEnabled: !headerSlotAnim.running
 
                 // Debounce KRunner queries — fires after typing pauses
                 Timer {
@@ -595,6 +599,7 @@ Kirigami.ShadowedRectangle {
                     : headerActionStrip.implicitWidth
                 Behavior on Layout.preferredWidth {
                     NumberAnimation {
+                        id: headerSlotAnim
                         duration: Kirigami.Units.shortDuration
                         easing.type: Easing.OutQuart
                     }

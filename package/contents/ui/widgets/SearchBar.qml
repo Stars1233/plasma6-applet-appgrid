@@ -15,6 +15,10 @@ RowLayout {
 
     property alias text: textField.text
     property alias field: textField
+    // External gate for the clear button — caller can hide it while
+    // the layout around the search field is still settling (so the X
+    // doesn't appear to slide in from the right with the field).
+    property bool clearButtonEnabled: true
 
     signal accepted()
     signal moveDown()
@@ -87,7 +91,7 @@ RowLayout {
         PlasmaComponents.ToolButton {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            visible: textField.text.length > 0
+            visible: textField.text.length > 0 && searchBar.clearButtonEnabled
             icon.name: "edit-clear"
             icon.width: Kirigami.Units.iconSizes.small
             icon.height: Kirigami.Units.iconSizes.small
