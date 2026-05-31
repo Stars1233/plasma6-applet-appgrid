@@ -11,6 +11,7 @@ import org.kde.plasma.plasmoid
 
 import "controllers"
 import "views" as Views
+import "js/constants.js" as Const
 import "js/migrations.js" as Migrations
 
 PlasmoidItem {
@@ -81,9 +82,7 @@ PlasmoidItem {
             runRunnerAction: function(idx, actIdx) { return Plasmoid.runRunnerAction(idx, actIdx) }
             runnerSubstitutionText: function(idx) { return Plasmoid.runnerSubstitutionText(idx) }
             updateChecker: Plasmoid.updateChecker
-            // Stable, instance-independent client id so favorites survive
-            // widget remove/re-add (Plasmoid.id changes each time) — #147.
-            favoritesClientInstance: "dev.xarbit.appgrid.favorites"
+            favoritesClientInstance: Const.FAVORITES_CLIENT_ID
             appActions: function(sid) { return Plasmoid.appActions(sid) }
             launchAppAction: function(sid, idx) { Plasmoid.launchAppAction(sid, idx) }
             canManageInDiscover: function(sid) { return Plasmoid.canManageInDiscover(sid) }

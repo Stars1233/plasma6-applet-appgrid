@@ -11,10 +11,12 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 
+import "../js/constants.js" as Const
+
 KCM.SimpleKCM {
     id: page
 
-    readonly property bool isPanel: Plasmoid.pluginName === "dev.xarbit.appgrid.panel"
+    readonly property bool isPanel: Plasmoid.pluginName === Const.PLUGIN_ID_PANEL
 
     property alias cfg_showDividers: showDividers.checked
     property alias cfg_showScrollbars: showScrollbars.checked

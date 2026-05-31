@@ -15,10 +15,12 @@ import org.kde.ksvg as KSvg
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 
+import "../js/constants.js" as Const
+
 KCM.SimpleKCM {
     id: page
 
-    readonly property bool isPanel: Plasmoid.pluginName === "dev.xarbit.appgrid.panel"
+    readonly property bool isPanel: Plasmoid.pluginName === Const.PLUGIN_ID_PANEL
     readonly property string defaultIcon: "dev.xarbit.appgrid"
 
     property string cfg_icon: Plasmoid.configuration.icon
