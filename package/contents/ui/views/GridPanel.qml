@@ -249,6 +249,18 @@ Kirigami.ShadowedRectangle {
         }
     }
 
+    // Swallow right-clicks on empty panel area so they don't bubble up
+    // to Plasma's containment ("Configure Widget", "Remove Widget", …) —
+    // Kickoff / KRunner do the same so right-clicking inside the popup
+    // never surfaces a widget-management menu. Child delegates (icons,
+    // search rows, category items) install their own right-click
+    // handlers and so win the gesture before this one fires. (#158)
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        gesturePolicy: TapHandler.WithinBounds
+        onTapped: { }
+    }
+
     // Sync model properties from config — called on init and reset
     function syncModelFromConfig() {
         if (!appsModel) return
