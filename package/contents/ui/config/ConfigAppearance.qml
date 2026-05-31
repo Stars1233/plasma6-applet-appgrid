@@ -43,7 +43,11 @@ KCM.SimpleKCM {
         }
         QQC2.CheckBox {
             id: showTooltips
-            text: i18nd("dev.xarbit.appgrid", "Show tooltips on hover")
+            text: i18nd("dev.xarbit.appgrid", "Show tooltips on app icons")
+            QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
+                "Hover-tooltips on grid + recents + by-category app icons. Other tooltips (header actions, More options, settings) are always shown — Qt/KDE has no system-wide tooltip toggle to follow.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
         QQC2.CheckBox {
             id: showNewAppBadge
