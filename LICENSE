@@ -6,6 +6,17 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 
+The full text of every license referenced from this repository is in
+the LICENSES/ directory, following the REUSE Specification:
+
+    LICENSES/GPL-2.0-or-later.txt — most source, docs, packaging,
+                                    translations
+    LICENSES/CC0-1.0.txt          — images, icons, AppStream metainfo
+    LICENSES/MIT.txt              — .clang-format (imported from KDE)
+
+Per-file licensing is declared via SPDX-License-Identifier headers or
+the top-level REUSE.toml. Run `reuse lint` to verify compliance.
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
