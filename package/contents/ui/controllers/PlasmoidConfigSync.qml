@@ -16,6 +16,7 @@ QtObject {
         if (Plasmoid.updateChecker)
             Plasmoid.updateChecker.enabled = Plasmoid.configuration.checkForUpdates === true
         Plasmoid.setSearchUsesFrecency(Plasmoid.configuration.searchUsesFrecency === true)
+        Plasmoid.setSearchShowsHidden(Plasmoid.configuration.searchShowsHidden === true)
     }
 
     Component.onCompleted: _sync()
@@ -24,5 +25,6 @@ QtObject {
         target: Plasmoid.configuration
         function onCheckForUpdatesChanged() { _sync() }
         function onSearchUsesFrecencyChanged() { _sync() }
+        function onSearchShowsHiddenChanged() { _sync() }
     }
 }

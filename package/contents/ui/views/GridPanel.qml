@@ -259,6 +259,7 @@ Kirigami.ShadowedRectangle {
         appsModel.sortMode = sortMode
         appsModel.useSystemCategories = cfg.useSystemCategories
         appsModel.sortFavoritesAlphabetically = cfg.sortFavoritesAlphabetically
+        appsModel.searchShowsHidden = cfg.searchShowsHidden
         appsModel.launchCounts = LaunchCounts.toMap(cfg.launchCounts)
         appsModel.knownApps = cfg.knownApps
         appsModel.recentApps = cfgShowRecentApps ? cfg.recentApps : []

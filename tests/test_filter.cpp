@@ -17,6 +17,8 @@ private slots:
     void initTestCase();
     void init();
     void hiddenAppsExcluded();
+    void hiddenAppsStayHiddenInSearchByDefault();
+    void hiddenAppsSurfaceInSearchWhenToggleOn();
     void categoryFilterIncludesOnlyMatching();
     void emptyCategoryAcceptsAll();
     void favoritesOnlyExcludesNonFavorites();
@@ -45,6 +47,7 @@ void TestFilter::init()
     m_filter.setShowFavoritesOnly(false);
     m_filter.setSortMode(AppFilterModel::Alphabetical);
     m_filter.setLaunchCountsMap({});
+    m_filter.setSearchShowsHidden(false);
 }
 
 QStringList TestFilter::visibleStorageIds() const
@@ -65,6 +68,32 @@ void TestFilter::hiddenAppsExcluded()
     });
     m_filter.setHiddenApps({QStringLiteral("b.desktop")});
     QCOMPARE(visibleStorageIds(), (QStringList{QStringLiteral("a.desktop"), QStringLiteral("c.desktop")}));
+}
+
+void TestFilter::hiddenAppsStayHiddenInSearchByDefault()
+{
+    m_source.setApps({
+        {QStringLiteral("Konsole"), {}, {}, {}, {}, QStringLiteral("konsole.desktop"), {}, {}, {}},
+        {QStringLiteral("Krita"),   {}, {}, {}, {}, QStringLiteral("krita.desktop"),   {}, {}, {}},
+    });
+    m_filter.setHiddenApps({QStringLiteral("krita.desktop")});
+    // Empty query → hidden app excluded from the grid (existing).
+    QCOMPARE(visibleStorageIds(), QStringList{QStringLiteral("konsole.desktop")});
+    // Search → hidden app still excluded (searchShowsHidden defaults false).
+    m_filter.setSearchText(QStringLiteral("kri"));
+    QCOMPARE(visibleStorageIds(), QStringList());
+}
+
+void TestFilter::hiddenAppsSurfaceInSearchWhenToggleOn()
+{
+    m_source.setApps({
+        {QStringLiteral("Konsole"), {}, {}, {}, {}, QStringLiteral("konsole.desktop"), {}, {}, {}},
+        {QStringLiteral("Krita"),   {}, {}, {}, {}, QStringLiteral("krita.desktop"),   {}, {}, {}},
+    });
+    m_filter.setHiddenApps({QStringLiteral("krita.desktop")});
+    m_filter.setSearchShowsHidden(true);
+    m_filter.setSearchText(QStringLiteral("kri"));
+    QCOMPARE(visibleStorageIds(), QStringList{QStringLiteral("krita.desktop")});
 }
 
 void TestFilter::categoryFilterIncludesOnlyMatching()

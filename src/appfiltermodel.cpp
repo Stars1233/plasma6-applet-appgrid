@@ -398,6 +398,27 @@ void AppFilterModel::setSearchUsesFrecency(bool enabled)
         invalidate();
 }
 
+bool AppFilterModel::searchShowsHidden() const
+{
+    return m_searchShowsHidden;
+}
+
+void AppFilterModel::setSearchShowsHidden(bool enabled)
+{
+    if (m_searchShowsHidden == enabled)
+        return;
+    m_searchShowsHidden = enabled;
+    if (!m_searchText.isEmpty()) {
+        APPGRID_INVALIDATE_FILTER();
+    }
+    emit searchShowsHiddenChanged();
+}
+
+bool AppFilterModel::isHidden(const QString &storageId) const
+{
+    return !storageId.isEmpty() && m_hiddenAppsSet.contains(storageId);
+}
+
 QStringList AppFilterModel::knownApps() const
 {
     return m_knownApps;
@@ -552,10 +573,15 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
 {
     const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
 
-    // Hide hidden apps
+    // Hide hidden apps — except when the user is actively searching
+    // and the searchShowsHidden opt-in has been turned on. Lets a
+    // deliberately hidden tool stay findable by name (when the user
+    // chooses) without un-hiding it from the grid.
     const auto sid = idx.data(AppModel::StorageIdRole).toString();
-    if (!sid.isEmpty() && m_hiddenAppsSet.contains(sid))
-        return false;
+    if (!sid.isEmpty() && m_hiddenAppsSet.contains(sid)) {
+        if (m_searchText.isEmpty() || !m_searchShowsHidden)
+            return false;
+    }
 
     // Favorites-only filter
     if (m_showFavoritesOnly) {

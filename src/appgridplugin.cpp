@@ -343,6 +343,11 @@ void AppGridPlugin::setSearchUsesFrecency(bool enabled)
     m_frecencyProvider.setEnabled(enabled);
 }
 
+void AppGridPlugin::setSearchShowsHidden(bool enabled)
+{
+    m_filterModel.setSearchShowsHidden(enabled);
+}
+
 // --- Prefix mode commands ---
 
 // Validate that the given shell path is listed in /etc/shells.

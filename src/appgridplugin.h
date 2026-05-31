@@ -108,6 +108,11 @@ public:
      */
     Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
 
+    /** Surface hidden apps in search results when @p enabled is true
+     *  (the default). False filters them out of both AppFilterModel
+     *  and RunnerFilterModel — matching the grid hide. */
+    Q_INVOKABLE void setSearchShowsHidden(bool enabled);
+
     // --- Prefix mode commands ---
 
     /** Run @p command in the user's preferred terminal emulator using @p shell. */

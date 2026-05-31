@@ -38,6 +38,12 @@ class AppFilterModel : public QSortFilterProxyModel
     Q_PROPERTY(bool useSystemCategories READ useSystemCategories WRITE setUseSystemCategories NOTIFY useSystemCategoriesChanged)
     Q_PROPERTY(QVariantList groupedByCategory READ appsByCategory NOTIFY groupedByCategoryChanged)
     Q_PROPERTY(QStringList defaultApps READ defaultApps WRITE setDefaultApps NOTIFY defaultAppsChanged)
+    // Opt-in: surface hidden apps in search results so a deliberately
+    // hidden tool can still be found by name. Default false — hidden
+    // means hidden, including from search; on → search bypasses the
+    // hidden-set so a typed name still finds the app without un-hiding
+    // it from the grid.
+    Q_PROPERTY(bool searchShowsHidden READ searchShowsHidden WRITE setSearchShowsHidden NOTIFY searchShowsHiddenChanged)
 
 public:
     /** Sort modes for the grid view. */
@@ -103,6 +109,14 @@ public:
     void setFrecencyScores(const QHash<QString, int> &scores);
     void setSearchUsesFrecency(bool enabled);
 
+    [[nodiscard]] bool searchShowsHidden() const;
+    void setSearchShowsHidden(bool enabled);
+
+    // Cheap membership test for the hidden set — used by RunnerFilterModel
+    // so it can apply the same searchShowsHidden gate to KRunner rows,
+    // and by QML's context menu to toggle the Hide / Unhide label.
+    [[nodiscard]] Q_INVOKABLE bool isHidden(const QString &storageId) const;
+
     // Pure parser: extract storage IDs from the [Default Applications]
     // section of a mimeapps.list file. Empty list on missing/invalid file.
     [[nodiscard]] static QStringList parseMimeAppsDefaults(const QString &filePath);
@@ -139,6 +153,7 @@ signals:
     void sortModeChanged();
     void launchCountsChanged();
     void knownAppsChanged();
+    void searchShowsHiddenChanged();
     void showFavoritesOnlyChanged();
     void sortFavoritesAlphabeticallyChanged();
     void useSystemCategoriesChanged();
@@ -178,6 +193,7 @@ private:
     QHash<QString, int> m_launchCounts;
     QHash<QString, int> m_frecencyScores;
     bool m_searchUsesFrecency = false;
+    bool m_searchShowsHidden = false;
     QStringList m_knownApps;
     bool m_showFavoritesOnly = false;
     bool m_sortFavoritesAlphabetically = false;

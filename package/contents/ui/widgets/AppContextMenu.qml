@@ -52,6 +52,7 @@ Item {
     property string popupStorageId: ""
     property string popupDesktopFile: ""
     property bool popupIsFavorite: false
+    property bool popupIsHidden: false
     property var popupActions: []
     property list<string> popupSelectedSids: []
     property bool popupIsSelected: false
@@ -110,6 +111,7 @@ Item {
         popupSelectedSids = selectedSids || []
         popupIsSelected = popupSelectedSids.indexOf(storageId) >= 0
         popupCanSelect = canSelect
+        popupIsHidden = appsModel ? appsModel.isHidden(storageId) : false
         const prefixed = FavoriteId.toPrefixed(storageId)
         popupIsFavorite = sharedFavoritesModel
                           ? sharedFavoritesModel.isFavorite(prefixed)
@@ -288,11 +290,16 @@ Item {
         PlasmaComponents.MenuSeparator {}
 
         PlasmaComponents.MenuItem {
-            icon.name: "view-hidden"
-            text: i18nd("dev.xarbit.appgrid", "Hide Application")
+            icon.name: contextMenu.popupIsHidden ? "view-visible" : "view-hidden"
+            text: contextMenu.popupIsHidden
+                  ? i18nd("dev.xarbit.appgrid", "Unhide Application")
+                  : i18nd("dev.xarbit.appgrid", "Hide Application")
             onClicked: {
                 if (!contextMenu.appsModel || !contextMenu.popupStorageId) return
-                contextMenu.appsModel.hideByStorageId(contextMenu.popupStorageId)
+                if (contextMenu.popupIsHidden)
+                    contextMenu.appsModel.unhideApp(contextMenu.popupStorageId)
+                else
+                    contextMenu.appsModel.hideByStorageId(contextMenu.popupStorageId)
             }
         }
     }

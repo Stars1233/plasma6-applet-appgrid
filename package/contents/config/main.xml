@@ -158,6 +158,10 @@
       <label>Bias search result ranking with KActivities frecency (frequency + recency) scores so apps you use a lot recently surface above equally-scored alternatives.</label>
       <default>false</default>
     </entry>
+    <entry name="searchShowsHidden" type="Bool">
+      <label>Surface hidden applications in search results so a deliberately hidden tool stays findable by name. Off (default) → hidden apps drop out of search the same way they drop out of the grid.</label>
+      <default>false</default>
+    </entry>
     <entry name="gridColumns" type="Int">
       <label>Maximum number of icons per row.</label>
       <default>7</default>
