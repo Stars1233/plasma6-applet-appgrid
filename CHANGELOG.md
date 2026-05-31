@@ -56,10 +56,15 @@ All notable changes to AppGrid are documented here.
 - *(menu)* Hide "Add to Selection" from search-results context (#157.1)
 - *(ui)* Hide clear button during header-slot shrink (#157.5)
 - *(ui)* Swallow right-clicks on empty panel area (#158)
+- *(ui)* Hover tooltip on the search clear button (#159)
 
 ### Performance
 
 - Cache lower-cased haystack per row for AppFilterModel search
+
+### Ui
+
+- *(config)* Merge Animations tab into Appearance/Animations (#160)
 
 ## [1.8.5] - 2026-05-29
 
