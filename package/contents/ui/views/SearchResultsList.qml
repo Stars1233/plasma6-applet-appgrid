@@ -222,10 +222,17 @@ ListView {
 
         onClicked: listView.launched(model.index)
 
+        // Runner rows that resolve to a .desktop file (KRunner's services
+        // runner returns installed apps as runner rows) get the same
+        // App context menu as native app rows — they ARE apps, just
+        // surfaced through a different model lane.
+        readonly property bool actsLikeApp: model.resultType === "app"
+                                            || (model.storageId || "").length > 0
+
         TapHandler {
             acceptedButtons: Qt.RightButton
             onTapped: {
-                if (model.resultType === "app") {
+                if (resultDelegate.actsLikeApp) {
                     listView.contextMenuRequested(model.index,
                                                   model.storageId || "",
                                                   model.desktopFile || "")
@@ -294,19 +301,22 @@ ListView {
 
             PlasmaComponents.ToolButton {
                 id: overflowButton
-                readonly property bool isApp: model.resultType === "app"
-                // Runner overflow only when KRunner actually exposes actions
-                // for this row (calculator yes, many runners no) — otherwise
-                // the button would pop an empty menu.
+                // App context menu (Pin / Add to Desktop / Hide / …) for
+                // anything app-shaped — native AppFilterModel rows AND
+                // runner rows whose .desktop URL we resolved a storageId
+                // out of. Runner-action overflow only for runner rows
+                // that actually expose secondary actions (calculator yes,
+                // most other runners no — empty menu otherwise).
                 visible: resultDelegate.highlighted
-                         && (isApp || (model.runnerActionsCount || 0) > 0)
+                         && (resultDelegate.actsLikeApp
+                             || (model.runnerActionsCount || 0) > 0)
                 Layout.alignment: Qt.AlignVCenter
                 icon.name: "overflow-menu"
                 PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "More options")
                 PlasmaComponents.ToolTip.visible: hovered
                 PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
                 onClicked: {
-                    if (isApp) {
+                    if (resultDelegate.actsLikeApp) {
                         listView.contextMenuRequested(model.index,
                                                       model.storageId || "",
                                                       model.desktopFile || "")
