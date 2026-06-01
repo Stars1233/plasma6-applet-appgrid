@@ -17,6 +17,29 @@ KCM.SimpleKCM {
     property var cfg_hiddenApps: Plasmoid.configuration.hiddenApps
     property string _filter: ""
 
+    // Re-pull when the underlying config changes from elsewhere — the
+    // launcher's right-click "Unhide" mutates Plasmoid.configuration.hiddenApps
+    // directly, and without this Connections the settings page's view is
+    // frozen until the user switches pages and back (#162).
+    Connections {
+        target: Plasmoid.configuration
+        function onHiddenAppsChanged() {
+            page.cfg_hiddenApps = Plasmoid.configuration.hiddenApps
+        }
+    }
+
+    // "Unhide All" lives in the page header — matches the System Settings
+    // convention of putting page-level actions in the title bar instead of
+    // a button row at the bottom.
+    actions: [
+        Kirigami.Action {
+            text: i18nd("dev.xarbit.appgrid", "Unhide All")
+            icon.name: "edit-undo"
+            enabled: (page.cfg_hiddenApps || []).length > 0
+            onTriggered: page.cfg_hiddenApps = []
+        }
+    ]
+
     readonly property var _filteredApps: {
         var apps = page.cfg_hiddenApps || []
         if (!page._filter)
@@ -77,7 +100,8 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 18
+            Layout.fillHeight: true
+            Layout.minimumHeight: Kirigami.Units.gridUnit * 10
             visible: page._filteredApps.length > 0
             clip: true
 
@@ -129,13 +153,5 @@ KCM.SimpleKCM {
             }
         }
 
-        QQC2.Button {
-            visible: (page.cfg_hiddenApps || []).length > 0
-            Layout.topMargin: Kirigami.Units.smallSpacing
-            Layout.alignment: Qt.AlignHCenter
-            icon.name: "edit-undo"
-            text: i18nd("dev.xarbit.appgrid", "Unhide All")
-            onClicked: page.cfg_hiddenApps = []
-        }
     }
 }
