@@ -85,6 +85,16 @@ Full docs live on the website: **[appgrid.xarbit.dev/docs](https://appgrid.xarbi
 
 This project is developed with [Claude Code](https://claude.ai/claude-code) as an AI pair programmer. Context-engineered and reviewed, not vibe-coded — but if AI-assisted code gives you the ick, this might not be the launcher for you.
 
+## Acknowledgments
+
+AppGrid stands on the work of the KDE community.
+
+**Built with KDE Frameworks 6 & Plasma** — KGlobalAccel, KRunner, KIO, KIconThemes, KCoreAddons, KWindowSystem, Plasma::Applet/PlasmaQuick, PlasmaActivities, LayerShellQt. Without these, none of this exists.
+
+**Inspired by KDE's own launchers** — Kickoff for the popup layout conventions, Kicker for the SPI patterns we reuse (ProcessRunner, ContainmentInterface), KRunner whose results feed our search via KRunner::ResultsModel.
+
+Thanks to the Plasma team, the Frameworks maintainers, and every contributor whose work AppGrid builds on.
+
 ## License
 
 GPL-2.0-or-later
