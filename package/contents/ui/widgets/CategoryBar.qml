@@ -331,8 +331,12 @@ RowLayout {
         enabled: scrollable
         opacity: scrollable ? 1 : 0
         implicitWidth: scrollable ? categoryBar.scrollArrowWidth : 0
+        Layout.rightMargin: scrollable ? 0 : -categoryBar.spacing
 
         Behavior on implicitWidth {
+            NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on Layout.rightMargin {
             NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
         }
         Behavior on opacity {
