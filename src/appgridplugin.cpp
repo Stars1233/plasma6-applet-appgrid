@@ -6,13 +6,9 @@
 #include "appgridplugin.h"
 
 #include "appgridconstants.h"
+#include "appstreamresolver.h"
 #include "discoverbackends.h"
 #include "pluginhelpers.h"
-
-#include <AppStreamQt/component-box.h>
-#include <AppStreamQt/component.h>
-#include <AppStreamQt/launchable.h>
-#include <AppStreamQt/pool.h>
 
 #include <KDesktopFile>
 #include <KGlobalAccel>
@@ -58,9 +54,6 @@
 #include <kcoreaddons_version.h>
 #include <plasma_version.h>
 
-// Defined with the Discover helpers below; warmed from the constructor.
-static void warmAppstreamPool();
-
 // Known task manager plugin IDs, matching the list used by Kicker.
 AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
     : Plasma::Applet(parent, data, args)
@@ -82,7 +75,7 @@ AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const
 
     // Warm the AppStream pool in the background now, so the first right-click
     // "Manage in Discover" check never blocks on a synchronous metadata parse.
-    warmAppstreamPool();
+    AppStreamResolver::warm();
 
     // PlasmoidItem::init() connects activated → setExpanded(true).
     // For custom Window mode, we add a second connection (fires after PlasmoidItem's)
@@ -513,57 +506,6 @@ bool AppGridPlugin::isDiscoverAvailable() const
     return static_cast<bool>(KService::serviceByDesktopName(QStringLiteral("org.kde.discover")));
 }
 
-// --- AppStream component id resolver --------------------------------
-// AppStream::Pool is the canonical resolver Kicker and Discover use: it
-// indexes metainfo from every backend (distro/PackageKit, Flatpak, Snap),
-// so one lookup by .desktop id works regardless of where the app came from.
-// --------------------------------------------------------------------
-
-// Shared AppStream metadata pool. Warmed asynchronously at plugin startup
-// (warmAppstreamPool) so the UI thread never blocks parsing metadata — the
-// launcher must stay snappy. Queries are gated on appstreamPoolReady() so we
-// never read the pool mid-load.
-static AppStream::Pool &appstreamPool()
-{
-    static AppStream::Pool pool;
-    return pool;
-}
-
-static bool &appstreamPoolReady()
-{
-    static bool ready = false;
-    return ready;
-}
-
-// Kick off the one-time background load. Cheap no-op after the first call.
-static void warmAppstreamPool()
-{
-    static bool started = false;
-    if (started)
-        return;
-    started = true;
-    QObject::connect(&appstreamPool(), &AppStream::Pool::loadFinished, &appstreamPool(), [](bool success) {
-        appstreamPoolReady() = success;
-        if (!success)
-            qWarning() << "AppGrid: AppStream pool load failed:" << appstreamPool().lastError();
-    });
-    appstreamPool().loadAsync();
-}
-
-// Canonical AppStream component id for a desktop id (e.g. "org.kde.kate.desktop"),
-// or empty when the pool has no matching component (or is still warming).
-static QString resolveAppStreamId(const QString &desktopId)
-{
-    if (!appstreamPoolReady())
-        return {};
-    const auto components = appstreamPool().componentsByLaunchable(AppStream::Launchable::KindDesktopId, desktopId);
-    for (const AppStream::Component &component : components) {
-        if (!component.id().isEmpty())
-            return component.id();
-    }
-    return {};
-}
-
 bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
 {
     if (storageId.isEmpty() || !isDiscoverAvailable())
@@ -583,7 +525,7 @@ bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
 
     // Only offer the menu when AppStream actually knows the component, so we
     // never open Discover on a dead appstream:// id.
-    return !resolveAppStreamId(service->desktopEntryName() + QLatin1String(".desktop")).isEmpty();
+    return !AppStreamResolver::resolve(service->desktopEntryName() + QLatin1String(".desktop")).isEmpty();
 }
 
 void AppGridPlugin::openInDiscover(const QString &storageId)
@@ -599,7 +541,7 @@ void AppGridPlugin::openInDiscover(const QString &storageId)
     KDesktopFile desktopFile(service->entryPath());
     QString appId = desktopFile.desktopGroup().readEntry("X-AppStream-Component", QString());
     if (appId.isEmpty())
-        appId = resolveAppStreamId(service->desktopEntryName() + QLatin1String(".desktop"));
+        appId = AppStreamResolver::resolve(service->desktopEntryName() + QLatin1String(".desktop"));
     if (appId.isEmpty())
         return;
 

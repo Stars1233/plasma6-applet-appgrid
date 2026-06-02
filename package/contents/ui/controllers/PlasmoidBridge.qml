@@ -31,6 +31,8 @@ QtObject {
     function canManageInDiscover(sid)       { return Plasmoid.canManageInDiscover(sid) }
     function openInDiscover(sid)            { Plasmoid.openInDiscover(sid) }
     function listDirectory(path)            { return Plasmoid.listDirectory(path) }
+    function setSearchUsesFrecency(on)      { Plasmoid.setSearchUsesFrecency(on) }
+    function setSearchShowsHidden(on)       { Plasmoid.setSearchShowsHidden(on) }
 
     // -- Window-management glue, used by GridWindow.qml --
     function configureWindow(window)                       { Plasmoid.configureWindow(window) }

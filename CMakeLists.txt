@@ -186,6 +186,8 @@ set(APPGRID_SOURCES
     src/appgridplugin_register.cpp
     src/appgridplugin.cpp
     src/appgridplugin.h
+    src/appstreamresolver.cpp
+    src/appstreamresolver.h
     src/appmodel.cpp
     src/appmodel.h
     src/appfiltermodel.cpp
@@ -250,6 +252,8 @@ set(APPGRID_PANEL_SOURCES
     src/appgridpanelplugin.h
     src/appgridplugin.cpp
     src/appgridplugin.h
+    src/appstreamresolver.cpp
+    src/appstreamresolver.h
     src/appmodel.cpp
     src/appmodel.h
     src/appfiltermodel.cpp

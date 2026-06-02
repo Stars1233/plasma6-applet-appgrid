@@ -38,7 +38,11 @@ PlasmoidItem {
     DragSource { id: dragSourceImpl }
 
     PlasmoidBridge { id: bridge }
-    PlasmoidConfigSync {}
+    PlasmoidConfigSync {
+        configuration: Plasmoid.configuration
+        updateChecker: Plasmoid.updateChecker
+        bridge: bridge
+    }
 
     Component.onCompleted: Migrations.migrateLauncherIcon(Plasmoid.configuration)
 
