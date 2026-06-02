@@ -109,25 +109,25 @@ static QString translateCategory(const QString &name)
 {
     // Each string must appear literally for xgettext extraction
     if (name == QLatin1String("Utilities"))
-        return i18nd("dev.xarbit.appgrid", "Utilities");
+        return i18n("Utilities");
     if (name == QLatin1String("Development"))
-        return i18nd("dev.xarbit.appgrid", "Development");
+        return i18n("Development");
     if (name == QLatin1String("Graphics"))
-        return i18nd("dev.xarbit.appgrid", "Graphics");
+        return i18n("Graphics");
     if (name == QLatin1String("Internet"))
-        return i18nd("dev.xarbit.appgrid", "Internet");
+        return i18n("Internet");
     if (name == QLatin1String("Multimedia"))
-        return i18nd("dev.xarbit.appgrid", "Multimedia");
+        return i18n("Multimedia");
     if (name == QLatin1String("Office"))
-        return i18nd("dev.xarbit.appgrid", "Office");
+        return i18n("Office");
     if (name == QLatin1String("Games"))
-        return i18nd("dev.xarbit.appgrid", "Games");
+        return i18n("Games");
     if (name == QLatin1String("Education"))
-        return i18nd("dev.xarbit.appgrid", "Education");
+        return i18n("Education");
     if (name == QLatin1String("System"))
-        return i18nd("dev.xarbit.appgrid", "System");
+        return i18n("System");
     if (name == QLatin1String("Other"))
-        return i18nd("dev.xarbit.appgrid", "Other");
+        return i18n("Other");
     return name;
 }
 

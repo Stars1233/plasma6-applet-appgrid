@@ -5,6 +5,7 @@
 
 #include "appgridplugin.h"
 
+#include "appgridconstants.h"
 #include "pluginhelpers.h"
 
 #include <AppStreamQt/component-box.h>
@@ -393,7 +394,7 @@ void AppGridPlugin::notifyAppLaunched(const QString &storageId)
     // Standard convention used by Kicker, Kickoff and friends: the resource
     // URL is "applications:<storage-id>", tagged with our agent so other
     // tools can attribute the launch to AppGrid.
-    KActivities::ResourceInstance::notifyAccessed(QUrl(PluginHelpers::ApplicationsUrlPrefix + storageId), QStringLiteral("dev.xarbit.appgrid"));
+    KActivities::ResourceInstance::notifyAccessed(QUrl(PluginHelpers::ApplicationsUrlPrefix + storageId), QString(AppGrid::ApplicationId));
 }
 
 void AppGridPlugin::setSearchUsesFrecency(bool enabled)

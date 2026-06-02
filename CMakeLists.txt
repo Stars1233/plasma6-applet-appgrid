@@ -93,6 +93,11 @@ else()
 endif()
 message(STATUS "AppGrid version string: ${APPGRID_VERSION_STRING}")
 
+# Single source for the application id. Feeds both the KDE translation domain
+# (so C++ can use plain i18n()) and the AppGrid::ApplicationId constant
+# (KActivities agent id) — see src/appgridconstants.h.
+set(APPGRID_APP_ID "dev.xarbit.appgrid")
+
 find_package(Qt6 REQUIRED COMPONENTS Quick Gui DBus)
 if(APPGRID_UNIVERSAL_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS Network)
@@ -204,7 +209,9 @@ add_library(dev.xarbit.appgrid SHARED ${APPGRID_SOURCES})
 set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
 target_compile_definitions(dev.xarbit.appgrid PRIVATE
-    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\"")
+    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
+    "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
+    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
 if(ENABLE_X11)
     target_compile_definitions(dev.xarbit.appgrid PRIVATE APPGRID_X11_SUPPORT)
 endif()
@@ -260,7 +267,9 @@ add_library(dev.xarbit.appgrid.panel SHARED ${APPGRID_PANEL_SOURCES})
 set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})
 target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE
-    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\"")
+    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
+    "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
+    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
 if(ENABLE_X11)
     target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE APPGRID_X11_SUPPORT)
 endif()
