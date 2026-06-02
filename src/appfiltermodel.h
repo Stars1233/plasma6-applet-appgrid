@@ -171,6 +171,10 @@ protected:
 
 private:
     void recordLaunch(const QString &storageId);
+    // Resolve the KDE default apps (kdeglobals: terminal, browser) to storage
+    // ids and populate m_preferredAppsSet. Boosted above the mimeapps defaults
+    // in the search tiebreak.
+    void reloadPreferredApps();
     // Re-run only the filter (Qt-version-bridged invalidateFilter); see .cpp.
     void invalidateFilterCompat();
     void invalidateStorageIdCache();
@@ -188,7 +192,8 @@ private:
         QString category;
         int relevance = SearchRanking::TierNoMatch;
         int launchCount = 0;
-        bool isDefault = false;
+        bool isDefault = false; // mime default (mimeapps.list)
+        bool isPreferred = false; // KDE default app (kdeglobals) — ranks above isDefault
     };
     [[nodiscard]] const RowScore &rowScore(const QModelIndex &sourceIndex) const;
     void invalidateRowScoreCache();
@@ -212,6 +217,9 @@ private:
     bool m_sortFavoritesAlphabetically = false;
     QSet<QString> m_defaultAppsSet;
     QStringList m_defaultApps;
+    // Storage ids of the KDE default apps (default terminal / browser from
+    // kdeglobals). Outrank mimeapps defaults in the search tiebreak.
+    QSet<QString> m_preferredAppsSet;
 
     // Hidden / favorite / recent / known lists, launch counts, and the
     // derived membership sets + favorite-position index consulted by

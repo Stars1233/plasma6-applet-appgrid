@@ -220,6 +220,37 @@ private Q_SLOTS:
         QVERIFY(desktopPathFromRunnerUrls(QVariant::fromValue(urls)).isEmpty());
         QVERIFY(desktopPathFromRunnerUrls(QVariant()).isEmpty());
     }
+
+    void parseKdeDefaultApps_extractsTerminalAndBrowser()
+    {
+        const QString contents = QStringLiteral(
+            "[General]\n"
+            "TerminalApplication=/usr/bin/ghostty --gtk-single-instance=true\n"
+            "BrowserApplication=firefox.desktop\n"
+            "ColorScheme=Foo\n"
+            "[KDE]\n"
+            "TerminalApplication=should-be-ignored\n");
+        QStringList v = parseKdeDefaultApps(contents);
+        QCOMPARE(v.size(), 2);
+        QVERIFY(v.contains(QStringLiteral("/usr/bin/ghostty --gtk-single-instance=true")));
+        QVERIFY(v.contains(QStringLiteral("firefox.desktop")));
+    }
+
+    void parseKdeDefaultApps_emptyOutsideGeneral()
+    {
+        QVERIFY(parseKdeDefaultApps(QString()).isEmpty());
+        QVERIFY(parseKdeDefaultApps(QStringLiteral("[KDE]\nTerminalApplication=x\n")).isEmpty());
+    }
+
+    void execBinaryName_stripsPathAndArgs()
+    {
+        QCOMPARE(execBinaryName(QStringLiteral("/usr/bin/ghostty --gtk-single-instance=true")), QStringLiteral("ghostty"));
+        QCOMPARE(execBinaryName(QStringLiteral("konsole")), QStringLiteral("konsole"));
+        QCOMPARE(execBinaryName(QStringLiteral("firefox.desktop")), QStringLiteral("firefox.desktop"));
+        QCOMPARE(execBinaryName(QStringLiteral("  /opt/x/bin/foo -e ")), QStringLiteral("foo"));
+        QCOMPARE(execBinaryName(QStringLiteral("\"/usr/bin/ghostty\"")), QStringLiteral("ghostty"));
+        QVERIFY(execBinaryName(QString()).isEmpty());
+    }
 };
 
 QTEST_GUILESS_MAIN(TestPluginHelpers)

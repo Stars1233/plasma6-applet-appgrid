@@ -8,8 +8,10 @@
 #include "pluginhelpers.h"
 #include "searchranking.h"
 
+#include <KApplicationTrader>
 #include <KIO/ApplicationLauncherJob>
 #include <KJob>
+#include <KService>
 
 #include <cstdlib>
 #include <limits>
@@ -40,6 +42,7 @@ AppFilterModel::AppFilterModel(QObject *parent)
     sort(0);
 
     reloadDefaultApps();
+    reloadPreferredApps();
 
     // countChanged: modelReset covers invalidate() / setSourceModel; the row
     // signals cover incremental row insertion/removal. Earlier code also
@@ -471,6 +474,35 @@ void AppFilterModel::reloadDefaultApps()
     setDefaultApps(PluginHelpers::loadMimeAppsDefaults());
 }
 
+void AppFilterModel::reloadPreferredApps()
+{
+    QSet<QString> resolved;
+    const auto values = PluginHelpers::loadKdeDefaultApps();
+    for (const QString &value : values) {
+        // A .desktop id resolves directly.
+        if (const auto byId = KService::serviceByStorageId(value)) {
+            resolved.insert(byId->storageId());
+            continue;
+        }
+        // Otherwise it's an exec line (legacy kdeglobals TerminalApplication=)
+        // — match an application by its executable basename.
+        const QString binary = PluginHelpers::execBinaryName(value);
+        if (binary.isEmpty())
+            continue;
+        const auto matches = KApplicationTrader::query([&binary](const KService::Ptr &service) {
+            return PluginHelpers::execBinaryName(service->exec()) == binary;
+        });
+        if (!matches.isEmpty())
+            resolved.insert(matches.first()->storageId());
+    }
+
+    if (m_preferredAppsSet == resolved)
+        return;
+    m_preferredAppsSet = resolved;
+    invalidateRowScoreCache(); // cached isPreferred changed
+    invalidate();
+}
+
 void AppFilterModel::recordLaunch(const QString &storageId)
 {
     if (storageId.isEmpty())
@@ -562,6 +594,7 @@ const AppFilterModel::RowScore &AppFilterModel::rowScore(const QModelIndex &sour
     s.category = sourceIndex.data(AppModel::CategoryRole).toString();
     s.launchCount = m_book.launchCount(s.sid);
     s.isDefault = m_defaultAppsSet.contains(s.sid);
+    s.isPreferred = m_preferredAppsSet.contains(s.sid);
     // Relevance only matters while searching; skip its role reads + case-folds
     // in the alphabetical / most-used / by-category sort modes.
     if (!m_searchText.isEmpty())
@@ -624,10 +657,15 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
             return leftRel < rightRel;
         }
 
-        // Within the same relevance tier, prefer the user's mime defaults
-        // (e.g. default browser ranks above other browsers).
+        // Within the same relevance tier, the KDE default apps (default
+        // terminal / browser from kdeglobals) outrank everything — including
+        // mime defaults and launch count / frecency.
+        if (l.isPreferred != r.isPreferred)
+            return l.isPreferred; // true sorts before false
+
+        // Then the user's mime defaults (e.g. default browser via mimeapps).
         if (l.isDefault != r.isDefault)
-            return l.isDefault; // true sorts before false
+            return l.isDefault;
 
         if (leftCount != rightCount)
             return leftCount > rightCount;

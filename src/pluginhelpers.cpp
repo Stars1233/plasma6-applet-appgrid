@@ -154,4 +154,53 @@ QString desktopPathFromRunnerUrls(const QVariant &urlsData)
     }
     return {};
 }
+
+QStringList parseKdeDefaultApps(const QString &contents)
+{
+    QStringList values;
+    bool inGeneral = false;
+    const auto lines = contents.split(QLatin1Char('\n'));
+    for (const auto &raw : lines) {
+        const QString line = raw.trimmed();
+        if (line.startsWith(QLatin1Char('['))) {
+            inGeneral = (line == QLatin1String("[General]"));
+            continue;
+        }
+        if (!inGeneral || line.isEmpty() || line.startsWith(QLatin1Char('#')))
+            continue;
+        const int eq = line.indexOf(QLatin1Char('='));
+        if (eq < 0)
+            continue;
+        const QString key = line.left(eq).trimmed();
+        if (key == QLatin1String("TerminalApplication") || key == QLatin1String("BrowserApplication")) {
+            const QString value = line.mid(eq + 1).trimmed();
+            if (!value.isEmpty())
+                values.append(value);
+        }
+    }
+    return values;
+}
+
+QStringList loadKdeDefaultApps()
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/kdeglobals");
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return {};
+    return parseKdeDefaultApps(QString::fromUtf8(f.readAll()));
+}
+
+QString execBinaryName(const QString &execLine)
+{
+    QString token = execLine.trimmed().section(QLatin1Char(' '), 0, 0);
+    // Drop surrounding quotes from a quoted exec path before taking the basename.
+    if (token.startsWith(QLatin1Char('"')) || token.startsWith(QLatin1Char('\'')))
+        token.remove(0, 1);
+    if (token.endsWith(QLatin1Char('"')) || token.endsWith(QLatin1Char('\'')))
+        token.chop(1);
+    const int slash = token.lastIndexOf(QLatin1Char('/'));
+    if (slash >= 0)
+        token = token.mid(slash + 1);
+    return token;
+}
 }
