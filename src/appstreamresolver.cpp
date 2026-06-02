@@ -17,19 +17,19 @@ namespace AppStreamResolver
 {
 namespace
 {
-// Shared AppStream metadata pool. Warmed asynchronously so the UI thread
-// never blocks parsing metadata. Queries are gated on poolReady() so we never
-// read the pool mid-load.
-AppStream::Pool &pool()
-{
-    static AppStream::Pool instance;
-    return instance;
-}
+// Shared AppStream metadata pool plus its load state, as one unit so the two
+// plasmoid variants in one plasmashell share a single warmed pool. Warmed
+// asynchronously so the UI thread never blocks parsing metadata; queries gate
+// on `ready` so we never read the pool mid-load.
+struct SharedPool {
+    AppStream::Pool pool;
+    bool ready = false;
+};
 
-bool &poolReady()
+SharedPool &shared()
 {
-    static bool ready = false;
-    return ready;
+    static SharedPool instance;
+    return instance;
 }
 }
 
@@ -39,19 +39,21 @@ void warm()
     if (started)
         return;
     started = true;
-    QObject::connect(&pool(), &AppStream::Pool::loadFinished, &pool(), [](bool success) {
-        poolReady() = success;
+    SharedPool &s = shared();
+    QObject::connect(&s.pool, &AppStream::Pool::loadFinished, &s.pool, [](bool success) {
+        shared().ready = success;
         if (!success)
-            qWarning() << "AppGrid: AppStream pool load failed:" << pool().lastError();
+            qWarning() << "AppGrid: AppStream pool load failed:" << shared().pool.lastError();
     });
-    pool().loadAsync();
+    s.pool.loadAsync();
 }
 
 QString resolve(const QString &desktopId)
 {
-    if (!poolReady())
+    SharedPool &s = shared();
+    if (!s.ready)
         return {};
-    const auto components = pool().componentsByLaunchable(AppStream::Launchable::KindDesktopId, desktopId);
+    const auto components = s.pool.componentsByLaunchable(AppStream::Launchable::KindDesktopId, desktopId);
     for (const AppStream::Component &component : components) {
         if (!component.id().isEmpty())
             return component.id();

@@ -149,7 +149,6 @@ jobs:
           cppcheck --enable=warning,style,performance,portability --library=qt \
             --inline-suppr --std=c++20 --language=c++ --quiet --error-exitcode=1 \
             --suppress=returnByReference --suppress=useStlAlgorithm \
-            --suppress=knownConditionTrueFalse:src/appgridplugin.cpp \
             -I src $(git ls-files 'src/*.cpp')
 
       - name: clang-format
