@@ -161,6 +161,14 @@ Flickable {
     }
     Component.onCompleted: _rebuildFlatApps()
 
+    // Bumped on knownAppsChanged so each cell's isNew binding re-evaluates
+    // without a Connections object per delegate.
+    property int _knownAppsRevision: 0
+    Connections {
+        target: categoryGrid.appsModel
+        function onKnownAppsChanged() { categoryGrid._knownAppsRevision++ }
+    }
+
     function _arrowMoveWithSelection(event, moveFn) {
         GridNav.arrowMoveWithSelection(selection, multiSelectActive,
                                         event, moveFn,
@@ -449,8 +457,11 @@ Flickable {
                                 shadowEnabled: categoryGrid.shadowEnabled
                                 hoverHighlight: categoryGrid.hoverHighlight
                                 isCurrentItem: categoryGrid.currentIndex === parent.flatIndex && categoryGrid.activeFocus
-                                isNew: categoryGrid.showNewAppBadge && categoryGrid.appsModel
-                                    ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false
+                                isNew: {
+                                    categoryGrid._knownAppsRevision // re-eval when knownApps changes
+                                    return categoryGrid.showNewAppBadge && categoryGrid.appsModel
+                                        ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false
+                                }
                                 storageId: modelData.storageId || ""
                                 desktopFile: modelData.desktopFile || ""
                                 dragSource: categoryGrid.dragSource
@@ -481,14 +492,6 @@ Flickable {
                                     categoryGrid.launched(modelData.proxyIndex)
                                 }
 
-                                Connections {
-                                    target: categoryGrid.appsModel
-                                    function onKnownAppsChanged() {
-                                        catIconDelegate.isNew = categoryGrid.showNewAppBadge
-                                            && categoryGrid.appsModel
-                                            ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false
-                                    }
-                                }
                             }
 
                             Connections {

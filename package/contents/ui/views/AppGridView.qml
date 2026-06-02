@@ -465,6 +465,15 @@ GridView {
         sortFavoritesAlphabetically: gridView.sortFavoritesAlphabetically
     }
 
+    // Bumped on knownAppsChanged so each cell's isNew binding re-evaluates
+    // (markAllKnown / a launch clears the new-app badge) without a Connections
+    // object per delegate.
+    property int _knownAppsRevision: 0
+    Connections {
+        target: gridView.appsModel
+        function onKnownAppsChanged() { gridView._knownAppsRevision++ }
+    }
+
     Keys.onPressed: function(event) {
         // Redirect typing to search bar, but not Tab or special keys
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
@@ -584,9 +593,11 @@ GridView {
             hoverAnimation: gridView.hoverAnimation
             shadowEnabled: gridView.shadowEnabled
             hoverHighlight: gridView.hoverHighlight
-            isNew: !delegateRoot._fromShared
-                   && gridView.showNewAppBadge && gridView.appsModel
-                   ? gridView.appsModel.isNewApp(delegateRoot._sid) : false
+            isNew: {
+                gridView._knownAppsRevision // re-eval when knownApps changes
+                return !delegateRoot._fromShared && gridView.showNewAppBadge && gridView.appsModel
+                    ? gridView.appsModel.isNewApp(delegateRoot._sid) : false
+            }
             storageId: delegateRoot._sid
             desktopFile: delegateRoot._fromShared
                 ? (delegateRoot._appData ? delegateRoot._appData.desktopFile || "" : "")
