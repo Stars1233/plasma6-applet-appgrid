@@ -10,6 +10,8 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
+import "../js/themecolors.js" as ThemeColors
+
 RowLayout {
     id: searchBar
 
@@ -59,10 +61,7 @@ RowLayout {
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.3 * searchBar.fontScale
         background: Item {}
         color: Kirigami.Theme.textColor
-        placeholderTextColor: Qt.rgba(
-            Kirigami.Theme.textColor.r,
-            Kirigami.Theme.textColor.g,
-            Kirigami.Theme.textColor.b, 0.4)
+        placeholderTextColor: ThemeColors.tint(Kirigami.Theme.textColor, 0.4)
 
         Keys.onReturnPressed: searchBar.accepted()
         Keys.onEnterPressed: searchBar.accepted()
