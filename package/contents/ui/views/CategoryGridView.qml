@@ -56,15 +56,25 @@ Flickable {
 
     // -- Keyboard navigation --
 
-    // Flat list of all apps across categories for index-based navigation
-    readonly property var flatApps: {
+    // Flat list of all apps across categories for index-based navigation, and
+    // the per-section start offsets (prefix sums) for O(1) flat-index lookup
+    // from a section delegate. Both are recomputed once per groupedApps change
+    // (_rebuildFlatApps) rather than re-flattened on every read / re-summed
+    // O(S²) per section delegate.
+    property var flatApps: []
+    property var sectionStartIndices: []
+
+    function _rebuildFlatApps() {
         var list = []
+        var starts = []
         for (var i = 0; i < groupedApps.length; i++) {
+            starts.push(list.length)
             var apps = groupedApps[i].apps
             for (var j = 0; j < apps.length; j++)
                 list.push(apps[j])
         }
-        return list
+        flatApps = list
+        sectionStartIndices = starts
     }
 
     property int currentIndex: -1
@@ -145,7 +155,11 @@ Flickable {
 
     // Clear selection whenever the grouped model is rebuilt (search, category
     // pick) so the user doesn't carry ghost selections across filter changes.
-    onGroupedAppsChanged: clearSelection()
+    onGroupedAppsChanged: {
+        _rebuildFlatApps()
+        clearSelection()
+    }
+    Component.onCompleted: _rebuildFlatApps()
 
     function _arrowMoveWithSelection(event, moveFn) {
         GridNav.arrowMoveWithSelection(selection, multiSelectActive,
@@ -394,13 +408,9 @@ Flickable {
                 width: contentColumn.width
                 spacing: Kirigami.Units.smallSpacing
 
-                // Track the global start index for this section
-                readonly property int globalStartIndex: {
-                    var idx = 0
-                    for (var i = 0; i < index; i++)
-                        idx += categoryGrid.groupedApps[i].apps.length
-                    return idx
-                }
+                // Flat-index offset of this section, from the precomputed
+                // prefix-sum array (O(1) instead of re-summing prior sections).
+                readonly property int globalStartIndex: categoryGrid.sectionStartIndices[index] || 0
 
                 SectionLabel {
                     leftPadding: Kirigami.Units.largeSpacing
