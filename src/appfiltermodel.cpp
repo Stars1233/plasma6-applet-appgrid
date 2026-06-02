@@ -70,12 +70,18 @@ AppFilterModel::AppFilterModel(QObject *parent)
     connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]() {
         invalidateStorageIdCache();
         invalidateHaystackCache();
+        invalidateRowScoreCache();
         auto *src = sourceModel();
         if (!src)
             return;
+        // Row-set changes shift source rows + their name/sid/category, so the
+        // row-score cache goes with the storage-id / haystack caches. The
+        // dataChanged below is icon-only (AppModel) and touches no RowScore
+        // field, so it deliberately leaves the row-score cache alone.
         auto invalidateBoth = [this]() {
             invalidateStorageIdCache();
             invalidateHaystackCache();
+            invalidateRowScoreCache();
         };
         connect(src, &QAbstractItemModel::modelReset, this, invalidateBoth);
         connect(src, &QAbstractItemModel::rowsInserted, this, invalidateBoth);
@@ -172,6 +178,7 @@ void AppFilterModel::setSearchText(const QString &text)
     m_searchText = text;
     m_searchTextLower = text.toCaseFolded();
     m_searchTextLowerSingular = SearchRanking::singularize(m_searchTextLower);
+    invalidateRowScoreCache(); // cached relevance depends on the query
     invalidate(); // Re-run filter + sort for relevance ranking
     Q_EMIT searchTextChanged();
 }
@@ -288,6 +295,7 @@ QVariantMap AppFilterModel::launchCountsMap() const
 void AppFilterModel::setLaunchCountsMap(const QVariantMap &map)
 {
     m_book.setLaunchCountsFromMap(map);
+    invalidateRowScoreCache(); // cached launchCount changed
     if (m_sortMode == MostUsed)
         invalidate();
     Q_EMIT launchCountsChanged();
@@ -453,6 +461,7 @@ void AppFilterModel::setDefaultApps(const QStringList &list)
         return;
     m_defaultApps = list;
     m_defaultAppsSet = QSet<QString>(list.cbegin(), list.cend());
+    invalidateRowScoreCache(); // cached isDefault changed
     invalidate(); // search ranking depends on this
     Q_EMIT defaultAppsChanged();
 }
@@ -467,6 +476,7 @@ void AppFilterModel::recordLaunch(const QString &storageId)
     if (storageId.isEmpty())
         return;
     m_book.bumpLaunch(storageId);
+    invalidateRowScoreCache(); // cached launchCount changed
     Q_EMIT launchCountsChanged();
 
     if (m_book.addKnown(storageId))
@@ -536,57 +546,76 @@ static int searchRelevance(const QModelIndex &idx, const QString &query)
                                     query);
 }
 
+const AppFilterModel::RowScore &AppFilterModel::rowScore(const QModelIndex &sourceIndex) const
+{
+    // lessThan() is handed *source* indices; key by the source row, which is
+    // stable across a re-sort — so sorting alone (the per-keystroke case)
+    // never invalidates the cache.
+    const int sourceRow = sourceIndex.row();
+    const auto cached = m_rowScoreCache.constFind(sourceRow);
+    if (cached != m_rowScoreCache.constEnd())
+        return *cached;
+
+    RowScore s;
+    s.sid = sourceIndex.data(AppModel::StorageIdRole).toString();
+    s.name = sourceIndex.data(AppModel::NameRole).toString();
+    s.category = sourceIndex.data(AppModel::CategoryRole).toString();
+    s.launchCount = m_book.launchCount(s.sid);
+    s.isDefault = m_defaultAppsSet.contains(s.sid);
+    // Relevance only matters while searching; skip its role reads + case-folds
+    // in the alphabetical / most-used / by-category sort modes.
+    if (!m_searchText.isEmpty())
+        s.relevance = searchRelevance(sourceIndex, m_searchText);
+    return *m_rowScoreCache.insert(sourceRow, s);
+}
+
+void AppFilterModel::invalidateRowScoreCache()
+{
+    m_rowScoreCache.clear();
+}
+
 bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
+    const RowScore &l = rowScore(left);
+    const RowScore &r = rowScore(right);
+
     // In favorites mode, sort by position in favoriteApps list — unless the
     // user opted into alphabetical ordering.
     if (m_showFavoritesOnly) {
-        if (m_sortFavoritesAlphabetically) {
-            const auto leftName = left.data(AppModel::NameRole).toString();
-            const auto rightName = right.data(AppModel::NameRole).toString();
-            return QString::localeAwareCompare(leftName, rightName) < 0;
-        }
-        const auto leftSid = left.data(AppModel::StorageIdRole).toString();
-        const auto rightSid = right.data(AppModel::StorageIdRole).toString();
+        if (m_sortFavoritesAlphabetically)
+            return QString::localeAwareCompare(l.name, r.name) < 0;
         // O(1) position lookup via LaunchBookkeeping. A sid missing from the
         // favorites gets the sentinel position so it sorts after every real
         // entry.
         constexpr int kSortToEnd = std::numeric_limits<int>::max();
-        return m_book.favoritePosition(leftSid, kSortToEnd) < m_book.favoritePosition(rightSid, kSortToEnd);
+        return m_book.favoritePosition(l.sid, kSortToEnd) < m_book.favoritePosition(r.sid, kSortToEnd);
     }
 
     // When searching, rank by match relevance first
     if (!m_searchText.isEmpty()) {
-        const int leftRel = searchRelevance(left, m_searchText);
-        const int rightRel = searchRelevance(right, m_searchText);
-
-        const auto leftSid = left.data(AppModel::StorageIdRole).toString();
-        const auto rightSid = right.data(AppModel::StorageIdRole).toString();
+        const int leftRel = l.relevance;
+        const int rightRel = r.relevance;
         // Frecency (when opted in via ConfigSearch) substitutes the raw
-        // launchCount everywhere the search tiebreak / tier-promotion looks
-        // it up — same code paths, time-weighted input.
-        const auto &counts = (m_searchUsesFrecency && !m_frecencyScores.isEmpty()) ? m_frecencyScores : m_book.launchCounts();
-        const int leftCount = counts.value(leftSid, 0);
-        const int rightCount = counts.value(rightSid, 0);
+        // launchCount everywhere the search tiebreak / tier-promotion looks it
+        // up — same paths, time-weighted input. O(1) hash by the cached sid,
+        // so it stays live without caching frecency itself.
+        const bool useFrecency = m_searchUsesFrecency && !m_frecencyScores.isEmpty();
+        const int leftCount = useFrecency ? m_frecencyScores.value(l.sid, 0) : l.launchCount;
+        const int rightCount = useFrecency ? m_frecencyScores.value(r.sid, 0) : r.launchCount;
 
         if (leftRel != rightRel) {
-            // Promotion: a heavily used app may jump up exactly one tier
-            // (so a frequent keyword-match outranks a never-launched
-            // generic-match). The endpoint tiers are inviolate, never
-            // crossed by launch count:
-            //   0 — name prefix (must always win)
-            //   4 — mid-word substring fallback (must always lose)
-            // Promotion endpoints (inviolate, never crossed by counts):
+            // Promotion: a heavily used app may jump up exactly one tier (so a
+            // frequent keyword-match outranks a never-launched generic-match).
+            // Endpoint tiers are inviolate, never crossed by launch count:
             //   TierNamePrefix — must always win
             //   TierNameMidword — must always lose
             const bool endpointInvolved = leftRel == SearchRanking::TierNamePrefix || rightRel == SearchRanking::TierNamePrefix
                 || leftRel == SearchRanking::TierNameMidword || rightRel == SearchRanking::TierNameMidword;
             // Also block the generic↔keyword boundary so a heavy *keyword*
-            // match can't leap past a generic-name / Comment match.
-            // Keywords are a marketing tag bag (Discover lists "games"
-            // alongside "snap" and "addons"); generic/Comment text is a
-            // semantic signal. The promotions that motivated the rule
-            // (name-substring vs generic, keyword vs mid-word) still fire.
+            // match can't leap past a generic-name / Comment match. Keywords
+            // are a marketing tag bag; generic/Comment text is a semantic
+            // signal. The promotions that motivated the rule (name-substring
+            // vs generic, keyword vs mid-word) still fire.
             const bool keywordVsGenericBoundary = (leftRel == SearchRanking::TierGeneric && rightRel == SearchRanking::TierKeyword)
                 || (leftRel == SearchRanking::TierKeyword && rightRel == SearchRanking::TierGeneric);
             if (!endpointInvolved && !keywordVsGenericBoundary && std::abs(leftRel - rightRel) <= 1 && leftCount != rightCount) {
@@ -595,33 +624,23 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
             return leftRel < rightRel;
         }
 
-        // Within the same relevance tier, prefer apps that are the user's
-        // mime defaults (e.g. default browser ranks above other browsers)
-        const bool leftIsDefault = m_defaultAppsSet.contains(leftSid);
-        const bool rightIsDefault = m_defaultAppsSet.contains(rightSid);
-        if (leftIsDefault != rightIsDefault)
-            return leftIsDefault; // true sorts before false
+        // Within the same relevance tier, prefer the user's mime defaults
+        // (e.g. default browser ranks above other browsers).
+        if (l.isDefault != r.isDefault)
+            return l.isDefault; // true sorts before false
 
         if (leftCount != rightCount)
             return leftCount > rightCount;
     } else if (m_sortMode == MostUsed) {
-        const auto leftSid = left.data(AppModel::StorageIdRole).toString();
-        const auto rightSid = right.data(AppModel::StorageIdRole).toString();
-        const int leftCount = m_book.launchCount(leftSid);
-        const int rightCount = m_book.launchCount(rightSid);
-        if (leftCount != rightCount)
-            return leftCount > rightCount;
+        if (l.launchCount != r.launchCount)
+            return l.launchCount > r.launchCount;
     } else if (m_sortMode == ByCategory) {
-        const auto leftCat = left.data(AppModel::CategoryRole).toString();
-        const auto rightCat = right.data(AppModel::CategoryRole).toString();
-        int cmp = QString::localeAwareCompare(leftCat, rightCat);
+        const int cmp = QString::localeAwareCompare(l.category, r.category);
         if (cmp != 0)
             return cmp < 0;
     }
 
-    const auto leftName = left.data(AppModel::NameRole).toString();
-    const auto rightName = right.data(AppModel::NameRole).toString();
-    return QString::localeAwareCompare(leftName, rightName) < 0;
+    return QString::localeAwareCompare(l.name, r.name) < 0;
 }
 
 // --- Category queries ---

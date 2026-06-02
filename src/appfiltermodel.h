@@ -13,6 +13,7 @@
 
 #include "appmodel.h"
 #include "launchbookkeeping.h"
+#include "searchranking.h"
 
 /**
  * @brief Proxy model adding search, category filtering, and app hiding.
@@ -177,6 +178,21 @@ private:
     void invalidateHaystackCache();
     [[nodiscard]] QString ensureHaystack(int sourceRow) const;
 
+    // Per-source-row sort inputs, computed once per query and cached, instead
+    // of re-read via data() + re-folded inside SearchRanking on every lessThan
+    // comparison. Turns the per-keystroke sort from O(N·logN)×(role reads +
+    // case-folds) into O(N) fill + O(N·logN) integer/short-string compares.
+    struct RowScore {
+        QString sid;
+        QString name;
+        QString category;
+        int relevance = SearchRanking::TierNoMatch;
+        int launchCount = 0;
+        bool isDefault = false;
+    };
+    [[nodiscard]] const RowScore &rowScore(const QModelIndex &sourceIndex) const;
+    void invalidateRowScoreCache();
+
     QString m_filterCategory;
     QString m_searchText;
     // Pre-folded copy of m_searchText so filterAcceptsRow can run a
@@ -213,6 +229,11 @@ private:
     // first match attempt; cleared in lockstep with the storage-id cache
     // when the source model changes.
     mutable QHash<int, QString> m_haystackCache;
+
+    // source-row → cached sort inputs (see RowScore). Filled lazily in
+    // lessThan(); cleared when any input changes (query, launch counts,
+    // default apps, or source-model data).
+    mutable QHash<int, RowScore> m_rowScoreCache;
 
     // Lazy cache for the groupedByCategory Q_PROPERTY. Rebuilds on next
     // read after any filter/visibility change that flips the dirty flag.
