@@ -171,6 +171,10 @@
       <label>Surface hidden applications in search results so a deliberately hidden tool stays findable by name. Off (default) → hidden apps drop out of search the same way they drop out of the grid.</label>
       <default>false</default>
     </entry>
+    <entry name="searchInlineCompletion" type="Bool">
+      <label>Show a greyed inline completion of the best matching term in the search field, accepted with Tab.</label>
+      <default>true</default>
+    </entry>
     <entry name="gridColumns" type="Int">
       <label>Maximum number of icons per row.</label>
       <default>7</default>

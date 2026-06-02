@@ -40,6 +40,7 @@ private slots:
     void relevance_classifiesEachTier();
     void singularize_rules();
     void containsAtWordBoundary_rules();
+    void completionWord_rules();
 
 private:
     QString nameAt(int proxyRow) const;
@@ -441,6 +442,22 @@ void TestSearchRanking::containsAtWordBoundary_rules()
     QVERIFY(SearchRanking::containsAtWordBoundary(QStringLiteral("Mozilla Firefox"), QStringLiteral("fire")));
     QVERIFY(!SearchRanking::containsAtWordBoundary(QStringLiteral("ghostwriter"), QStringLiteral("ter")));
     QVERIFY(!SearchRanking::containsAtWordBoundary(QStringLiteral("abc"), QString()));
+}
+
+void TestSearchRanking::completionWord_rules()
+{
+    using namespace SearchRanking;
+    // First word starting with the query, original casing, longer than query.
+    QCOMPARE(completionWord(QStringLiteral("Terminal emulator"), QStringLiteral("te")), QStringLiteral("Terminal"));
+    QCOMPARE(completionWord(QStringLiteral("Web Browser"), QStringLiteral("br")), QStringLiteral("Browser"));
+    QCOMPARE(completionWord(QStringLiteral("Ghostty"), QStringLiteral("gh")), QStringLiteral("Ghostty"));
+    // Case-insensitive match.
+    QCOMPARE(completionWord(QStringLiteral("Firefox"), QStringLiteral("FIRE")), QStringLiteral("Firefox"));
+    // No match / nothing to add / empty input.
+    QVERIFY(completionWord(QStringLiteral("Terminal"), QStringLiteral("xyz")).isEmpty());
+    QVERIFY(completionWord(QStringLiteral("Terminal"), QStringLiteral("terminal")).isEmpty());
+    QVERIFY(completionWord(QString(), QStringLiteral("te")).isEmpty());
+    QVERIFY(completionWord(QStringLiteral("Terminal"), QString()).isEmpty());
 }
 
 QTEST_MAIN(TestSearchRanking)

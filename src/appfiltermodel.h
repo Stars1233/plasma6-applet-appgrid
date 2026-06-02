@@ -139,6 +139,12 @@ public:
     Q_INVOKABLE void markAllKnown();
     [[nodiscard]] Q_INVOKABLE int getLaunchCount(const QString &storageId) const;
 
+    // Inline-completion word for the search field: scans the ranked, filtered
+    // rows for the best word (name → generic name → keyword) that starts with
+    // @p query, so typing completes to a matching term even when the top
+    // result's name itself doesn't start with the input. Empty if none.
+    [[nodiscard]] Q_INVOKABLE QString completionFor(const QString &query) const;
+
 Q_SIGNALS:
     void defaultAppsChanged();
     void filterCategoryChanged();

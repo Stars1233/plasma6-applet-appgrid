@@ -41,4 +41,10 @@ inline constexpr int TierNoMatch = 5; // filtered out
                             const QStringList &keywords,
                             const QStringList &categories,
                             const QString &query);
+
+/** First whitespace/punctuation-delimited word in @p text whose case-folded
+ *  form starts with (case-folded) @p query and is strictly longer than it, in
+ *  its original casing; empty if none. Drives the search field's inline
+ *  completion ("te" against "Terminal emulator" → "Terminal"). */
+[[nodiscard]] QString completionWord(const QString &text, const QString &query);
 }

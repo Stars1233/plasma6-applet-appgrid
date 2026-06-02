@@ -75,4 +75,26 @@ int relevance(const QString &name,
 
     return TierNoMatch;
 }
+
+QString completionWord(const QString &text, const QString &query)
+{
+    if (query.isEmpty() || text.isEmpty())
+        return {};
+    const QString folded = query.toCaseFolded();
+    const int n = text.size();
+    int i = 0;
+    while (i < n) {
+        while (i < n && !text.at(i).isLetterOrNumber())
+            ++i;
+        const int start = i;
+        while (i < n && text.at(i).isLetterOrNumber())
+            ++i;
+        if (i - start > query.size()) {
+            const QString word = text.mid(start, i - start);
+            if (word.toCaseFolded().startsWith(folded))
+                return word;
+        }
+    }
+    return {};
+}
 }

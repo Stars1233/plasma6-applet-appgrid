@@ -92,6 +92,7 @@ QtObject {
     readonly property bool useExtraRunners: source.useExtraRunners
     readonly property bool searchUsesFrecency: source.searchUsesFrecency
     readonly property bool searchShowsHidden: source.searchShowsHidden
+    readonly property bool searchInlineCompletion: source.searchInlineCompletion
     readonly property string terminalShell: source.terminalShell
 
     // --- Power / session ---

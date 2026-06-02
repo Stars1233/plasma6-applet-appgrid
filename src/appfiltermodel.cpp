@@ -401,6 +401,45 @@ int AppFilterModel::getLaunchCount(const QString &storageId) const
     return m_book.launchCount(storageId);
 }
 
+QString AppFilterModel::completionFor(const QString &query) const
+{
+    if (query.isEmpty())
+        return {};
+    const QString folded = query.toCaseFolded();
+    const int limit = qMin(rowCount(), 25);
+
+    // Pass 1: an app whose *name* starts with the query — complete the whole
+    // name (e.g. "vi" → "Visual Studio Code"), highest-ranked first.
+    for (int i = 0; i < limit; ++i) {
+        const QString name = index(i, 0).data(AppModel::NameRole).toString();
+        if (name.size() > query.size() && name.toCaseFolded().startsWith(folded))
+            return name;
+    }
+
+    // Pass 2: no name prefix-matched — complete to the best matching *word*
+    // across name / generic name / keywords, so a fuzzy top hit (a terminal
+    // named "Ghostty") still completes "te" → "terminal" from its term.
+    for (int i = 0; i < limit; ++i) {
+        const auto idx = index(i, 0);
+        const QString fields[] = {
+            idx.data(AppModel::NameRole).toString(),
+            idx.data(AppModel::GenericNameRole).toString(),
+        };
+        for (const auto &field : fields) {
+            const QString word = SearchRanking::completionWord(field, query);
+            if (!word.isEmpty())
+                return word;
+        }
+        const auto keywords = idx.data(AppModel::KeywordsRole).toStringList();
+        for (const auto &keyword : keywords) {
+            const QString word = SearchRanking::completionWord(keyword, query);
+            if (!word.isEmpty())
+                return word;
+        }
+    }
+    return {};
+}
+
 // --- Default apps (mimeapps.list) ---
 
 QStringList AppFilterModel::defaultApps() const

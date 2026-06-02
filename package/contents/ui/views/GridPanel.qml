@@ -128,6 +128,22 @@ Kirigami.ShadowedRectangle {
         return item ? (item.iconName || Const.DEFAULT_ICON) : ""
     }
 
+    // Inline-completion suffix for the search field, shown ghosted and accepted
+    // with Tab. Completes the typed text to the best matching *word* across the
+    // ranked apps' name / generic name / keywords (AppFilterModel.completionFor)
+    // — so "te" completes to "terminal" even when the top result is an app
+    // named "Ghostty" that matched via its terminal keyword. Empty in prefix
+    // mode or when nothing matches.
+    readonly property string searchCompletion: {
+        if (!cfg.searchInlineCompletion || !showSearchResults || panel.isPrefixMode || !panel.appsModel)
+            return ""
+        const q = searchBar.text
+        if (q.length === 0)
+            return ""
+        const word = panel.appsModel.completionFor(q)
+        return word.length > q.length ? word.substring(q.length) : ""
+    }
+
     // Whichever grid view currently owns a SelectionState — used to route
     // menu-driven selection toggles. Search and prefix views resolve to
     // null because they don't host multi-select; callers treat that as a
@@ -530,6 +546,7 @@ Kirigami.ShadowedRectangle {
                 // field, large icons → larger. Keeps placeholder text in
                 // proportion with grid labels without a separate setting (#163).
                 fontScale: panel.densityScale
+                completion: panel.searchCompletion
 
                 // Debounce KRunner queries — fires after typing pauses
                 Timer {

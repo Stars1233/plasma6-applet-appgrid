@@ -16,6 +16,7 @@ KCM.SimpleKCM {
     property alias cfg_useExtraRunners: useExtraRunners.checked
     property alias cfg_searchUsesFrecency: searchUsesFrecency.checked
     property alias cfg_searchShowsHidden: searchShowsHidden.checked
+    property alias cfg_searchInlineCompletion: searchInlineCompletion.checked
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -62,6 +63,18 @@ KCM.SimpleKCM {
             text: i18nd("dev.xarbit.appgrid", "Show hidden applications in search results")
             QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
                 "Hidden apps stay out of the grid (right-click → Hide Application) and, by default, also out of search results. Turn this on to keep a hidden app findable by name without un-hiding it from the grid.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: searchInlineCompletion
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Completion:")
+            text: i18nd("dev.xarbit.appgrid", "Show inline completion as you type")
+            QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
+                "Greys the rest of the best matching term after what you've typed (e.g. \"te\" → \"terminal\"); press Tab to accept it.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }

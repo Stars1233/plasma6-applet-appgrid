@@ -25,6 +25,23 @@ RowLayout {
     // search field. Caller derives it from icon size so the placeholder
     // stays in proportion with grid labels.
     required property real fontScale
+    // Inline-completion suffix shown ghosted after the typed text (e.g. type
+    // "t" → "erminal" greyed). Tab fills it in. Caller derives it from the
+    // best matching search term; empty means no suggestion.
+    property string completion: ""
+
+    // Dimmed text colour shared by the placeholder and the completion ghost.
+    readonly property color _dimTextColor: ThemeColors.tint(Kirigami.Theme.textColor, 0.4)
+
+    // Append the ghosted suffix to the field and drop the suggestion. Returns
+    // false when there's nothing to accept so Tab can fall through.
+    function acceptCompletion() {
+        if (completion.length === 0)
+            return false
+        textField.text = textField.text + completion
+        textField.cursorPosition = textField.text.length
+        return true
+    }
 
     signal accepted()
     signal moveDown()
@@ -61,13 +78,40 @@ RowLayout {
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.3 * searchBar.fontScale
         background: Item {}
         color: Kirigami.Theme.textColor
-        placeholderTextColor: ThemeColors.tint(Kirigami.Theme.textColor, 0.4)
+        placeholderTextColor: searchBar._dimTextColor
 
         Keys.onReturnPressed: searchBar.accepted()
         Keys.onEnterPressed: searchBar.accepted()
         Keys.onDownPressed: searchBar.moveDown()
         Keys.onUpPressed: searchBar.moveUp()
-        Keys.onTabPressed: searchBar.tabPressed()
+        Keys.onTabPressed: {
+            if (!searchBar.acceptCompletion())
+                searchBar.tabPressed()
+        }
+
+        // Width of the already-typed text, so the ghost suffix starts exactly
+        // where the real text ends.
+        TextMetrics {
+            id: typedMetrics
+            font: textField.font
+            text: textField.text
+        }
+
+        // Ghosted inline completion. Only while the cursor sits at the end of
+        // the text, so it never overlaps mid-string editing.
+        Text {
+            id: ghostCompletion
+            anchors.verticalCenter: parent.verticalCenter
+            x: textField.leftPadding + typedMetrics.advanceWidth
+            width: Math.max(0, textField.width - textField.rightPadding - x)
+            visible: searchBar.completion.length > 0
+                     && textField.cursorPosition === textField.text.length
+            text: searchBar.completion
+            font: textField.font
+            color: searchBar._dimTextColor
+            elide: Text.ElideRight
+            textFormat: Text.PlainText
+        }
         Keys.onPressed: function(event) {
             switch (event.key) {
             case Qt.Key_PageUp:   searchBar.pageUp();   event.accepted = true; return
