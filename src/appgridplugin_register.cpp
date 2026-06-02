@@ -5,6 +5,8 @@
 
 #include "appgridplugin.h"
 
-K_PLUGIN_CLASS_WITH_JSON(AppGridPlugin, "metadata.json")
+// No embedded JSON: the plasmoid package's metadata.json (installed via
+// plasma_install_package) is the authoritative applet metadata Plasma reads.
+K_PLUGIN_CLASS(AppGridPlugin)
 
 #include "appgridplugin_register.moc"

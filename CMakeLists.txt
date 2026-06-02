@@ -221,9 +221,6 @@ endif()
 add_library(dev.xarbit.appgrid SHARED ${APPGRID_SOURCES})
 set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
-# K_PLUGIN_CLASS_WITH_JSON embeds metadata.json (generated into the build tree
-# below); the build dir on the include path lets moc's -I resolve it.
-target_include_directories(dev.xarbit.appgrid PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_definitions(dev.xarbit.appgrid PRIVATE
     "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
     "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
@@ -235,14 +232,6 @@ if(APPGRID_UNIVERSAL_BUILD)
     target_link_libraries(dev.xarbit.appgrid PRIVATE Qt6::Network)
     target_compile_definitions(dev.xarbit.appgrid PRIVATE APPGRID_UNIVERSAL_BUILD)
 endif()
-
-# moc input for K_PLUGIN_CLASS_WITH_JSON — emitted into the build tree (never
-# src/) so the source checkout stays read-only-clean.
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/metadata.json.in
-    ${CMAKE_CURRENT_BINARY_DIR}/metadata.json
-    @ONLY
-)
 
 set(APPGRID_CENTER_PACKAGE ${CMAKE_BINARY_DIR}/package-center)
 configure_file(
@@ -292,8 +281,6 @@ endif()
 add_library(dev.xarbit.appgrid.panel SHARED ${APPGRID_PANEL_SOURCES})
 set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
 target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})
-# moc resolves metadata-panel.json (generated into the build tree) via -I.
-target_include_directories(dev.xarbit.appgrid.panel PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE
     "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
     "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
@@ -315,12 +302,6 @@ if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(${_tgt} PRIVATE ${_appgrid_warnings})
     endforeach()
 endif()
-
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/metadata-panel.json.in
-    ${CMAKE_CURRENT_BINARY_DIR}/metadata-panel.json
-    @ONLY
-)
 
 set(APPGRID_PANEL_PACKAGE ${CMAKE_BINARY_DIR}/package-panel)
 configure_file(

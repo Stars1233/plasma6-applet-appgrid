@@ -87,6 +87,7 @@ void AppGridPanelPlugin::persistPopupSize()
     inst.sync();
 }
 
-K_PLUGIN_CLASS_WITH_JSON(AppGridPanelPlugin, "metadata-panel.json")
+// Authoritative metadata is the package metadata.json; none embedded here.
+K_PLUGIN_CLASS(AppGridPanelPlugin)
 
 #include "appgridpanelplugin.moc"
