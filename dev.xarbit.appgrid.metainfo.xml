@@ -56,10 +56,6 @@
         <category>Utility</category>
     </categories>
 
-    <provides>
-        <binary>dev.xarbit.appgrid</binary>
-    </provides>
-
     <requires>
         <id version="6.0" compare="ge">org.kde.plasmashell</id>
     </requires>
