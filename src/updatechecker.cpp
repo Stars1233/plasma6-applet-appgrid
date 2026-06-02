@@ -432,8 +432,11 @@ void UpdateChecker::saveState()
     f.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
 
     // Atomic replace so a reader never sees a half-written file when both
-    // plasmoid variants race a save.
+    // plasmoid variants race a save. On POSIX rename() atomically overwrites
+    // the destination; Windows rename fails if it exists, so remove first there.
+#ifdef Q_OS_WIN
     QFile::remove(finalPath);
+#endif
     if (!QFile::rename(tmpPath, finalPath))
         QFile::remove(tmpPath);
 }
