@@ -9,7 +9,6 @@
 
 import QtQuick
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
 import "../widgets"
@@ -403,12 +402,10 @@ Flickable {
                     return idx
                 }
 
-                PlasmaComponents.Label {
+                SectionLabel {
                     leftPadding: Kirigami.Units.largeSpacing
                     topPadding: (index > 0 || categoryGrid.showRecents) ? Kirigami.Units.largeSpacing : 0
                     text: modelData.category
-                    font.bold: true
-                    opacity: 0.7
                 }
 
                 Flow {

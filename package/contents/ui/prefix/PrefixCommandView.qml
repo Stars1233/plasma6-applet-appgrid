@@ -46,7 +46,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         visible: commandView.argument.trim().length > 0
         text: commandView.argument.trim()
-        font.family: "monospace"
+        font.family: Kirigami.Theme.fixedWidthFont.family
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.2
         opacity: 0.9
     }

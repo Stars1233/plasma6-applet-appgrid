@@ -7,7 +7,6 @@
 
 import QtQuick
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
 import "../js/themecolors.js" as ThemeColors
@@ -58,11 +57,9 @@ Column {
 
     spacing: Kirigami.Units.smallSpacing
 
-    PlasmaComponents.Label {
+    SectionLabel {
         leftPadding: Kirigami.Units.largeSpacing
         text: i18nd("dev.xarbit.appgrid", "Recently Used")
-        font.bold: true
-        opacity: 0.7
     }
 
     Flow {
@@ -140,14 +137,12 @@ Column {
         opacity: recentHeader.showDividers ? 1 : 0
     }
 
-    PlasmaComponents.Label {
+    SectionLabel {
         visible: !recentHeader.hideBottomLabel
         leftPadding: Kirigami.Units.largeSpacing
         text: recentHeader.favoritesActive
               ? i18nd("dev.xarbit.appgrid", "Favorites")
               : i18nd("dev.xarbit.appgrid", "All Apps")
-        font.bold: true
-        opacity: 0.7
     }
 
     Item { width: 1; height: Kirigami.Units.smallSpacing }

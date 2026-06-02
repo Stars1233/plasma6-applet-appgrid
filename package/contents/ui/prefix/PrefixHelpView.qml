@@ -84,7 +84,7 @@ ScrollableColumn {
                         id: prefixText
                         anchors.centerIn: parent
                         text: modelData.prefix || ""
-                        font.family: "monospace"
+                        font.family: Kirigami.Theme.fixedWidthFont.family
                         font.bold: true
                     }
                 }
@@ -97,7 +97,7 @@ ScrollableColumn {
                 PlasmaComponents.Label {
                     visible: (modelData.example || "").length > 0
                     text: modelData.example || ""
-                    font.family: "monospace"
+                    font.family: Kirigami.Theme.fixedWidthFont.family
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                     opacity: 0.4
                 }

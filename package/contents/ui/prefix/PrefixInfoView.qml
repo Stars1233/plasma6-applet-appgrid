@@ -69,7 +69,7 @@ ScrollableColumn {
 
                 PlasmaComponents.Label {
                     text: modelData.value
-                    font.family: "monospace"
+                    font.family: Kirigami.Theme.fixedWidthFont.family
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                 }
@@ -129,7 +129,7 @@ ScrollableColumn {
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
-            font.family: "monospace"
+            font.family: Kirigami.Theme.fixedWidthFont.family
             text: infoView._migrated
                 ? i18nd("dev.xarbit.appgrid", "KAStats (%1 entries; legacy backup: %2)",
                         infoView._kastatsCount, infoView._localCount)
