@@ -111,16 +111,17 @@ endif()
 # (Plasma 6.0 → KF6 6.0). Newer APIs must be gated behind explicit
 # version checks rather than raising this minimum.
 set(KF6_MIN_VERSION 6.0)
-find_package(KF6Service ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6I18n ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6CoreAddons ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6KIO ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6WindowSystem ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6Package ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6IconThemes ${KF6_MIN_VERSION} REQUIRED)
-find_package(KF6GlobalAccel ${KF6_MIN_VERSION} REQUIRED)
+find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS
+    CoreAddons
+    GlobalAccel
+    I18n
+    IconThemes
+    KIO
+    Runner
+    Service
+    WindowSystem
+)
 find_package(LayerShellQt REQUIRED)
-find_package(KF6Runner ${KF6_MIN_VERSION} REQUIRED)
 find_package(Plasma REQUIRED)
 find_package(PlasmaQuick REQUIRED)
 # Write-side: KActivities::ResourceInstance::notifyAccessed broadcasts AppGrid
