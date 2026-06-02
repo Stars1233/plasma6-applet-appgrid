@@ -196,8 +196,9 @@ Item {
         }
     }
 
-    // Tooltip with app name, description, and install source
-    readonly property string tooltipText: {
+    // Tooltip (app name, description, install source) — built lazily on hover
+    // rather than eagerly per delegate at grid build.
+    function _tooltipText() {
         var parts = []
         if (root.appName)
             parts.push(root.appName)
@@ -206,11 +207,11 @@ Item {
         else if (root.appGenericName && root.appGenericName !== root.appName)
             parts.push(root.appGenericName)
         if (root.installSource.length > 0)
-            parts.push("Source: " + root.installSource)
+            parts.push(i18nd("dev.xarbit.appgrid", "Source: %1", root.installSource))
         return parts.join("\n")
     }
 
-    PlasmaComponents.ToolTip.text: root.tooltipText
+    PlasmaComponents.ToolTip.text: (root.showTooltip && delegateMouse.containsMouse) ? root._tooltipText() : ""
     PlasmaComponents.ToolTip.visible: root.showTooltip && delegateMouse.containsMouse
     PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
 
