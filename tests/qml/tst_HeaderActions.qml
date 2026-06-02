@@ -113,4 +113,11 @@ TestCase {
         verify(m.indexOf("logout:off") >= 0);
         verify(m.indexOf("switchuser:off") >= 0);
     }
+
+    function test_iconForKnownAndUnknown() {
+        compare(HeaderActions.iconFor("sleep"), "system-suspend");
+        compare(HeaderActions.iconFor("shutdown"), "system-shutdown");
+        compare(HeaderActions.iconFor("updateCheck"), "system-software-update");
+        compare(HeaderActions.iconFor("bogus"), "");
+    }
 }

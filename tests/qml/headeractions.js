@@ -16,14 +16,24 @@
 // Used to validate ids, seed ids missing from saved config (forward-compat
 // when a later version adds an action), and drive the config UI.
 var CATALOGUE = [
-    { id: "updateCheck", placement: "bar" },
-    { id: "sleep", placement: "bar" },
-    { id: "restart", placement: "bar" },
-    { id: "shutdown", placement: "bar" },
-    { id: "lock", placement: "menu" },
-    { id: "logout", placement: "menu" },
-    { id: "switchuser", placement: "menu" },
+    { id: "updateCheck", placement: "bar", icon: "system-software-update" },
+    { id: "sleep", placement: "bar", icon: "system-suspend" },
+    { id: "restart", placement: "bar", icon: "system-reboot" },
+    { id: "shutdown", placement: "bar", icon: "system-shutdown" },
+    { id: "lock", placement: "menu", icon: "system-lock-screen" },
+    { id: "logout", placement: "menu", icon: "system-log-out" },
+    { id: "switchuser", placement: "menu", icon: "system-switch-user" },
 ];
+
+// Freedesktop icon name for an action id, or empty for an unknown id. Single
+// source for both the live header strip and the config editor.
+function iconFor(id) {
+    for (var i = 0; i < CATALOGUE.length; ++i) {
+        if (CATALOGUE[i].id === id)
+            return CATALOGUE[i].icon || "";
+    }
+    return "";
+}
 
 function _defaultPlacement(id) {
     for (var i = 0; i < CATALOGUE.length; ++i) {

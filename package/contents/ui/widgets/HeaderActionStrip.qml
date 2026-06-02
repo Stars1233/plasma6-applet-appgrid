@@ -35,13 +35,13 @@ RowLayout {
     // Per-action presentation. Trigger + availability live in the functions
     // below since they depend on the live session/update state.
     readonly property var _meta: ({
-        "updateCheck": { "icon": "system-software-update", "label": i18nd("dev.xarbit.appgrid", "Update available") },
-        "sleep": { "icon": "system-suspend", "label": i18nd("dev.xarbit.appgrid", "Sleep") },
-        "restart": { "icon": "system-reboot", "label": i18nd("dev.xarbit.appgrid", "Restart") },
-        "shutdown": { "icon": "system-shutdown", "label": i18nd("dev.xarbit.appgrid", "Shut Down") },
-        "lock": { "icon": "system-lock-screen", "label": i18nd("dev.xarbit.appgrid", "Lock") },
-        "logout": { "icon": "system-log-out", "label": i18nd("dev.xarbit.appgrid", "Log Out") },
-        "switchuser": { "icon": "system-switch-user", "label": i18nd("dev.xarbit.appgrid", "Switch User") }
+        "updateCheck": { "icon": HeaderActions.iconFor("updateCheck"), "label": i18nd("dev.xarbit.appgrid", "Update available") },
+        "sleep": { "icon": HeaderActions.iconFor("sleep"), "label": i18nd("dev.xarbit.appgrid", "Sleep") },
+        "restart": { "icon": HeaderActions.iconFor("restart"), "label": i18nd("dev.xarbit.appgrid", "Restart") },
+        "shutdown": { "icon": HeaderActions.iconFor("shutdown"), "label": i18nd("dev.xarbit.appgrid", "Shut Down") },
+        "lock": { "icon": HeaderActions.iconFor("lock"), "label": i18nd("dev.xarbit.appgrid", "Lock") },
+        "logout": { "icon": HeaderActions.iconFor("logout"), "label": i18nd("dev.xarbit.appgrid", "Log Out") },
+        "switchuser": { "icon": HeaderActions.iconFor("switchuser"), "label": i18nd("dev.xarbit.appgrid", "Switch User") }
     })
 
     function _available(id) {

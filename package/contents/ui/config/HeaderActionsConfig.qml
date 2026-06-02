@@ -87,20 +87,34 @@ ColumnLayout {
             required property string placement
             spacing: Kirigami.Units.smallSpacing
 
+            Kirigami.Icon {
+                implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                implicitHeight: Kirigami.Units.iconSizes.smallMedium
+                source: HeaderActions.iconFor(actionRow.actionId)
+                // Greyed when this action is hidden, so the row reads as
+                // "off" at a glance.
+                opacity: actionRow.placement === "off" ? 0.4 : 1.0
+            }
+
             QQC2.Label {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 text: root.labels[actionRow.actionId] || actionRow.actionId
+                opacity: actionRow.placement === "off" ? 0.6 : 1.0
             }
 
-            Repeater {
-                model: root.placementOrder
-                delegate: QQC2.Button {
-                    required property string modelData
-                    text: root.placementLabel[modelData]
-                    flat: actionRow.placement !== modelData
-                    highlighted: actionRow.placement === modelData
-                    onClicked: root._setPlacement(actionRow.index, modelData)
+            // Segmented Bar / Menu / Off placement selector.
+            RowLayout {
+                spacing: 0
+                Repeater {
+                    model: root.placementOrder
+                    delegate: QQC2.Button {
+                        required property string modelData
+                        text: root.placementLabel[modelData]
+                        flat: actionRow.placement !== modelData
+                        highlighted: actionRow.placement === modelData
+                        onClicked: root._setPlacement(actionRow.index, modelData)
+                    }
                 }
             }
 
@@ -109,12 +123,18 @@ ColumnLayout {
                 display: QQC2.AbstractButton.IconOnly
                 enabled: actionRow.index > 0
                 onClicked: root._move(actionRow.index, actionRow.index - 1)
+                QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Move up")
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             }
             QQC2.ToolButton {
                 icon.name: "arrow-down"
                 display: QQC2.AbstractButton.IconOnly
                 enabled: actionRow.index < actionModel.count - 1
                 onClicked: root._move(actionRow.index, actionRow.index + 1)
+                QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Move down")
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             }
         }
     }
