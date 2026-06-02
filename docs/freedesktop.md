@@ -7,7 +7,8 @@ SPDX-License-Identifier: GPL-2.0-or-later
 
 What AppGrid reads, writes, and intentionally ignores from the
 freedesktop / XDG specs. Reflects the code in `src/appmodel.cpp`,
-`src/appfiltermodel.cpp`, `src/categorymapping.cpp`, and
+`src/appfiltermodel.cpp`, `src/categorymapping.cpp`, `src/pluginhelpers.cpp`,
+`src/appstreamresolver.cpp`, `src/discoverbackends.cpp`, and
 `src/appgridplugin.cpp`.
 
 ## Followed
@@ -17,8 +18,8 @@ freedesktop / XDG specs. Reflects the code in `src/appmodel.cpp`,
 | [Desktop Entry Specification](https://specifications.freedesktop.org/desktop-entry-spec/latest/) | Reads `.desktop` files via `KSycoca` / `KService`. Honors `Name`, `Exec`, `Icon`, `Comment`, `GenericName`, `Keywords`, `Categories`, `Actions`, `OnlyShowIn` / `NotShowIn`, `NoDisplay`, `Hidden`, `TryExec`. No custom keys. Translations are pulled from the matching `Name[lang]` / `Comment[lang]` entries. |
 | `.desktop` **Actions** (jumplist) | Surfaced in the right-click context menu. Each action is launched via `KIO::ApplicationLauncherJob`. |
 | [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/) | Config lives in Plasma's standard `$XDG_CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc`. Icon cache, recent-apps, launch-counts: all under Plasma's per-user state. No bespoke paths. |
-| [AppStream](https://specifications.freedesktop.org/appstream-spec/latest/) | "Manage in Discover" opens `appstream://<component-id>`. The component id is resolved from the `.desktop` file via `AppStream::Pool`. |
-| `mimeapps.list` defaults | The grid's *Default app* tier-promotion (browser, mail, etc.) reads `~/.config/mimeapps.list` + system `mimeapps.list` to identify each mime's chosen default, then nudges those apps up within the same relevance tier. |
+| [AppStream](https://specifications.freedesktop.org/appstream-spec/latest/) | "Manage in Discover" opens `appstream://<component-id>`. The component id is resolved from the `.desktop` file via `AppStreamResolver` (`src/appstreamresolver.cpp`), which wraps a shared `AppStream::Pool`. The matching Discover backend is picked by `DiscoverBackends` (`src/discoverbackends.cpp`) from the app's install source. |
+| `mimeapps.list` defaults | The grid's *Default app* tier-promotion (browser, mail, etc.) reads `~/.config/mimeapps.list` + system `mimeapps.list` (parsed by `PluginHelpers::loadMimeAppsDefaults`) to identify each mime's chosen default, then nudges those apps up within the same relevance tier. |
 
 ## Intentionally not surfaced
 

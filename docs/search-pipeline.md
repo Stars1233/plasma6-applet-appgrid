@@ -1,7 +1,8 @@
 # Search pipeline
 
 How AppGrid turns a string in the search bar into the ranked list the user
-sees. Reflects the code in `src/appfiltermodel.cpp`, `src/runnerfiltermodel.cpp`,
+sees. Reflects the code in `src/appfiltermodel.cpp`, `src/searchranking.cpp`,
+`src/launchbookkeeping.cpp`, `src/runnerfiltermodel.cpp`,
 `src/unifiedsearchmodel.cpp`, and `src/frecencyprovider.cpp`.
 
 ## Layers at a glance
@@ -82,8 +83,9 @@ result set even when they will end up at the bottom of the ranking.
 
 ## AppFilterModel — relevance ranking
 
-`searchRelevance(idx, query)` assigns each row to one tier (lower number =
-better). The tiers, in order:
+`AppFilterModel::searchRelevance(idx, query)` reads the row's text roles and
+delegates to the pure `SearchRanking::relevance(...)` (`src/searchranking.cpp`),
+which assigns each row to one tier (lower number = better). The tiers, in order:
 
 | Tier | Where                                          | Example: query `ter`            |
 |------|------------------------------------------------|----------------------------------|
@@ -95,7 +97,7 @@ better). The tiers, in order:
 | 5    | no match (filtered out)                        | —                                |
 
 "Word boundary" = position 0, or just after a non-alphanumeric character
-(`containsAtWordBoundary`). This is what stops a query like `ter` from
+(`SearchRanking::containsAtWordBoundary`). This is what stops a query like `ter` from
 ranking `ghostwriter` and `Foreground Booster` above the real terminal
 emulators.
 
@@ -151,8 +153,11 @@ weighted input.
 ```cpp
 const auto &counts = (m_searchUsesFrecency && !m_frecencyScores.isEmpty())
                          ? m_frecencyScores
-                         : m_launchCounts;
+                         : m_book.launchCounts();
 ```
+
+(`m_book` is the model's `LaunchBookkeeping` member — `src/launchbookkeeping.cpp`
+— which owns the hidden/favorite/recent/known lists and the launch counts.)
 
 If the toggle is off, or the KAStats query has not yet populated, the
 ranking is bit-for-bit identical to the no-frecency path.
@@ -205,3 +210,8 @@ nothing more than `setFrecencyScores({...})` and `setSearchUsesFrecency(true)`
   `zeroCountDoesNotCrossTier`).
 - Frecency substitution (`frecencyTiebreakReplacesLaunchCount`,
   `frecencyFallsBackToLaunchCountWhenMapEmpty`).
+
+The extracted units are also tested directly: the pure tier logic
+(`relevance_classifiesEachTier`, `singularize_rules`,
+`containsAtWordBoundary_rules` in the same file) and the launch state in
+`tests/test_launchbookkeeping.cpp` (hidden/favorite/recent/known + counts).
