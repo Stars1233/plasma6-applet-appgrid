@@ -4,6 +4,12 @@
     SPDX-License-Identifier: CC0-1.0
 -->
 <component type="addon">
+    <!--
+        One component covers both shipped plasmoids: the centered desktop
+        overlay (dev.xarbit.appgrid) and the panel popup
+        (dev.xarbit.appgrid.panel). They are the same product in two form
+        factors, so they share a single AppStream listing.
+    -->
     <id>dev.xarbit.appgrid</id>
     <extends>org.kde.plasmashell</extends>
     <metadata_license>CC0-1.0</metadata_license>
@@ -19,6 +25,7 @@
         </p>
         <p>Features include:</p>
         <ul>
+            <li>Two form factors: centered desktop overlay or native panel popup</li>
             <li>Centered grid overlay with Wayland layer-shell support</li>
             <li>Category-based filtering and KRunner search integration</li>
             <li>Quick commands: terminal, shell, file browser (type ? for help)</li>
