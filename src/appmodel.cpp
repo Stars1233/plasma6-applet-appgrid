@@ -5,23 +5,21 @@
 
 #include "appmodel.h"
 
+#include "categorymapping.h"
+
+#include <KIO/ApplicationLauncherJob>
 #include <KIconLoader>
+#include <KJob>
 #include <KLocalizedString>
 #include <KService>
 #include <KServiceGroup>
 #include <KSycoca>
 
-#include <KIO/ApplicationLauncherJob>
-#include <KJob>
-
+#include <QCollator>
 #include <QIcon>
-
 #include <QTimer>
 
-#include <QCollator>
 #include <algorithm>
-
-#include "categorymapping.h"
 
 AppModel::AppModel(QObject *parent)
     : QAbstractListModel(parent)
