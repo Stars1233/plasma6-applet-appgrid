@@ -39,6 +39,25 @@
         <name>Jason Scurtu</name>
     </developer>
 
+    <screenshots>
+        <screenshot type="default">
+            <caption>Centered application grid overlay</caption>
+            <image>https://raw.githubusercontent.com/xarbit/appgrid.xarbit.dev/refs/heads/main/src/assets/screenshots/launcher-center-default.png</image>
+        </screenshot>
+        <screenshot>
+            <caption>Panel popup variant</caption>
+            <image>https://raw.githubusercontent.com/xarbit/appgrid.xarbit.dev/refs/heads/main/src/assets/screenshots/launcher-native-popup.png</image>
+        </screenshot>
+        <screenshot>
+            <caption>Application context menu</caption>
+            <image>https://raw.githubusercontent.com/xarbit/appgrid.xarbit.dev/refs/heads/main/src/assets/screenshots/launcher-context-menu.png</image>
+        </screenshot>
+        <screenshot>
+            <caption>Hidden applications settings</caption>
+            <image>https://raw.githubusercontent.com/xarbit/appgrid.xarbit.dev/refs/heads/main/src/assets/screenshots/hidden-apps.png</image>
+        </screenshot>
+    </screenshots>
+
     <releases>
         <release version="1.9.0-rc.1" date="2026-05-31">
             <description>
