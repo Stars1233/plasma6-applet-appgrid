@@ -196,6 +196,8 @@ set(APPGRID_SOURCES
     src/pluginhelpers.h
     src/searchranking.cpp
     src/searchranking.h
+    src/launchbookkeeping.cpp
+    src/launchbookkeeping.h
     src/runnerfiltermodel.cpp
     src/runnerfiltermodel.h
     src/unifiedsearchmodel.cpp
@@ -256,6 +258,8 @@ set(APPGRID_PANEL_SOURCES
     src/pluginhelpers.h
     src/searchranking.cpp
     src/searchranking.h
+    src/launchbookkeeping.cpp
+    src/launchbookkeeping.h
     src/runnerfiltermodel.cpp
     src/runnerfiltermodel.h
     src/unifiedsearchmodel.cpp

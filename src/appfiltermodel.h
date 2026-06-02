@@ -12,6 +12,7 @@
 #include <QVariantMap>
 
 #include "appmodel.h"
+#include "launchbookkeeping.h"
 
 /**
  * @brief Proxy model adding search, category filtering, and app hiding.
@@ -163,10 +164,6 @@ protected:
 
 private:
     void recordLaunch(const QString &storageId);
-    void rebuildHiddenSet();
-    void rebuildFavoriteSet();
-    void rebuildRecentSet();
-    void rebuildKnownSet();
     void invalidateStorageIdCache();
     void ensureStorageIdCache() const;
     void invalidateHaystackCache();
@@ -182,31 +179,20 @@ private:
     // query doesn't end in s / is too short. Filter + ranking both consult
     // it so a plural query against a singular category still matches.
     QString m_searchTextLowerSingular;
-    QStringList m_hiddenApps;
-    QStringList m_favoriteApps;
-    QStringList m_recentApps;
     int m_maxRecentApps = 6;
     int m_sortMode = Alphabetical;
-    QHash<QString, int> m_launchCounts;
     QHash<QString, int> m_frecencyScores;
     bool m_searchUsesFrecency = false;
     bool m_searchShowsHidden = false;
-    QStringList m_knownApps;
     bool m_showFavoritesOnly = false;
     bool m_sortFavoritesAlphabetically = false;
     QSet<QString> m_defaultAppsSet;
     QStringList m_defaultApps;
 
-    // Parallel-set lookups for the QStringList membership tests that hit
-    // every filterAcceptsRow / lessThan call (N apps × per filter refresh).
-    // Kept in sync via setters + the rebuild* helpers.
-    QSet<QString> m_hiddenAppsSet;
-    QSet<QString> m_favoriteAppsSet;
-    QSet<QString> m_recentAppsSet;
-    QSet<QString> m_knownAppsSet;
-    // Position lookup for favorites sort — O(1) replacement for the
-    // QStringList::indexOf calls that made lessThan O(N²) per comparison.
-    QHash<QString, int> m_favoritePositions;
+    // Hidden / favorite / recent / known lists, launch counts, and the
+    // derived membership sets + favorite-position index consulted by
+    // filterAcceptsRow / lessThan.
+    LaunchBookkeeping m_book;
 
     // storageId → source-row cache for getByStorageId(). Built lazily on
     // first call; invalidated when the source model resets or rows shift

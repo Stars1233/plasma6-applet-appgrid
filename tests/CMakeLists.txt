@@ -11,6 +11,7 @@ set(TEST_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/unifiedsearchmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/pluginhelpers.cpp
     ${CMAKE_SOURCE_DIR}/src/searchranking.cpp
+    ${CMAKE_SOURCE_DIR}/src/launchbookkeeping.cpp
 )
 
 set(TEST_COMMON_LIBS
@@ -60,6 +61,16 @@ add_executable(test_pluginhelpers
 )
 target_link_libraries(test_pluginhelpers PRIVATE Qt6::Test Qt6::Core)
 add_test(NAME test_pluginhelpers COMMAND test_pluginhelpers)
+
+# LaunchBookkeeping is a plain value type (QtCore only) — light standalone
+# target like test_pluginhelpers.
+add_executable(test_launchbookkeeping
+    test_launchbookkeeping.cpp
+    ${CMAKE_SOURCE_DIR}/src/launchbookkeeping.cpp
+    ${CMAKE_SOURCE_DIR}/src/launchbookkeeping.h
+)
+target_link_libraries(test_launchbookkeeping PRIVATE Qt6::Test Qt6::Core)
+add_test(NAME test_launchbookkeeping COMMAND test_launchbookkeeping)
 
 # UpdateChecker only exists in universal builds; gate the test to match so
 # distro-package CI runs (which don't compile updatechecker.cpp) don't try
