@@ -5,10 +5,8 @@
 
 import QtQuick
 
-Item {
+IconAnimBase {
     id: root
-    property Item target: null
-    property bool hovered: false
 
     function start() {
         // One-shot bounce for shake-on-open

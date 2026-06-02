@@ -87,9 +87,9 @@ Item {
         source: hoverAnimation > 0 && hoverAnimation < iconAnimFiles.length ? iconAnimFiles[hoverAnimation] : ""
         onLoaded: {
             item.target = delegateIcon
-            // GrowAnim supports persistent hover via a hovered property
-            if (item.hasOwnProperty("hovered"))
-                item.hovered = Qt.binding(function() { return delegateMouse.containsMouse })
+            // All icon animations share the IconAnimBase contract; only Grow
+            // reacts to hovered, the rest ignore it.
+            item.hovered = Qt.binding(function() { return delegateMouse.containsMouse })
         }
     }
 
