@@ -683,6 +683,7 @@ Kirigami.ShadowedRectangle {
                     // otherwise pops their tooltips.
                     visible: !panel.isSearching
                     showActionLabels: cfg.showActionLabels
+                    hideMenuButtonLabel: cfg.hideMenuButtonLabel
                     headerActions: cfg.headerActions
                     updateChecker: panel.updateChecker
                     sessionActions: sessionActions

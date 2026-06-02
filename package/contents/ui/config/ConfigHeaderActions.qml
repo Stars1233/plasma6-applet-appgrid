@@ -16,11 +16,15 @@ KCM.SimpleKCM {
 
     property var cfg_headerActions: Plasmoid.configuration.headerActions
     property alias cfg_showActionLabels: showActionLabels.checked
+    property alias cfg_hideMenuButtonLabel: hideMenuButtonLabel.checked
 
-    Kirigami.FormLayout {
+    // Centered, capped-width column; content inside it stays left-aligned.
+    ColumnLayout {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(parent.width, Kirigami.Units.gridUnit * 22)
+        spacing: Kirigami.Units.largeSpacing
+
         HeaderActionsConfig {
-            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Header actions:")
-            Kirigami.FormData.labelAlignment: Qt.AlignTop
             Layout.fillWidth: true
             Layout.minimumWidth: Kirigami.Units.gridUnit * 18
             actions: page.cfg_headerActions
@@ -30,7 +34,6 @@ KCM.SimpleKCM {
 
         QQC2.Label {
             Layout.fillWidth: true
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
             wrapMode: Text.WordWrap
             font: Kirigami.Theme.smallFont
             opacity: 0.7
@@ -38,12 +41,15 @@ KCM.SimpleKCM {
                 "Bar actions appear directly in the launcher header; Menu actions go behind a single ⋮ button (hidden when empty); Off hides the action.")
         }
 
-        Item { Kirigami.FormData.isSection: true }
-
         QQC2.CheckBox {
             id: showActionLabels
-            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Display:")
             text: i18nd("dev.xarbit.appgrid", "Show labels on header buttons")
+        }
+
+        QQC2.CheckBox {
+            id: hideMenuButtonLabel
+            enabled: showActionLabels.checked
+            text: i18nd("dev.xarbit.appgrid", "Hide label on the menu button")
         }
     }
 }

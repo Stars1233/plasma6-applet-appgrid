@@ -147,6 +147,10 @@
       <label>Whether to show text labels on power/session buttons.</label>
       <default>false</default>
     </entry>
+    <entry name="hideMenuButtonLabel" type="Bool">
+      <label>When action labels are shown, still hide the text label on the overflow menu button.</label>
+      <default>false</default>
+    </entry>
     <entry name="hiddenApps" type="StringList">
       <label>List of hidden application storage IDs.</label>
       <default></default>

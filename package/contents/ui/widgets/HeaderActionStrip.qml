@@ -25,6 +25,9 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing
 
     required property bool showActionLabels
+    // When labels are on, the overflow ⋮ button can still be kept icon-only.
+    property bool hideMenuButtonLabel: false
+    readonly property bool _menuLabelVisible: showActionLabels && !hideMenuButtonLabel
     // Ordered "id:placement" tokens; see headeractions.js.
     required property list<string> headerActions
     // Update-checker handle; null on distro packages and in tests.
@@ -111,9 +114,9 @@ RowLayout {
         visible: actions.menuItems.length > 0
         Layout.alignment: Qt.AlignVCenter
         icon.name: "overflow-menu"
-        text: actions.showActionLabels ? i18nd("dev.xarbit.appgrid", "More") : ""
-        display: actions.showActionLabels ? PlasmaComponents.AbstractButton.TextBesideIcon
-                                          : PlasmaComponents.AbstractButton.IconOnly
+        text: actions._menuLabelVisible ? i18nd("dev.xarbit.appgrid", "More") : ""
+        display: actions._menuLabelVisible ? PlasmaComponents.AbstractButton.TextBesideIcon
+                                           : PlasmaComponents.AbstractButton.IconOnly
         checked: overflow.visible
 
         property bool _menuJustClosed: false
@@ -124,7 +127,7 @@ RowLayout {
         }
 
         PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "More actions")
-        PlasmaComponents.ToolTip.visible: !actions.showActionLabels && hovered
+        PlasmaComponents.ToolTip.visible: !actions._menuLabelVisible && hovered
         PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
         Accessible.name: i18nd("dev.xarbit.appgrid", "More actions")
         Accessible.role: Accessible.Button
