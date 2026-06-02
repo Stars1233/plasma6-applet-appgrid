@@ -835,6 +835,7 @@ Kirigami.ShadowedRectangle {
                     }
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
+                        // Intentionally left untranslated (not localizable copy).
                         text: "The Answer to the Ultimate Question of Life, the Universe, and Everything"
                         font: Kirigami.Theme.smallFont
                         opacity: 0.7

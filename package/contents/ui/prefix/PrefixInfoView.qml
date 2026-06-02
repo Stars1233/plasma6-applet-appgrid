@@ -37,14 +37,14 @@ ScrollableColumn {
     Repeater {
         model: [
             { label: "AppGrid",  value: infoView.sysInfo.appgridVersion || "", checkUpdates: true },
-            { label: "Install",  value: infoView.sysInfo.installType || "" },
-            { label: "Variant",  value: infoView.sysInfo.variant || "" },
-            { label: "Session",  value: infoView.sysInfo.sessionType || "" },
+            { label: i18nd("dev.xarbit.appgrid", "Install"),  value: infoView.sysInfo.installType || "" },
+            { label: i18nd("dev.xarbit.appgrid", "Variant"),  value: infoView.sysInfo.variant || "" },
+            { label: i18nd("dev.xarbit.appgrid", "Session"),  value: infoView.sysInfo.sessionType || "" },
             { label: "Plasma",   value: infoView.sysInfo.plasmaVersion || "" },
             { label: "KF",       value: infoView.sysInfo.kfVersion || "" },
             { label: "Qt",       value: infoView.sysInfo.qtVersion || "" },
             { label: "OS",       value: infoView.sysInfo.os || "" },
-            { label: "Screens",  value: infoView.sysInfo.screens || "" }
+            { label: i18nd("dev.xarbit.appgrid", "Screens"),  value: infoView.sysInfo.screens || "" }
         ]
 
         delegate: Item {
