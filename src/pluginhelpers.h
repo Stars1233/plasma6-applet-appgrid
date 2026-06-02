@@ -44,4 +44,9 @@ inline constexpr QLatin1String ApplicationsUrlPrefix{"applications:"};
 /** Merged default-app desktop ids from the user and system mimeapps.list
  *  files. Does the filesystem reads; parsing is parseMimeAppsDefaults(). */
 [[nodiscard]] QStringList loadMimeAppsDefaults();
+
+/** First .desktop local-file path from a KRunner row's "urls" role value
+ *  (@p urlsData holds a QList<QUrl>), or empty. Maps a services-runner result
+ *  back to its desktop file; the caller takes fileName() for the storage id. */
+[[nodiscard]] QString desktopPathFromRunnerUrls(const QVariant &urlsData);
 }

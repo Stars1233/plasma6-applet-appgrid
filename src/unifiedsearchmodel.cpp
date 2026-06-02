@@ -6,6 +6,7 @@
 #include "unifiedsearchmodel.h"
 
 #include "appmodel.h"
+#include "pluginhelpers.h"
 
 #include <KRunner/Action>
 
@@ -146,16 +147,10 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
         case DesktopFileRole: {
             if (m_runnerUrlsRole < 0)
                 return QString();
-            const auto urls = srcIdx.data(m_runnerUrlsRole).value<QList<QUrl>>();
-            for (const auto &url : urls) {
-                const auto path = url.toLocalFile();
-                if (path.endsWith(QLatin1String(".desktop"))) {
-                    if (role == StorageIdRole)
-                        return QFileInfo(path).fileName();
-                    return path;
-                }
-            }
-            return QString();
+            const QString path = PluginHelpers::desktopPathFromRunnerUrls(srcIdx.data(m_runnerUrlsRole));
+            if (path.isEmpty())
+                return QString();
+            return role == StorageIdRole ? QFileInfo(path).fileName() : path;
         }
         case IsNewRole:
             return false;

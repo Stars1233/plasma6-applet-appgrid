@@ -7,8 +7,10 @@
     directory listing (exercised against a QTemporaryDir).
 */
 
+#include <QList>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QUrl>
 #include <QVariantMap>
 
 #include "pluginhelpers.h"
@@ -202,6 +204,21 @@ private Q_SLOTS:
         QVERIFY(parseMimeAppsDefaults(QStringLiteral(
                     "[Added Associations]\ntext/plain=foo.desktop\n"))
                     .isEmpty());
+    }
+
+    void desktopPathFromRunnerUrls_findsFirstDesktop()
+    {
+        const QList<QUrl> urls{QUrl::fromLocalFile(QStringLiteral("/tmp/note.txt")),
+                               QUrl::fromLocalFile(QStringLiteral("/usr/share/applications/org.kde.kate.desktop"))};
+        QCOMPARE(desktopPathFromRunnerUrls(QVariant::fromValue(urls)),
+                 QStringLiteral("/usr/share/applications/org.kde.kate.desktop"));
+    }
+
+    void desktopPathFromRunnerUrls_emptyWhenNoDesktop()
+    {
+        const QList<QUrl> urls{QUrl::fromLocalFile(QStringLiteral("/tmp/note.txt"))};
+        QVERIFY(desktopPathFromRunnerUrls(QVariant::fromValue(urls)).isEmpty());
+        QVERIFY(desktopPathFromRunnerUrls(QVariant()).isEmpty());
     }
 };
 

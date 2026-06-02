@@ -6,6 +6,7 @@
 #include "runnerfiltermodel.h"
 
 #include "appmodel.h"
+#include "pluginhelpers.h"
 
 #include <QFileInfo>
 #include <QList>
@@ -73,13 +74,8 @@ QString RunnerFilterModel::storageIdFromRow(const QModelIndex &idx) const
 {
     if (m_urlsRole < 0)
         return {};
-    const auto urls = idx.data(m_urlsRole).value<QList<QUrl>>();
-    for (const auto &url : urls) {
-        const auto path = url.toLocalFile();
-        if (path.endsWith(QLatin1String(".desktop")))
-            return QFileInfo(path).fileName();
-    }
-    return {};
+    const QString path = PluginHelpers::desktopPathFromRunnerUrls(idx.data(m_urlsRole));
+    return path.isEmpty() ? QString() : QFileInfo(path).fileName();
 }
 
 bool RunnerFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const

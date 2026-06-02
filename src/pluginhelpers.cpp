@@ -8,9 +8,11 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QList>
 #include <QMimeDatabase>
 #include <QSet>
 #include <QStandardPaths>
+#include <QUrl>
 #include <QVariantMap>
 
 namespace PluginHelpers
@@ -140,5 +142,16 @@ QStringList loadMimeAppsDefaults()
             all.insert(id);
     }
     return QStringList(all.cbegin(), all.cend());
+}
+
+QString desktopPathFromRunnerUrls(const QVariant &urlsData)
+{
+    const auto urls = urlsData.value<QList<QUrl>>();
+    for (const auto &url : urls) {
+        const auto path = url.toLocalFile();
+        if (path.endsWith(QLatin1String(".desktop")))
+            return path;
+    }
+    return {};
 }
 }
