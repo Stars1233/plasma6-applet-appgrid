@@ -9,7 +9,6 @@
 
 import QtQuick
 import org.kde.kirigami as Kirigami
-import org.kde.ksvg as KSvg
 import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
@@ -492,13 +491,10 @@ Flickable {
                     }
                 }
 
-                KSvg.SvgItem {
+                HorizontalDivider {
                     width: parent.width
                     visible: index < categoryGrid.groupedApps.length - 1
                     opacity: categoryGrid.showDividers ? 1 : 0
-                    imagePath: "widgets/line"
-                    elementId: "horizontal-line"
-                    implicitHeight: 0.5
                 }
             }
         }

@@ -703,17 +703,10 @@ Kirigami.ShadowedRectangle {
         }
 
         // -- Category bar --
-        KSvg.SvgItem {
+        HorizontalDivider {
             Layout.fillWidth: true
             visible: panel.showCatBar
             opacity: panel.cfgShowDividers ? 1 : 0
-            imagePath: "widgets/line"
-            elementId: "horizontal-line"
-            // Sub-pixel implicit height renders the line at half-alpha
-            // across a single screen pixel. Softer than a full 1px line in
-            // any theme, and consistent across separators regardless of the
-            // layout's fractional Y for each slot.
-            implicitHeight: 0.5
         }
 
         CategoryBar {
@@ -757,13 +750,10 @@ Kirigami.ShadowedRectangle {
             }
         }
 
-        KSvg.SvgItem {
+        HorizontalDivider {
             Layout.fillWidth: true
             visible: panel.showCatBar
             opacity: panel.cfgShowDividers ? 1 : 0
-            imagePath: "widgets/line"
-            elementId: "horizontal-line"
-            implicitHeight: 0.5
         }
 
         // -- Prefix mode view --
