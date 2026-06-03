@@ -857,6 +857,7 @@ Kirigami.ShadowedRectangle {
             fontScale: panel.densityScale
             showDividers: panel.cfgShowDividers
             shadowEnabled: cfg.iconShadow
+            showShortcuts: cfg.showSearchShortcuts
             animateHighlight: cfg.hoverAnimation > 0
             searchField: searchBar.field
             onLaunched: function(index) { panel.launchSearchResult(index) }

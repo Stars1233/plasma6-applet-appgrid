@@ -93,6 +93,7 @@ QtObject {
     readonly property bool searchUsesFrecency: source.searchUsesFrecency
     readonly property bool searchShowsHidden: source.searchShowsHidden
     readonly property bool searchInlineCompletion: source.searchInlineCompletion
+    readonly property bool showSearchShortcuts: source.showSearchShortcuts
     readonly property string terminalShell: source.terminalShell
 
     // --- Power / session ---

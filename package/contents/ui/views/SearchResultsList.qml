@@ -31,6 +31,9 @@ ListView {
     property real fontScale: 1.0
     property bool showDividers: true
     property bool shadowEnabled: false
+    // Show the Alt+N launch-shortcut badge on each row. The shortcut still
+    // works when hidden — this only drops the visual label (#165).
+    property bool showShortcuts: true
 
     signal launched(int index)
     signal contextMenuRequested(int index, string storageId, string desktopFile)
@@ -176,7 +179,7 @@ ListView {
 
     component ShortcutBadge: Rectangle {
         property int number: 0
-        visible: number > 0
+        visible: number > 0 && listView.showShortcuts
         implicitWidth: badgeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
         implicitHeight: Kirigami.Units.gridUnit * 1.5
         radius: Kirigami.Units.cornerRadius

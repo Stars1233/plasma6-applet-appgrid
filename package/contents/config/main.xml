@@ -175,6 +175,10 @@
       <label>Show a greyed inline completion of the best matching term in the search field, accepted with Tab.</label>
       <default>true</default>
     </entry>
+    <entry name="showSearchShortcuts" type="Bool">
+      <label>Show the Alt+1..9 launch-shortcut badge on each search result. The shortcuts still work when this is off; only the badge is hidden.</label>
+      <default>true</default>
+    </entry>
     <entry name="gridColumns" type="Int">
       <label>Maximum number of icons per row.</label>
       <default>7</default>

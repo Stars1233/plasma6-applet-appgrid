@@ -17,6 +17,7 @@ KCM.SimpleKCM {
     property alias cfg_searchUsesFrecency: searchUsesFrecency.checked
     property alias cfg_searchShowsHidden: searchShowsHidden.checked
     property alias cfg_searchInlineCompletion: searchInlineCompletion.checked
+    property alias cfg_showSearchShortcuts: showSearchShortcuts.checked
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
@@ -75,6 +76,18 @@ KCM.SimpleKCM {
             text: i18nd("dev.xarbit.appgrid", "Show inline completion as you type")
             QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
                 "Greys the rest of the best matching term after what you've typed (e.g. \"te\" → \"terminal\"); press Tab to accept it.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: showSearchShortcuts
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Shortcuts:")
+            text: i18nd("dev.xarbit.appgrid", "Show the Alt+number badge on search results")
+            QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid",
+                "Each of the first results gets an Alt+1..9 launch shortcut. Turn this off to hide the badges; the shortcuts still work.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
