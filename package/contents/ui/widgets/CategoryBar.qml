@@ -316,6 +316,8 @@ RowLayout {
     PlasmaComponents.ToolButton {
         id: allButton
         visible: !categoryBar.isSortByCategory
+        // Keep focus on the search field so Alt+arrow nav survives a click (#174).
+        focusPolicy: Qt.NoFocus
         Kirigami.MnemonicData.enabled: false
         text: ""
         Layout.preferredHeight: categoryBar.buttonHeight
@@ -349,6 +351,7 @@ RowLayout {
     // Flickable in a single frame mid-scroll and snap contentX; the
     // animated width gives the layout time to settle smoothly.
     component ScrollArrow: PlasmaComponents.ToolButton {
+        focusPolicy: Qt.NoFocus
         property bool scrollable: false
         enabled: scrollable
         opacity: scrollable ? 1 : 0
@@ -463,6 +466,7 @@ RowLayout {
                 id: catRepeater
                 model: categoryBar.categoryList
                 delegate: PlasmaComponents.ToolButton {
+                    focusPolicy: Qt.NoFocus
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     required property int index

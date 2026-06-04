@@ -18,6 +18,9 @@ PlasmaComponents.ToolButton {
 
     required property var categoryBar
 
+    // Keep focus on the search field so Alt+arrow nav survives a click (#174).
+    focusPolicy: Qt.NoFocus
+
     // Match the bar's button height, but fill it with a larger icon: zero the
     // vertical padding so the favorites glyph reaches favoritesIconSize without
     // growing the button (#171).
