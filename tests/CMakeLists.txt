@@ -189,6 +189,21 @@ if(Qt6QuickTest_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/constants.js
         COPYONLY
     )
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/gridmetrics.js
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gridmetrics.js
+        COPYONLY
+    )
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/prefixmodes.js
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/prefixmodes.js
+        COPYONLY
+    )
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/themecolors.js
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/themecolors.js
+        COPYONLY
+    )
     # PrefixDetector imports "../js/prefixmodes.js"; stage it at the matching
     # relative path (tests/js/) so the copied component resolves it.
     configure_file(
