@@ -171,7 +171,7 @@ jobs:
         # explicit Id makes KCoreAddons warn, #173).
         run: |
           set -e
-          for m in build/embed/*/metadata.json; do
+          for m in build/embed/*/*.json; do
             echo "checking $m"
             python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d.get('KPackageStructure')=='Plasma/Applet','bad KPackageStructure'; assert 'KPlugin' in d,'missing KPlugin'; assert 'Id' not in d['KPlugin'],'KPlugin.Id must be absent for a compiled applet (#173)'; print('  ok: Plasma/Applet, Id-free')" "$m"
           done

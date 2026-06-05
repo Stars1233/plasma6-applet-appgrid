@@ -208,7 +208,7 @@ endif()
 # metadata is embedded Id-free (pluginId derives from the filename), which is
 # what silences the KCoreAddons "explicitly states an Id" warning.
 function(appgrid_add_compiled_applet)
-    cmake_parse_arguments(A "" "TARGET;VARIANT;METADATA" "SOURCES" ${ARGN})
+    cmake_parse_arguments(A "" "TARGET;VARIANT;METADATA;JSON" "SOURCES" ${ARGN})
 
     add_library(${A_TARGET} SHARED ${A_SOURCES})
     set_target_properties(${A_TARGET} PROPERTIES PREFIX ""
@@ -265,11 +265,13 @@ function(appgrid_add_compiled_applet)
 
     # Embedded applet metadata, configured from the template (which carries no
     # KPlugin Id — the pluginId derives from the .so filename, so an explicit Id
-    # would make KCoreAddons warn, #173). Each target gets its own embed dir on
-    # the moc include path, so K_PLUGIN_CLASS_WITH_JSON(<class>, "metadata.json")
-    # resolves to this target's copy.
+    # would make KCoreAddons warn, #173). The embedded file uses a per-variant
+    # name (JSON) matching the K_PLUGIN_CLASS_WITH_JSON literal, so moc can never
+    # resolve a different variant's metadata (or a stray "metadata.json" left in
+    # a build tree) — a bare shared name was fragile against moc's source-dir-
+    # first include resolution. The per-target embed dir stays on the moc path.
     set(_embed ${CMAKE_BINARY_DIR}/embed/${A_TARGET})
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${A_METADATA} ${_embed}/metadata.json @ONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${A_METADATA} ${_embed}/${A_JSON} @ONLY)
     set_property(TARGET ${A_TARGET} APPEND PROPERTY AUTOMOC_MOC_OPTIONS "-I${_embed}")
 
     install(TARGETS ${A_TARGET} DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
@@ -280,6 +282,7 @@ appgrid_add_compiled_applet(
     TARGET dev.xarbit.appgrid
     VARIANT center
     METADATA metadata.json.in
+    JSON metadata-center.json
     SOURCES src/appgridplugin_register.cpp ${APPGRID_COMMON_SOURCES})
 
 # --- Panel plasmoid (native Plasma popup near panel icon) ---
@@ -287,7 +290,9 @@ appgrid_add_compiled_applet(
     TARGET dev.xarbit.appgrid.panel
     VARIANT panel
     METADATA metadata-panel.json.in
-    SOURCES src/appgridpanelplugin.cpp src/appgridpanelplugin.h ${APPGRID_COMMON_SOURCES})
+    JSON metadata-panel.json
+    SOURCES src/appgridpanelplugin.cpp src/appgridpanelplugin.h
+            src/popupsizepolicy.cpp src/popupsizepolicy.h ${APPGRID_COMMON_SOURCES})
 
 message(STATUS "AppGrid ENABLE_X11=${ENABLE_X11}")
 

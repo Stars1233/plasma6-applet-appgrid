@@ -93,6 +93,15 @@ add_executable(test_appmodel_assembly
 target_link_libraries(test_appmodel_assembly PRIVATE Qt6::Test Qt6::Core)
 add_test(NAME test_appmodel_assembly COMMAND test_appmodel_assembly)
 
+# PopupSizePolicy — pure panel popup-size save/restore decisions, QtCore only.
+add_executable(test_popup_size_policy
+    test_popup_size_policy.cpp
+    ${CMAKE_SOURCE_DIR}/src/popupsizepolicy.cpp
+    ${CMAKE_SOURCE_DIR}/src/popupsizepolicy.h
+)
+target_link_libraries(test_popup_size_policy PRIVATE Qt6::Test Qt6::Core)
+add_test(NAME test_popup_size_policy COMMAND test_popup_size_policy)
+
 # DiscoverBackends — Plasma-free string/filesystem mapping (QtCore only).
 add_executable(test_discoverbackends
     test_discoverbackends.cpp
