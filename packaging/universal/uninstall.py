@@ -25,10 +25,9 @@ PLASMA_ENV_FILE = (Path.home() / ".config" / "plasma-workspace" / "env"
 ALLOWED_ABS_EXTRAS = frozenset({PLASMA_ENV_FILE})
 
 # Dirs pruned (only if empty) after removing files. Hardcoded so we never
-# recurse the whole ~/.local tree.
+# recurse the whole ~/.local tree. The applet plugins live in the shared
+# plasma/applets dir (not pruned); only our own bookkeeping dir is ours to drop.
 PRUNE_CANDIDATES = (
-    USER_PREFIX / "share" / "plasma" / "plasmoids" / "dev.xarbit.appgrid",
-    USER_PREFIX / "share" / "plasma" / "plasmoids" / "dev.xarbit.appgrid.panel",
     USER_PREFIX / "share" / "appgrid",
 )
 

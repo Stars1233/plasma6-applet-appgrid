@@ -51,13 +51,13 @@ PLASMA_ENV_FILE = PLASMA_ENV_DIR / "appgrid-user-local.sh"
 ALLOWED_ABS_EXTRAS = frozenset({PLASMA_ENV_FILE})
 
 # System-wide locations that an existing distro-packaged AppGrid lands
-# in. Plasma scans both system and user plasmoid dirs; if it finds the
+# in. Plasma scans both system and user applet plugin dirs; if it finds the
 # applet ID twice it picks whichever its discovery hits first, which is
 # usually the system one — leaving the user on the old version and
-# defeating the universal install. We refuse to overwrite this footgun.
+# defeating the universal install. We refuse to install over this footgun.
 SYSTEM_APPGRID_PATHS = (
-    Path("/usr/share/plasma/plasmoids/dev.xarbit.appgrid"),
-    Path("/usr/share/plasma/plasmoids/dev.xarbit.appgrid.panel"),
+    Path("/usr/lib/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so"),
+    Path("/usr/lib/qt6/plugins/plasma/applets/dev.xarbit.appgrid.panel.so"),
 )
 
 # Per-distro-family hint for the uninstall command. Keyed by the table

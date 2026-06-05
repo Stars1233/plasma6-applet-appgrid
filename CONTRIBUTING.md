@@ -21,10 +21,10 @@ cmake --preset release      # see CMakePresets.json for other presets
 cmake --build build
 ```
 
-Install to `~/.local/share/plasma/plasmoids/` (for dev iteration without
-touching system paths) via `makepkg -si` from the bundled `PKGBUILD`, or
-`cmake --install build --prefix ~/.local`. Then in Plasma:
-*Add Widgets → AppGrid*.
+Install via `makepkg -si` from the bundled `PKGBUILD`, or to a user prefix
+(no system paths touched) with `cmake --install build --prefix ~/.local`. The
+QML is compiled into the applet `.so` (no loose plasmoid package on disk), so a
+rebuild is needed to pick up QML changes. Then in Plasma: *Add Widgets → AppGrid*.
 
 ## Run the tests
 

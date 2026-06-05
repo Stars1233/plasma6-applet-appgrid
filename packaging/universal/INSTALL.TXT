@@ -180,9 +180,10 @@ Quick reference:
  What lands where
 ----------------------------------------------------------------
 
-  ~/.local/share/plasma/plasmoids/dev.xarbit.appgrid/
-  ~/.local/share/plasma/plasmoids/dev.xarbit.appgrid.panel/
-  ~/.local/lib/qt6/plugins/...           (the .so files)
+  ~/.local/lib/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so
+  ~/.local/lib/qt6/plugins/plasma/applets/dev.xarbit.appgrid.panel.so
+  ~/.local/share/icons/hicolor/scalable/apps/dev.xarbit.appgrid.svg
+  ~/.local/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
   ~/.local/share/appgrid/MANIFEST        (installer bookkeeping)
   ~/.config/plasma-workspace/env/appgrid-user-local.sh
 

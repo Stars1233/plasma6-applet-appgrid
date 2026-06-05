@@ -159,163 +159,131 @@ set(APPGRID_COMMON_LIBS
     AppStreamQt
 )
 
-# Assemble a complete plasmoid package for ${variant} under the build tree
-# from the single package/ source: the entire shared base (package/contents/)
-# plus the variant-only entry files in package/variants/${variant}/, which
-# mirror their contents/ui/ destination paths.
-#
-# Both variants share all of contents/ and differ only in the entry files
-# (main.qml + its compact representation), which live outside contents/ under
-# variants/. So the base is globbed wholesale rather than enumerated: a new
-# shared QML file (or whole folder, e.g. animations/) is staged automatically,
-# with no list to forget.
-#
-# Each variant is staged into its own tree because plasma_install_package()
-# ships a whole directory — installing package/ in place would leak every
-# variant's entry files into every plasmoid. Adding a variant = a new
-# package/variants/<name>/ folder plus a stage+install pair below.
-function(appgrid_stage_variant dest variant)
-    set(_base ${CMAKE_CURRENT_SOURCE_DIR}/package/contents)
-    file(GLOB_RECURSE _shared_files RELATIVE ${_base} CONFIGURE_DEPENDS ${_base}/*)
-    foreach(shared_file ${_shared_files})
-        configure_file(${_base}/${shared_file} ${dest}/contents/${shared_file} COPYONLY)
-    endforeach()
 
-    set(_variant_dir ${CMAKE_CURRENT_SOURCE_DIR}/package/variants/${variant})
-    file(GLOB_RECURSE _entry_files RELATIVE ${_variant_dir} CONFIGURE_DEPENDS ${_variant_dir}/*)
-    foreach(entry_file ${_entry_files})
-        configure_file(${_variant_dir}/${entry_file} ${dest}/contents/ui/${entry_file} COPYONLY)
+# --- Shared C++ sources (both variants) ---
+# Everything except the per-variant plugin register (appgridplugin_register.cpp
+# for center, appgridpanelplugin.* for panel), which the calls add inline.
+set(APPGRID_COMMON_SOURCES
+    src/appgridplugin.cpp
+    src/appgridplugin.h
+    src/appstreamresolver.cpp
+    src/appstreamresolver.h
+    src/appmodel.cpp
+    src/appmodel.h
+    src/appfiltermodel.cpp
+    src/appfiltermodel.h
+    src/categorymapping.cpp
+    src/categorymapping.h
+    src/discoverbackends.cpp
+    src/discoverbackends.h
+    src/pluginhelpers.cpp
+    src/pluginhelpers.h
+    src/searchranking.cpp
+    src/searchranking.h
+    src/launchbookkeeping.cpp
+    src/launchbookkeeping.h
+    src/runnerfiltermodel.cpp
+    src/runnerfiltermodel.h
+    src/unifiedsearchmodel.cpp
+    src/unifiedsearchmodel.h
+    src/frecencyprovider.cpp
+    src/frecencyprovider.h
+)
+# Update checker is compiled in only for universal-tarball builds.
+if(APPGRID_UNIVERSAL_BUILD)
+    list(APPEND APPGRID_COMMON_SOURCES src/updatechecker.cpp src/updatechecker.h)
+endif()
+
+# Build an AppGrid variant as a compiled-QML Plasma applet (#173): the QML is
+# baked into the .so as PLAIN qrc resources at the root Plasma::Applet::qrcPath()
+# expects (:/qt/qml/plasma/applet/<pluginId with / for .>/), with main.qml at the
+# root. It is NOT a registered QML module — Plasma loads main.qml as a qrc file
+# and the relative/directory imports (import "controllers", "../js/x.js") resolve
+# from the resource at runtime. Keeping the QML as source (no qmlcachegen/AOT)
+# avoids the QTP0004 qmldir requirement and stays version-portable. The applet
+# metadata is embedded Id-free (pluginId derives from the filename), which is
+# what silences the KCoreAddons "explicitly states an Id" warning.
+function(appgrid_add_compiled_applet)
+    cmake_parse_arguments(A "" "TARGET;VARIANT;METADATA" "SOURCES" ${ARGN})
+
+    add_library(${A_TARGET} SHARED ${A_SOURCES})
+    set_target_properties(${A_TARGET} PROPERTIES PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/plasma/applets")
+    target_link_libraries(${A_TARGET} PRIVATE ${APPGRID_COMMON_LIBS})
+    target_compile_definitions(${A_TARGET} PRIVATE
+        "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
+        "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
+        "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
+    if(ENABLE_X11)
+        target_compile_definitions(${A_TARGET} PRIVATE APPGRID_X11_SUPPORT)
+    endif()
+    if(APPGRID_UNIVERSAL_BUILD)
+        target_link_libraries(${A_TARGET} PRIVATE Qt6::Network)
+        target_compile_definitions(${A_TARGET} PRIVATE APPGRID_UNIVERSAL_BUILD)
+    endif()
+    if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        set(_w -Wall -Wextra -Wunused -Wshadow -Wnon-virtual-dtor -Werror)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            list(APPEND _w -Wunreachable-code-aggressive)
+        endif()
+        target_compile_options(${A_TARGET} PRIVATE ${_w})
+    endif()
+
+    # qrc prefix mirrors Applet::qrcPath(): the pluginId (= the .so/target name)
+    # with dots replaced by slashes.
+    string(REPLACE "." "/" _idpath ${A_TARGET})
+    set(_prefix "/qt/qml/plasma/applet/${_idpath}")
+    set(_files)
+    # Entry + compact rep from the variant → qrc root.
+    foreach(_f main.qml CompactRepresentation.qml)
+        set(_s ${CMAKE_CURRENT_SOURCE_DIR}/package/variants/${A_VARIANT}/${_f})
+        set_source_files_properties(${_s} PROPERTIES QT_RESOURCE_ALIAS ${_f})
+        list(APPEND _files ${_s})
     endforeach()
+    # Plasma config entry + KConfigXT schema → qrc root (the flat layout Plasma's
+    # compiled applets use; config.qml's "config/Foo.qml" sources resolve under it).
+    foreach(_f config.qml main.xml)
+        set(_s ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/${_f})
+        set_source_files_properties(${_s} PROPERTIES QT_RESOURCE_ALIAS ${_f})
+        list(APPEND _files ${_s})
+    endforeach()
+    # Shared QML/JS under contents/ui/ → alias = path relative to contents/ui/,
+    # preserving the subdir structure so the relative imports keep resolving.
+    file(GLOB_RECURSE _ui CONFIGURE_DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/*.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/*.js)
+    foreach(_s ${_ui})
+        file(RELATIVE_PATH _alias ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui ${_s})
+        set_source_files_properties(${_s} PROPERTIES QT_RESOURCE_ALIAS ${_alias})
+        list(APPEND _files ${_s})
+    endforeach()
+    qt_add_resources(${A_TARGET} "${A_TARGET}_qml" PREFIX ${_prefix} FILES ${_files})
+
+    # Embedded applet metadata, configured from the template (which carries no
+    # KPlugin Id — the pluginId derives from the .so filename, so an explicit Id
+    # would make KCoreAddons warn, #173). Each target gets its own embed dir on
+    # the moc include path, so K_PLUGIN_CLASS_WITH_JSON(<class>, "metadata.json")
+    # resolves to this target's copy.
+    set(_embed ${CMAKE_BINARY_DIR}/embed/${A_TARGET})
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${A_METADATA} ${_embed}/metadata.json @ONLY)
+    set_property(TARGET ${A_TARGET} APPEND PROPERTY AUTOMOC_MOC_OPTIONS "-I${_embed}")
+
+    install(TARGETS ${A_TARGET} DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
 endfunction()
 
-# --- Main plasmoid (Center variant: custom Window with centered popup) ---
-
-set(APPGRID_SOURCES
-    src/appgridplugin_register.cpp
-    src/appgridplugin.cpp
-    src/appgridplugin.h
-    src/appstreamresolver.cpp
-    src/appstreamresolver.h
-    src/appmodel.cpp
-    src/appmodel.h
-    src/appfiltermodel.cpp
-    src/appfiltermodel.h
-    src/categorymapping.cpp
-    src/categorymapping.h
-    src/discoverbackends.cpp
-    src/discoverbackends.h
-    src/pluginhelpers.cpp
-    src/pluginhelpers.h
-    src/searchranking.cpp
-    src/searchranking.h
-    src/launchbookkeeping.cpp
-    src/launchbookkeeping.h
-    src/runnerfiltermodel.cpp
-    src/runnerfiltermodel.h
-    src/unifiedsearchmodel.cpp
-    src/unifiedsearchmodel.h
-    src/frecencyprovider.cpp
-    src/frecencyprovider.h
-)
-if(APPGRID_UNIVERSAL_BUILD)
-    list(APPEND APPGRID_SOURCES src/updatechecker.cpp src/updatechecker.h)
-endif()
-
-add_library(dev.xarbit.appgrid SHARED ${APPGRID_SOURCES})
-set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
-target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
-target_compile_definitions(dev.xarbit.appgrid PRIVATE
-    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
-    "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
-    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
-if(ENABLE_X11)
-    target_compile_definitions(dev.xarbit.appgrid PRIVATE APPGRID_X11_SUPPORT)
-endif()
-if(APPGRID_UNIVERSAL_BUILD)
-    target_link_libraries(dev.xarbit.appgrid PRIVATE Qt6::Network)
-    target_compile_definitions(dev.xarbit.appgrid PRIVATE APPGRID_UNIVERSAL_BUILD)
-endif()
-
-set(APPGRID_CENTER_PACKAGE ${CMAKE_BINARY_DIR}/package-center)
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/metadata.json.in
-    ${APPGRID_CENTER_PACKAGE}/metadata.json
-    @ONLY
-)
-appgrid_stage_variant(${APPGRID_CENTER_PACKAGE} center)
-
-install(TARGETS dev.xarbit.appgrid DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
-plasma_install_package(${APPGRID_CENTER_PACKAGE} dev.xarbit.appgrid)
+# --- Center variant (custom Window with centered popup) ---
+appgrid_add_compiled_applet(
+    TARGET dev.xarbit.appgrid
+    VARIANT center
+    METADATA metadata.json.in
+    SOURCES src/appgridplugin_register.cpp ${APPGRID_COMMON_SOURCES})
 
 # --- Panel plasmoid (native Plasma popup near panel icon) ---
-
-set(APPGRID_PANEL_SOURCES
-    src/appgridpanelplugin.cpp
-    src/appgridpanelplugin.h
-    src/appgridplugin.cpp
-    src/appgridplugin.h
-    src/appstreamresolver.cpp
-    src/appstreamresolver.h
-    src/appmodel.cpp
-    src/appmodel.h
-    src/appfiltermodel.cpp
-    src/appfiltermodel.h
-    src/categorymapping.cpp
-    src/categorymapping.h
-    src/discoverbackends.cpp
-    src/discoverbackends.h
-    src/pluginhelpers.cpp
-    src/pluginhelpers.h
-    src/searchranking.cpp
-    src/searchranking.h
-    src/launchbookkeeping.cpp
-    src/launchbookkeeping.h
-    src/runnerfiltermodel.cpp
-    src/runnerfiltermodel.h
-    src/unifiedsearchmodel.cpp
-    src/unifiedsearchmodel.h
-    src/frecencyprovider.cpp
-    src/frecencyprovider.h
-)
-if(APPGRID_UNIVERSAL_BUILD)
-    list(APPEND APPGRID_PANEL_SOURCES src/updatechecker.cpp src/updatechecker.h)
-endif()
-
-add_library(dev.xarbit.appgrid.panel SHARED ${APPGRID_PANEL_SOURCES})
-set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
-target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})
-target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE
-    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
-    "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
-    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
-if(ENABLE_X11)
-    target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE APPGRID_X11_SUPPORT)
-endif()
-if(APPGRID_UNIVERSAL_BUILD)
-    target_link_libraries(dev.xarbit.appgrid.panel PRIVATE Qt6::Network)
-    target_compile_definitions(dev.xarbit.appgrid.panel PRIVATE APPGRID_UNIVERSAL_BUILD)
-endif()
-
-if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(_appgrid_warnings -Wall -Wextra -Wunused -Wshadow -Wnon-virtual-dtor -Werror)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND _appgrid_warnings -Wunreachable-code-aggressive)
-    endif()
-    foreach(_tgt dev.xarbit.appgrid dev.xarbit.appgrid.panel)
-        target_compile_options(${_tgt} PRIVATE ${_appgrid_warnings})
-    endforeach()
-endif()
-
-set(APPGRID_PANEL_PACKAGE ${CMAKE_BINARY_DIR}/package-panel)
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/metadata-panel.json.in
-    ${APPGRID_PANEL_PACKAGE}/metadata.json
-    @ONLY
-)
-appgrid_stage_variant(${APPGRID_PANEL_PACKAGE} panel)
-
-install(TARGETS dev.xarbit.appgrid.panel DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
-plasma_install_package(${APPGRID_PANEL_PACKAGE} dev.xarbit.appgrid.panel)
+appgrid_add_compiled_applet(
+    TARGET dev.xarbit.appgrid.panel
+    VARIANT panel
+    METADATA metadata-panel.json.in
+    SOURCES src/appgridpanelplugin.cpp src/appgridpanelplugin.h ${APPGRID_COMMON_SOURCES})
 
 message(STATUS "AppGrid ENABLE_X11=${ENABLE_X11}")
 

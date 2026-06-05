@@ -68,8 +68,6 @@ presentation.
 %doc README.md
 %{_qt6_plugindir}/plasma/applets/dev.xarbit.appgrid.so
 %{_qt6_plugindir}/plasma/applets/dev.xarbit.appgrid.panel.so
-%{_datadir}/plasma/plasmoids/dev.xarbit.appgrid/
-%{_datadir}/plasma/plasmoids/dev.xarbit.appgrid.panel/
 %{_metainfodir}/dev.xarbit.appgrid.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/dev.xarbit.appgrid.svg
 

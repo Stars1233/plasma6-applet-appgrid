@@ -75,8 +75,8 @@ stdenv.mkDerivation (finalAttrs: {
       reordering, multi-select with bulk actions, and support for
       immutable distros via a user-local Universal Package.
 
-      This is a Plasma applet (a .so plugin plus QML) — not a
-      standalone executable. After installing, add the AppGrid
+      This is a Plasma applet — a .so plugin with its QML compiled in,
+      not a standalone executable. After installing, add the AppGrid
       widget through Plasma's "Add Widgets" dialog.
     '';
     homepage = "https://appgrid.xarbit.dev";

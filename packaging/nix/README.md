@@ -4,8 +4,8 @@ AppGrid ships a standalone flake at the repository root (`flake.nix`) and the
 derivation under `packaging/nix/package.nix`. Both classic Nix and flake-based
 workflows are supported.
 
-> **Note:** AppGrid is a Plasma *applet* — a `.so` plugin plus QML, not a
-> standalone executable. There is no `nix run`; you install it as a package
+> **Note:** AppGrid is a Plasma *applet* — a `.so` plugin with its QML compiled
+> in, not a standalone executable. There is no `nix run`; you install it as a package
 > and then add the AppGrid widget through Plasma's *Add Widgets* dialog.
 
 ## Build / inspect
