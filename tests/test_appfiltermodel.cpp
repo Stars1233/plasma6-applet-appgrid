@@ -28,6 +28,10 @@ private Q_SLOTS:
     void isNewAppReturnsTrueForUnknown();
     void getByStorageIdReturnsMatchingMap();
     void getByStorageIdReturnsEmptyWhenMissing();
+    void getByStorageIdReturnsEmptyForEmptyId();
+    void completionForCompletesNamePrefix();
+    void completionForCompletesWordAcrossFields();
+    void completionForEmptyQueryReturnsEmpty();
     void getReturnsEmptyForInvalidRow();
     void nonEmptyCategoriesSkipsHiddenApps();
     void appsByCategoryGroupsMultiCategoryApp();
@@ -162,6 +166,41 @@ void TestAppFilterModel::getByStorageIdReturnsEmptyWhenMissing()
         {QStringLiteral("Kate"), {}, {}, {}, {}, QStringLiteral("kate"), {}, {}, {}},
     });
     QVERIFY(m_filter.getByStorageId(QStringLiteral("ghost")).isEmpty());
+}
+
+void TestAppFilterModel::getByStorageIdReturnsEmptyForEmptyId()
+{
+    m_source.setApps({
+        {QStringLiteral("Kate"), {}, {}, {}, {}, QStringLiteral("kate"), {}, {}, {}},
+    });
+    QVERIFY(m_filter.getByStorageId(QString()).isEmpty());
+}
+
+void TestAppFilterModel::completionForCompletesNamePrefix()
+{
+    m_source.setApps({
+        {QStringLiteral("Kate"), {}, {}, {}, {}, QStringLiteral("kate"), {}, {}, {}},
+    });
+    // Name starts with the query → complete the whole name.
+    QCOMPARE(m_filter.completionFor(QStringLiteral("ka")), QStringLiteral("Kate"));
+}
+
+void TestAppFilterModel::completionForCompletesWordAcrossFields()
+{
+    m_source.setApps({
+        {QStringLiteral("Ghostty"), {}, {}, {}, QStringLiteral("Terminal emulator"),
+         QStringLiteral("ghostty"), {}, {}, {}},
+    });
+    // No name prefix; pass 2 completes a word from the generic name.
+    QCOMPARE(m_filter.completionFor(QStringLiteral("te")), QStringLiteral("Terminal"));
+}
+
+void TestAppFilterModel::completionForEmptyQueryReturnsEmpty()
+{
+    m_source.setApps({
+        {QStringLiteral("Kate"), {}, {}, {}, {}, QStringLiteral("kate"), {}, {}, {}},
+    });
+    QVERIFY(m_filter.completionFor(QString()).isEmpty());
 }
 
 void TestAppFilterModel::getReturnsEmptyForInvalidRow()

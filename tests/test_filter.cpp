@@ -22,8 +22,10 @@ private Q_SLOTS:
     void categoryFilterIncludesOnlyMatching();
     void emptyCategoryAcceptsAll();
     void favoritesOnlyExcludesNonFavorites();
+    void favoritesOnlyRejectsEmptyStorageId();
     void recentsHiddenFromAllViewInAlphabetical();
     void recentsVisibleInMostUsed();
+    void recentsShownWhenCategoryActive();
 
 private:
     QStringList visibleStorageIds() const;
@@ -131,6 +133,19 @@ void TestFilter::favoritesOnlyExcludesNonFavorites()
     QCOMPARE(visibleStorageIds(), (QStringList{QStringLiteral("a"), QStringLiteral("c")}));
 }
 
+void TestFilter::favoritesOnlyRejectsEmptyStorageId()
+{
+    // A row with no storageId can't be a favorite → excluded from the
+    // favorites view (the sid.isEmpty() guard, not just !isFavorite).
+    m_source.setApps({
+        {QStringLiteral("NoId"), {}, {}, {}, {}, QString(), {}, {}, {}},
+        {QStringLiteral("Fav"), {}, {}, {}, {}, QStringLiteral("fav"), {}, {}, {}},
+    });
+    m_filter.setFavoriteApps({QStringLiteral("fav")});
+    m_filter.setShowFavoritesOnly(true);
+    QCOMPARE(visibleStorageIds(), QStringList{QStringLiteral("fav")});
+}
+
 void TestFilter::recentsHiddenFromAllViewInAlphabetical()
 {
     m_source.setApps({
@@ -152,6 +167,20 @@ void TestFilter::recentsVisibleInMostUsed()
     m_filter.setSortMode(AppFilterModel::MostUsed);
     m_filter.setRecentApps({QStringLiteral("b")});
     QCOMPARE(m_filter.count(), 2); // recents NOT filtered when sortMode != Alphabetical
+}
+
+void TestFilter::recentsShownWhenCategoryActive()
+{
+    // The recents-from-grid hide only applies in the unfiltered All view; with
+    // a category filter active a recent app still shows (guard requires an
+    // empty filterCategory).
+    m_source.setApps({
+        {QStringLiteral("Kate"), {}, {}, {QStringLiteral("Dev")}, {}, QStringLiteral("kate"), {}, {}, {}},
+    });
+    m_filter.setSortMode(AppFilterModel::Alphabetical);
+    m_filter.setRecentApps({QStringLiteral("kate")});
+    m_filter.setFilterCategory(QStringLiteral("Dev"));
+    QCOMPARE(m_filter.count(), 1);
 }
 
 QTEST_MAIN(TestFilter)

@@ -120,6 +120,26 @@ TestCase {
         compare(f.model.filterCategory, "Development")
     }
 
+    // Leaving prefix mode for a normal query mid-session must trigger the
+    // stash that prefix mode had suppressed.
+    function test_prefixToNormalSearchStashesThenRestores() {
+        var f = build()
+        f.model.filterCategory = "Development"
+        f.session.isPrefixMode = true
+
+        f.session.update("?help")          // prefix: no stash, no search push
+        compare(f.model.filterCategory, "Development")
+        compare(f.model.searchText, "")
+
+        f.session.isPrefixMode = false
+        f.session.update("fire")           // normal search now → stash kicks in
+        compare(f.model.filterCategory, "")
+        compare(f.model.searchText, "fire")
+
+        f.session.update("")               // exit restores the original
+        compare(f.model.filterCategory, "Development")
+    }
+
     // --- idempotent on repeated updates ---
 
     function test_repeatedSearchDoesNotRestashOriginals() {
@@ -142,8 +162,11 @@ TestCase {
     function test_handlesNullModelGracefully() {
         var s = makeSession({ appsModel: null, categoryBar: null,
                               searchAll: true, isPrefixMode: false })
+        // Null inputs must not throw, and the swap state still tracks: entering
+        // search arms _filtersCleared, leaving it disarms.
         s.update("anything")
-        // Just must not throw.
-        verify(true)
+        compare(s._filtersCleared, true)
+        s.update("")
+        compare(s._filtersCleared, false)
     }
 }
