@@ -241,8 +241,7 @@ Flickable {
             currentIndex -= itemsPerRow
             ensureVisible()
         } else if (currentIndex >= 0 && showRecents && recentCount > 0) {
-            var lastRow = Math.floor((recentCount - 1) / itemsPerRow)
-            recentIndex = Math.min(currentIndex + lastRow * itemsPerRow, recentCount - 1)
+            recentIndex = GridNav.recentsLandingFromGrid(currentIndex, recentCount, itemsPerRow)
             currentIndex = -1
             contentY = 0
         }
@@ -253,7 +252,7 @@ Flickable {
             if (newIdx < recentCount) {
                 recentIndex = newIdx
             } else {
-                currentIndex = Math.min(recentIndex % itemsPerRow, flatApps.length - 1)
+                currentIndex = GridNav.gridLandingFromRecents(recentIndex, itemsPerRow, flatApps.length)
                 recentIndex = -1
                 ensureVisible()
             }

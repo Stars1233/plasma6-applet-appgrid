@@ -381,8 +381,7 @@ GridView {
             else
                 _exitToSearchField()
         } else if (currentIndex >= 0 && currentIndex < effectiveColumns && showRecents) {
-            var lastRow = Math.floor((recentCount - 1) / effectiveColumns)
-            recentIndex = Math.min(currentIndex + lastRow * effectiveColumns, recentCount - 1)
+            recentIndex = GridNav.recentsLandingFromGrid(currentIndex, recentCount, effectiveColumns)
             currentIndex = -1
         } else {
             moveCurrentIndexUp()
@@ -394,7 +393,7 @@ GridView {
             if (newIdx < recentCount) {
                 recentIndex = newIdx
             } else {
-                currentIndex = Math.min(recentIndex % effectiveColumns, count - 1)
+                currentIndex = GridNav.gridLandingFromRecents(recentIndex, effectiveColumns, count)
                 recentIndex = -1
             }
         } else {
