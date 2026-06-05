@@ -10,61 +10,74 @@ All notable changes to AppGrid are documented here.
 
 ### Added
 
-- *(i18n)* Add Traditional Chinese (zh_TW) translation (#131)
-- Split settings page into 6 tabs
-- *(config)* Bounded list with search/filter for Hidden Apps
-- Add compact-mode
-- Launch the whole selection on Enter, not just the focused item
-- Unify recents + grid into one selection space with multi-drag
-- Manage in Discover for system and snap apps
-- Customizable header-action layout
-- Soft hover highlight + toggle to disable it (#106)
-- *(config)* Hint Down arrow reveals the grid in compact mode
-- *(search)* Opt-in KActivities frecency tiebreak + pipeline docs
-- *(search)* Comment fallback for tier 2 + diagnostic for KAStats keys
-- *(search)* KRunner secondary actions + calculator chain-typing (#156)
+- *(launcher)* Secondary global shortcut to open in compact mode
+- *(theme)* Optional Plasma theme chrome for the center variant
+- *(theme)* Split blur and background-contrast into independent toggles
+- *(theme)* Render dividers via Plasma theme's widgets/line SVG
+- *(search)* Scale search field font with icon-size preference (#163)
+- *(theme)* Scale panel content density with icon-size preference(#163)
+- *(config)* Show action icons in the header-actions editor
+- *(header)* Icon-only menu button option; center the settings page
+- *(search)* Inline autocompletion in the search field
+- *(search)* Rank KDE default apps above mimeapps defaults
+- *(search)* Bonus result for a well-known number
+- *(search)* Dim hidden apps in results with a hidden indicator
+- *(search)* Option to hide the Alt+N shortcut badge in results (#165)
+- *(search)* Accept the ghost completion with Right arrow
+- *(theme)* Optional decoupling of text size from icon size (#167)
 
 ### Fixed
 
-- Stop search highlight snapping to cursor during scroll
-- Preserve hover-set currentIndex when arrow-down enters results
-- Ignore hover-select right after the result set changes
-- Snap selection to top result on every result-set change
-- Scope hover-select gating to real cursor motion and wheel intent
-- Tighten compact-mode height to the header row
-- Close-then-open and compact-mode reveal no longer flicker
-- Stop unioning Plasma's KAStats default seed into favorites
-- Anchor hover-select position only on accept
-- Center the expanded compact-mode panel on its natural position
-- Skip invalidate in AppFilterModel::setRecentApps when unchanged
-- Re-resolve Discover backend on every check instead of caching
-- Update flake.nix to the renamed packaging/ path
-- Let the panel popup keep its user-dragged size across wake
-- Disable animation icons on open by default
-- Use a stable favorites client id so favorites persist (#147)
-- Codespell
-- Clamp panel corner radius to half the smaller dimension (#151)
-- *(config)* Show launcher icon name on hover in settings (#152)
-- On_EmptyHiddenStateChanged
-- *(search)* Demote mid-word substring matches below generic/keyword
-- *(pluginhelpers)* ParseOsPrettyName handles CRLF + add edge-case tests
-- *(menu)* Hard-stop right-click menu scroll, no rubber-band overshoot (#154)
-- *(search)* Keep result text readable on selection
-- *(ui)* Stop search field jumping some searches
-- *(menu)* Hide Application now works from search results (#157.2)
-- *(menu)* Show App context menu for KRunner-served app rows (#157.3)
-- *(menu)* Hide "Add to Selection" from search-results context (#157.1)
-- *(ui)* Hide clear button during header-slot shrink (#157.5)
-- *(ui)* Swallow right-clicks on empty panel area (#158)
-- *(ui)* Hover tooltip on the search clear button (#159)
+- *(panel)* Popup size survives alternatives-switch from Kicker/Kickoff
+- *(panel)* Kill extra ~4px gap at category bar edges (#164)
+- *(settings)* Hidden apps page polish (#162)
+- *(updatechecker)* Make cache save truly atomic on POSIX
+- *(center)* Detach GridWindow from the panel to stop popup-attach warning
+- *(icon)* Correct tile long-shadow
+- *(category)* Clear stale Alt-held underline state on open (#168)
+- *(category)* Favorites button selects instead of toggling (#169)
+- *(appearance)* Relabel dim option to match what it dims (#170)
+- *(category)* Uniform button height across the category bar (#171)
+- *(category)* Enlarge the favorites icon to fill the button (#171)
+- *(center)* Re-assert layer-shell config on every show (Wayland)
+- *(metadata)* Drop redundant KPlugin Id from applet metadata (#173)
+- *(category)* Keep keyboard focus off the bar buttons (#174)
+- *(sort)* Rerank Most Used on the first launch, not the second
+- *(ranking)* Refresh default-app boost live; honor *Service keys
+- *(ranking)* Resolve role defaults the way KDE does (KApplicationTrader)
 
 ### Performance
 
-- Cache lower-cased haystack per row for AppFilterModel search
+- *(search)* Cache per-row sort inputs in AppFilterModel
+- *(runner)* Rebuild the app-name dedup cache lazily
+- *(category-grid)* Cache flat app list + prefix-sum section offsets
+- *(search)* Read result icon via a single role, not get()
+- *(startup)* Drop redundant per-app QStandardPaths::locate
+- *(open)* Skip launchCounts re-sync when unchanged
+- *(delegate)* Build the icon tooltip lazily on hover
+- *(grid)* Drive the new-app badge from one revision counter
 
-### Ui
+### Config
 
-- *(config)* Merge Animations tab into Appearance/Animations (#160)
+- Default grid to 6x4
+- Move "Hide labels on favorites" to Appearance
+
+### I18n
+
+- Wrap PrefixInfoView field labels
+- Silence xgettext QML warnings with --language=C
+
+### Metainfo
+
+- Drop bogus <binary> provides
+- Add screenshots
+- Refresh <releases> to real stable releases
+- Document that the panel variant shares one component
+
+### Reuse
+
+- Fix package download location to the canonical repo
+
 
 ## [1.8.5] - 2026-05-29
 
@@ -72,6 +85,7 @@ All notable changes to AppGrid are documented here.
 
 - Search result arrow navigation after hover selection (#148) (#150)
 - Use a stable favorites client id so favorites persist (#147)
+
 
 ## [1.8.4] - 2026-05-28
 
@@ -82,11 +96,13 @@ All notable changes to AppGrid are documented here.
 - Let the panel popup keep its user-dragged size across wake
 - Disable animation icons on open by default
 
+
 ## [1.8.3] - 2026-05-27
 
 ### Fixed
 
 - Anchor hover-select position only on accept
+
 
 ## [1.8.2] - 2026-05-27
 
@@ -96,6 +112,7 @@ All notable changes to AppGrid are documented here.
 - Snap selection to top result on every result-set change
 - Scope hover-select gating to real cursor motion and wheel intent
 - Stop unioning Plasma's KAStats default seed into favorites
+
 
 ## [1.8.1] - 2026-05-26
 
@@ -107,6 +124,7 @@ All notable changes to AppGrid are documented here.
 
 - Stop search highlight snapping to cursor during scroll
 - Preserve hover-set currentIndex when arrow-down enters results
+
 
 ## [1.8.0] - 2026-05-25
 
@@ -135,11 +153,13 @@ All notable changes to AppGrid are documented here.
 
 - Keep category bar arrows always visible, faded when disabled
 
+
 ## [1.7.9] - 2026-05-15
 
 ### Added
 
 - Open context menu on long-press for touchscreen support. closes:
+
 
 ## [1.7.8] - 2026-03-31
 
@@ -149,11 +169,13 @@ All notable changes to AppGrid are documented here.
 - Use Sessions.SessionManagement instead of Kicker.SystemModel
 - Reorder button overlapping scrollbar in favorites view
 
+
 ## [1.7.7] - 2026-03-26
 
 ### Fixed
 
 - Category bar mnemonic underlines not matching shortcuts
+
 
 ## [1.7.6] - 2026-03-26
 
@@ -168,11 +190,13 @@ All notable changes to AppGrid are documented here.
 - Keyboard navigation after category jump in CategoryGridView
 - Persistent grow hover animation
 
+
 ## [1.7.5] - 2026-03-24
 
 ### Fixed
 
 - Scrambled favorites order on first open after login
+
 
 ## [1.7.3] - 2026-03-21
 
@@ -189,6 +213,7 @@ All notable changes to AppGrid are documented here.
 - Full keyboard navigation in By Category view (#59)
 - Animate icons on open in By Category view (#60)
 
+
 ## [1.7.2] - 2026-03-20
 
 ### Fixed
@@ -198,11 +223,13 @@ All notable changes to AppGrid are documented here.
 - Reset category bar scroll position on reopen
 - Recently used apps no longer steal from favorites (#53)
 
+
 ## [1.7.1] - 2026-03-19
 
 ### Fixed
 
 - Panel variant missing new QML components, closes #48
+
 
 ## [1.7.0] - 2026-03-19
 
@@ -222,6 +249,7 @@ All notable changes to AppGrid are documented here.
 - Improve recently used apps logic and add context menu support
 - Use dark shadow color regardless of theme
 
+
 ## [1.6.2] - 2026-03-18
 
 ### Added
@@ -235,12 +263,14 @@ All notable changes to AppGrid are documented here.
 - 34 - uses Kirigami.Theme.defaultFont for grid labels
 - #27 - respect system animation settings
 
+
 ## [1.6.1] - 2026-03-17
 
 ### Fixed
 
 - Only enable the Escape shortcut when AppGrid is visible
 - Search handling
+
 
 ## [1.6.0] - 2026-03-17
 
@@ -250,11 +280,13 @@ All notable changes to AppGrid are documented here.
 - #5 - fix default radius
 - Builds for older distro
 
+
 ## [1.5.3] - 2026-03-17
 
 ### Fixed
 
 - Final
+
 
 ## [1.5.2] - 2026-03-16
 
@@ -262,17 +294,20 @@ All notable changes to AppGrid are documented here.
 
 - Use layershell
 
+
 ## [1.5.1] - 2026-03-16
 
 ### Fixed
 
 - Package build
 
+
 ## [1.5.0] - 2026-03-16
 
 ### Closes
 
 - #14 - implement KRunner::ResultsModel
+
 
 ## [1.4.0] - 2026-03-16
 
@@ -293,6 +328,7 @@ All notable changes to AppGrid are documented here.
 
 - #12 - add mouse wheel scrolling to the category bar Flickable.
 
+
 ## [1.3.0] - 2026-03-16
 
 ### Fixed
@@ -307,11 +343,13 @@ All notable changes to AppGrid are documented here.
 
 - #6 - add selectable shell for quick command t:
 
+
 ## [1.2.1] - 2026-03-15
 
 ### Fixed
 
 - #4
+
 
 ## [1.1.0] - 2026-03-15
 
@@ -326,6 +364,7 @@ All notable changes to AppGrid are documented here.
 - Adjust name for repository
 - PKGBUILD files
 
+
 ## [1.0.0] - 2026-03-15
 
 ### Fixed
@@ -336,4 +375,3 @@ All notable changes to AppGrid are documented here.
 - Workflow
 - Update PKGBUILD
 - Added ki18n_install(po) — compiles .po files
-

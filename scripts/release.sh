@@ -48,7 +48,27 @@ if ! git diff --quiet HEAD -- .; then
     exit 1
 fi
 
-echo "=== release v$VER ==="
+# --- Branch guard ---
+# An X.Y.* release belongs on maintenance/X.Y.x once that line has branched off
+# main; main itself only ever tags the in-development minor. Refuse a release
+# from the wrong branch so a 1.9.x tag can't land on main (or vice versa).
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+MINOR="${VER%%-*}"   # 1.9.0-rc.1 -> 1.9.0
+MINOR="${MINOR%.*}"  # 1.9.0      -> 1.9
+MAINT="maintenance/${MINOR}.x"
+if git rev-parse --verify -q "$MAINT" >/dev/null 2>&1; then
+    if [ "$BRANCH" != "$MAINT" ]; then
+        echo "error: $TAG is a ${MINOR}.x release but you're on '$BRANCH'." >&2
+        echo "       that line has branched off — release it from $MAINT." >&2
+        exit 1
+    fi
+elif [ "$BRANCH" != "main" ]; then
+    echo "error: no $MAINT branch yet, so $TAG should be tagged on main," >&2
+    echo "       not '$BRANCH'." >&2
+    exit 1
+fi
+
+echo "=== release v$VER on $BRANCH ==="
 
 # --- 1. CMakeLists.txt: project(AppGrid VERSION X.Y.Z) ---
 # Strip any -rc.N suffix because CMake's project(... VERSION) wants pure

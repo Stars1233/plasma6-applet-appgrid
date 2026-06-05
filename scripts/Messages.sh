@@ -17,15 +17,18 @@
 #   4. CMake (ki18n_install)   -> compiles .po to    .mo files at build time
 #   5. At runtime, KDE's i18n  -> loads .mo files from /usr/share/locale/
 #
-# Usage:
-#   cd <project-root>
-#   bash Messages.sh                          # extract strings into .pot
+# Usage (runs from anywhere — it cd's to the project root itself):
+#   scripts/Messages.sh                       # extract strings into .pot
 #   msgmerge --update po/de/dev.xarbit.appgrid.po po/dev.xarbit.appgrid.pot  # update German
 #
 # Notes:
 #   - QML files use i18nd("dev.xarbit.appgrid", "string") for explicit domain lookup
 #   - C++ files use i18nd("dev.xarbit.appgrid", "string") from KLocalizedString
 #   - The -k flags below tell xgettext which function signatures to scan for
+
+# Run from the project root regardless of the caller's CWD; the paths below
+# (package/contents/ui, src, po) and $PWD are relative to it.
+cd "$(dirname "$0")/.."
 
 # xgettext flags for KDE i18n function signatures:
 #   -ki18n:1        -> i18n("string")               (1st arg is the message)
