@@ -15,6 +15,7 @@ import org.kde.kirigami as Kirigami
 
 import "../controllers"
 import "../js/constants.js" as Const
+import "../js/panelgeometry.js" as PanelGeometry
 
 Window {
     id: root
@@ -54,11 +55,8 @@ Window {
     // screen sizes and can never push the panel off-screen. Uses the full
     // panelHeight (not panel.height) so the compact-mode height animation
     // doesn't drag the panel up or down as it expands.
-    readonly property real panelVerticalOffset: {
-        var pct = cfg.verticalOffset
-        var slack = Math.max(0, (root.height - panel.panelHeight) / 2)
-        return Math.round(pct / 100 * slack)
-    }
+    readonly property real panelVerticalOffset:
+        PanelGeometry.verticalOffset(cfg.verticalOffset, root.height, panel.panelHeight)
 
     // Wayland: LayerShell overrides these. X11: showGrid() overrides via targetScreenGeometry().
     width: Screen.width
@@ -88,16 +86,8 @@ Window {
     // Geometry of the centered panel within the overlay window, including the
     // user vertical offset. Shared by the blur region and the drag input rect.
     function _panelRect() {
-        const pw = Math.round(panel.width)
-        const ph = Math.round(panel.height)
-        return {
-            x: Math.round((root.width - pw) / 2),
-            y: Math.round((root.height - ph) / 2)
-               + root.panelVerticalOffset
-               + Math.round(panel.compactShift),
-            w: pw,
-            h: ph
-        }
+        return PanelGeometry.panelRect(root.width, root.height, panel.width, panel.height,
+                                       root.panelVerticalOffset, panel.compactShift)
     }
 
     function applyBackgroundEffects() {
