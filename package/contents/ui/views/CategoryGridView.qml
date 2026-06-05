@@ -13,6 +13,7 @@ import org.kde.kirigami as Kirigami
 import "../controllers"
 import "../widgets"
 import "../js/gridnav.js" as GridNav
+import "../js/categoryflatten.js" as CategoryFlatten
 import "../js/constants.js" as Const
 
 Flickable {
@@ -65,16 +66,9 @@ Flickable {
     property var sectionStartIndices: []
 
     function _rebuildFlatApps() {
-        var list = []
-        var starts = []
-        for (var i = 0; i < groupedApps.length; i++) {
-            starts.push(list.length)
-            var apps = groupedApps[i].apps
-            for (var j = 0; j < apps.length; j++)
-                list.push(apps[j])
-        }
-        flatApps = list
-        sectionStartIndices = starts
+        var r = CategoryFlatten.flatten(groupedApps)
+        flatApps = r.flatApps
+        sectionStartIndices = r.sectionStartIndices
     }
 
     property int currentIndex: -1
@@ -194,26 +188,20 @@ Flickable {
     }
 
     function ensureVisible() {
-        // Find the delegate for the current index and scroll to it
+        // Resolve the current flat index to its section via the prefix sums,
+        // then scroll the live section delegate into view.
         if (currentIndex < 0) return
-        var globalIdx = 0
-        for (var i = 0; i < sectionRepeater.count; i++) {
-            var section = sectionRepeater.itemAt(i)
-            if (!section) continue
-            var apps = groupedApps[i].apps
-            if (globalIdx + apps.length > currentIndex) {
-                // The selected app is in this section
-                var localIdx = currentIndex - globalIdx
-                var row = Math.floor(localIdx / itemsPerRow)
-                var itemY = section.y + section.children[0].height + row * cellHeight
-                if (itemY < contentY)
-                    contentY = itemY
-                else if (itemY + cellHeight > contentY + height)
-                    contentY = itemY + cellHeight - height
-                return
-            }
-            globalIdx += apps.length
-        }
+        var i = CategoryFlatten.sectionForFlatIndex(currentIndex, sectionStartIndices)
+        if (i < 0) return
+        var section = sectionRepeater.itemAt(i)
+        if (!section) return
+        var localIdx = currentIndex - sectionStartIndices[i]
+        var row = Math.floor(localIdx / itemsPerRow)
+        var itemY = section.y + section.children[0].height + row * cellHeight
+        if (itemY < contentY)
+            contentY = itemY
+        else if (itemY + cellHeight > contentY + height)
+            contentY = itemY + cellHeight - height
     }
 
     // Direction movers — encode the cursor-transition rules between
@@ -345,16 +333,14 @@ Flickable {
     }
 
     function scrollToCategory(name) {
-        var globalIdx = 0
         for (var i = 0; i < sectionRepeater.count; i++) {
             var section = sectionRepeater.itemAt(i)
             if (section && groupedApps[i] && groupedApps[i].category === name) {
                 contentY = section.y
-                currentIndex = globalIdx
+                currentIndex = sectionStartIndices[i]
                 recentIndex = -1
                 return
             }
-            globalIdx += groupedApps[i].apps.length
         }
     }
 

@@ -224,6 +224,11 @@ if(Qt6QuickTest_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/panelgeometry.js
         COPYONLY
     )
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/js/categoryflatten.js
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/categoryflatten.js
+        COPYONLY
+    )
     # PrefixDetector imports "../js/prefixmodes.js"; stage it at the matching
     # relative path (tests/js/) so the copied component resolves it.
     configure_file(
