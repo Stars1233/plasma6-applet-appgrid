@@ -18,9 +18,10 @@ fail=0
 say() { printf '  %s\n' "$*"; }
 hr()  { printf '== %s ==\n' "$*"; }
 
-# 1. trailing whitespace
+# 1. trailing whitespace (-I skips binary files; otherwise PNGs etc. produce
+#    spurious matches, especially under ugrep where grep may be aliased)
 hr "trailing whitespace"
-if bad=$(grep -nHP '[ \t]+$' -- "${STAGED_ALL[@]}" 2>/dev/null); then
+if bad=$(grep -InHP '[ \t]+$' -- "${STAGED_ALL[@]}" 2>/dev/null); then
     say "trailing whitespace:"
     printf '    %s\n' $bad
     fail=1

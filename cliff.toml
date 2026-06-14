@@ -54,7 +54,10 @@ commit_parsers = [
 protect_breaking_commits = true
 filter_commits = false
 tag_pattern = "v[0-9]*"
-skip_tags = "v[0-9]+\\.[0-9]+\\.[0-9]+-rc\\."
-ignore_tags = ""
+# Fold -rc tags into the following stable release. `ignore_tags` merges
+# their commits into the next tag's section; `skip_tags` would DROP those
+# commits entirely, losing all work done during the rc cycle.
+skip_tags = ""
+ignore_tags = "v[0-9]+\\.[0-9]+\\.[0-9]+-rc\\."
 topo_order = false
 sort_commits = "oldest"

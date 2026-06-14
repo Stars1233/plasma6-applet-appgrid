@@ -8,8 +8,32 @@ All notable changes to AppGrid are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- *(categories)* Reserve scroll-arrow space via anchor (#172)margins, not a layout slot
+
+### I18n
+
+- Complete the maintainer-owned translations for recent strings
+
+
+## [1.9.0] - 2026-06-14
+
 ### Added
 
+- *(i18n)* Add Traditional Chinese (zh_TW) translation (#131)
+- Split settings page into 6 tabs
+- *(config)* Bounded list with search/filter for Hidden Apps
+- Add compact-mode
+- Launch the whole selection on Enter, not just the focused item
+- Unify recents + grid into one selection space with multi-drag
+- Manage in Discover for system and snap apps
+- Customizable header-action layout
+- Soft hover highlight + toggle to disable it (#106)
+- *(config)* Hint Down arrow reveals the grid in compact mode
+- *(search)* Opt-in KActivities frecency tiebreak + pipeline docs
+- *(search)* Comment fallback for tier 2 + diagnostic for KAStats keys
+- *(search)* KRunner secondary actions + calculator chain-typing (#156)
 - *(launcher)* Secondary global shortcut to open in compact mode
 - *(theme)* Optional Plasma theme chrome for the center variant
 - *(theme)* Split blur and background-contrast into independent toggles
@@ -32,9 +56,41 @@ All notable changes to AppGrid are documented here.
 - *(category)* Slow hands-free re-trigger on hover-paging arrows (#176)
 - *(grid)* Add "Reduce grid spacing" option for a tighter layout
 - *(config)* Add "Configure Animation Speed…" button under Animations
+- *(search)* Wrap long result text, expand the selected row (#183)
 
 ### Fixed
 
+- Stop search highlight snapping to cursor during scroll
+- Preserve hover-set currentIndex when arrow-down enters results
+- Ignore hover-select right after the result set changes
+- Snap selection to top result on every result-set change
+- Scope hover-select gating to real cursor motion and wheel intent
+- Tighten compact-mode height to the header row
+- Close-then-open and compact-mode reveal no longer flicker
+- Stop unioning Plasma's KAStats default seed into favorites
+- Anchor hover-select position only on accept
+- Center the expanded compact-mode panel on its natural position
+- Skip invalidate in AppFilterModel::setRecentApps when unchanged
+- Re-resolve Discover backend on every check instead of caching
+- Update flake.nix to the renamed packaging/ path
+- Let the panel popup keep its user-dragged size across wake
+- Disable animation icons on open by default
+- Use a stable favorites client id so favorites persist (#147)
+- Codespell
+- Clamp panel corner radius to half the smaller dimension (#151)
+- *(config)* Show launcher icon name on hover in settings (#152)
+- On_EmptyHiddenStateChanged
+- *(search)* Demote mid-word substring matches below generic/keyword
+- *(pluginhelpers)* ParseOsPrettyName handles CRLF + add edge-case tests
+- *(menu)* Hard-stop right-click menu scroll, no rubber-band overshoot (#154)
+- *(search)* Keep result text readable on selection
+- *(ui)* Stop search field jumping some searches
+- *(menu)* Hide Application now works from search results (#157.2)
+- *(menu)* Show App context menu for KRunner-served app rows (#157.3)
+- *(menu)* Hide "Add to Selection" from search-results context (#157.1)
+- *(ui)* Hide clear button during header-slot shrink (#157.5)
+- *(ui)* Swallow right-clicks on empty panel area (#158)
+- *(ui)* Hover tooltip on the search clear button (#159)
 - *(panel)* Popup size survives alternatives-switch from Kicker/Kickoff
 - *(panel)* Kill extra ~4px gap at category bar edges (#164)
 - *(settings)* Hidden apps page polish (#162)
@@ -60,12 +116,13 @@ All notable changes to AppGrid are documented here.
 - *(window)* Size the centred panel off the window, not QScreen (#)
 - Stale search counts + dangling activated lambda
 - *(search)* Respect KRunner plugin arrangement in results (#180)
-- *(categories)* Reserve scroll-arrow space via anchor (#172)margins, not a layout slot
 - *(categories)* Quicken open-on-hover arrow re-arm to 800ms (#176)
 - *(categories)* Rebuild scroll-arrow reserves so the strip always lands flush (#172)
+- *(search)* Default search result names to 2 lines, not 3 (#183)
 
 ### Performance
 
+- Cache lower-cased haystack per row for AppFilterModel search
 - *(search)* Cache per-row sort inputs in AppFilterModel
 - *(runner)* Rebuild the app-name dedup cache lazily
 - *(category-grid)* Cache flat app list + prefix-sum section offsets
@@ -85,6 +142,7 @@ All notable changes to AppGrid are documented here.
 - Wrap PrefixInfoView field labels
 - Silence xgettext QML warnings with --language=C
 - Update template and translate maintainer-owned languages
+- Complete the maintainer-owned translations for recent strings
 
 ### Metainfo
 
@@ -100,6 +158,10 @@ All notable changes to AppGrid are documented here.
 ### Reuse
 
 - Fix package download location to the canonical repo
+
+### Ui
+
+- *(config)* Merge Animations tab into Appearance/Animations (#160)
 
 
 ## [1.8.5] - 2026-05-29
@@ -153,11 +215,53 @@ All notable changes to AppGrid are documented here.
 
 ### Added
 
+- Add apps to favorites by drag from any tab (#37 #90 follow-up)
+- *(#95)* Broadcast launches to KActivities (write-side only)
+- *(#68)* Universal package + opt-in in-app update checker
+- Initial multi-select drag + bulk favorites ops across grid views
+- Bulk pin / desktop / launch / hide / copy in selection menu
+- "Add / Remove from Selection" in context menu
+- Stacked drag-preview + keep selection on plain arrow nav
+- Add nix flake
+- Per-button show/hide + drag-reorder for power buttons
+- Optional drop shadow behind app icons
+- Vertical position offset for the centered launcher
+- Hide the scrollbar when its content fits
+- Auto-hiding overlay scrollbar
 - Modernize search results + fix #114 hover cascade
 - Add "Manage in Discover" to the app context menu
 
 ### Fixed
 
+- *(updatechecker)* Immediate check on enable + periodic re-check
+- *(updatechecker)* Cap response size, validate release URL scheme
+- *(updatechecker)* Hardening, tests, dev versioning, multi-instance
+- *(center)* Clipped bottom row when grid rows configured
+- *(ci, packaging)* Correct package names, broader distro coverage
+- *(category)* Enable drag-and-drop from by-category view
+- Typo
+- *(universal)* Harden installer + uninstaller
+- Ci build
+- Sha256 sidecars, prerelease detection, system-install guard
+- Hide phantom "Update available" button on distro builds
+- Pre-release users see newer pre-releases, plus stale-ETag recovery
+- Remove checkmark
+- *(#86, #103)* Subscribe to KIconLoader::iconChanged, drop setThemeName
+- Int*int literal expressions assigned to qint64
+- Keep multi-selection when arrowing past it
+- Drop URL from ConfigGeneral tooltip msgid + fragment-split
+- Aur git package
+- Opyright file
+- Ppa builds
+- Stuck hover highlight on first grid item (#109)
+- Panel freeze when resizing the grid
+- Make the extra-runners search toggle actually work
+- Sync Panel settings with the Center variant
+- Move search options into the Behaviour section
+- Make the ? and i: prefix views scrollable
+- Restore sensible mouse-wheel scroll step
+- Clarify the KRunner search-plugins toggle (#112)
+- Session button reopening its own menu on click
 - Prevent search results auto-scroll cascade on bottom-edge hover
 - Results auto-scroll repeatedly when hovering bottom-edge clipped row (#117)
 - Bake the channel-distinguished version into Plasma metadata
@@ -171,6 +275,16 @@ All notable changes to AppGrid are documented here.
 - Gate Manage in Discover to Flatpak apps only for 1.8.0
 - Redo logic and math to really fix #113 as desired, no place holders
 - Apply snappy endges everywhere
+
+### Performance
+
+- Cache hot-path lookups in AppFilterModel + AppModel
+- Cut per-icon render cost in the grid
+- More minor adjustments
+
+### Doc
+
+- Add logo
 
 ### Ui
 
