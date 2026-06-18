@@ -20,7 +20,13 @@ RowLayout {
     id: actions
 
     signal actionTriggered()
+    // Emitted by the "settings" action; the host opens its settings surface.
+    signal configureRequested()
     function closeMenus() { if (overflowMenu) overflowMenu.close() }
+
+    // Whether the settings action can do anything (a host with no way to open
+    // settings sets this false to drop the action). Both shipped variants can.
+    property bool canConfigure: true
 
     spacing: Kirigami.Units.smallSpacing
 
@@ -45,7 +51,8 @@ RowLayout {
         "shutdown": { "icon": HeaderActions.iconFor("shutdown"), "label": i18nd("dev.xarbit.appgrid", "Shut Down") },
         "lock": { "icon": HeaderActions.iconFor("lock"), "label": i18nd("dev.xarbit.appgrid", "Lock") },
         "logout": { "icon": HeaderActions.iconFor("logout"), "label": i18nd("dev.xarbit.appgrid", "Log Out") },
-        "switchuser": { "icon": HeaderActions.iconFor("switchuser"), "label": i18nd("dev.xarbit.appgrid", "Switch User") }
+        "switchuser": { "icon": HeaderActions.iconFor("switchuser"), "label": i18nd("dev.xarbit.appgrid", "Switch User") },
+        "settings": { "icon": HeaderActions.iconFor("settings"), "label": i18nd("dev.xarbit.appgrid", "Settings") }
     })
 
     // Live availability per action id. A binding (not a function) so barItems /
@@ -58,7 +65,8 @@ RowLayout {
         "shutdown": sessionActions.canShutdown,
         "lock": sessionActions.canLock,
         "logout": sessionActions.canLogout,
-        "switchuser": sessionActions.canSwitchUser
+        "switchuser": sessionActions.canSwitchUser,
+        "settings": actions.canConfigure
     })
 
     function _run(id) {
@@ -71,6 +79,7 @@ RowLayout {
         case "lock":       sessionActions.lock(); break
         case "logout":     sessionActions.logout(); break
         case "switchuser": sessionActions.switchUser(); break
+        case "settings":   actions.configureRequested(); break
         }
         actions.actionTriggered()
     }

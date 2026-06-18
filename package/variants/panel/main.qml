@@ -73,6 +73,9 @@ PlasmoidItem {
             sysInfo: Plasmoid.systemInfo()
             opacity: 1.0
             onCloseRequested: appgrid.expanded = false
+            // The "settings" header action opens the applet's own Plasma config
+            // dialog (the panel variant configures via System Settings) (#191).
+            onConfigureRequested: Plasmoid.internalAction("configure").trigger()
 
             Connections {
                 target: appgrid

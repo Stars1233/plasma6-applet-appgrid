@@ -24,6 +24,9 @@ var CATALOGUE = [
     { id: "lock", placement: "menu", icon: "system-lock-screen" },
     { id: "logout", placement: "menu", icon: "system-log-out" },
     { id: "switchuser", placement: "menu", icon: "system-switch-user" },
+    // Opens the launcher's settings (the daemon's window, or the applet config
+    // for the panel variant) — KRunner-style in-launcher access (#191).
+    { id: "settings", placement: "menu", icon: "configure" },
 ];
 
 // Freedesktop icon name for an action id, or empty for an unknown id. Single

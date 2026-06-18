@@ -32,6 +32,9 @@ RowLayout {
     property var sessionActions: null
     // Settings gear — standalone daemon only.
     property bool showConfigButton: false
+    // Whether the in-strip "settings" header action can open settings (both
+    // shipped variants can; a host without a settings surface sets it false).
+    property bool canConfigure: true
 
     signal actionTriggered()
     signal configureRequested()
@@ -81,7 +84,9 @@ RowLayout {
             headerActions: root.headerActions
             updateChecker: root.updateChecker
             sessionActions: root.sessionActions
+            canConfigure: root.canConfigure
             onActionTriggered: root.actionTriggered()
+            onConfigureRequested: root.configureRequested()
         }
 
         // Current search-result icon, shown in place of the power buttons while

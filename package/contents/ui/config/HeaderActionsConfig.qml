@@ -33,7 +33,8 @@ ColumnLayout {
         "shutdown": i18nd("dev.xarbit.appgrid", "Shut Down"),
         "lock": i18nd("dev.xarbit.appgrid", "Lock"),
         "logout": i18nd("dev.xarbit.appgrid", "Log Out"),
-        "switchuser": i18nd("dev.xarbit.appgrid", "Switch User")
+        "switchuser": i18nd("dev.xarbit.appgrid", "Switch User"),
+        "settings": i18nd("dev.xarbit.appgrid", "Settings")
     })
     readonly property var placementOrder: ["bar", "menu", "off"]
     readonly property var placementLabel: ({
