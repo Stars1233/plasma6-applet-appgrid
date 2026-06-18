@@ -2,9 +2,10 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Reusable grid panel content. Used by GridWindow (Center variant — opens
-    centered over a dim overlay) and as a native Plasma popup (Panel variant
-    — opens near the panel icon).
+    Reusable grid panel content. Always hosted inside a Plasma surface that
+    draws its own themed background, blur and shadow: a native Plasma popup
+    (Panel variant) or the standalone daemon's PlasmaWindow. The panel itself
+    is therefore transparent and chromeless.
 */
 
 import QtQuick
@@ -21,7 +22,6 @@ import "../js/constants.js" as Const
 import "../js/gridmetrics.js" as GridMetrics
 import "../js/prefixmodes.js" as PrefixModes
 import "../js/scale.js" as Scale
-import "../js/devicepixels.js" as DevicePixels
 
 Kirigami.ShadowedRectangle {
     id: panel
@@ -88,22 +88,6 @@ Kirigami.ShadowedRectangle {
     property bool forceCompact: false
     readonly property bool effectiveHideGridWhenEmpty: cfgHideGridWhenEmpty || forceCompact
 
-    // Usable size of the host (the centred window's surface), the cap the panel
-    // must not exceed. The owning GridWindow injects its own width/height — the
-    // compositor-validated LayerShell surface — which stays correct across a
-    // resume; Qt's Screen attached property can transiently report a bogus
-    // placeholder when outputs drop on wake, shrinking/mis-sizing the panel.
-    // Defaults to Screen for standalone/test use.
-    property real availableWidth: Screen.width
-    property real availableHeight: Screen.height
-
-    // Per-window device-pixel ratio used to snap the panel size to the device
-    // grid (#188). The owning GridWindow injects the true fractional ratio
-    // (window->devicePixelRatio(), e.g. 1.75); Screen.devicePixelRatio is the
-    // wrong, integer-clamped value on Wayland. Defaults to Screen for the
-    // standalone/native-popup case, where the size isn't snapped anyway.
-    property real devicePixelRatio: Screen.devicePixelRatio
-
     // -- Sort helpers --
     readonly property bool isSortByCategory: sortMode === Const.SortMode.ByCategory
 
@@ -120,7 +104,7 @@ Kirigami.ShadowedRectangle {
 
     VisibilityState {
         id: visibility
-        nativePopup: panel.nativePopup
+        nativePopup: true
         sizeToContent: panel.sizeToContent
         hideGridWhenEmpty: panel.effectiveHideGridWhenEmpty
         showCategoryBar: panel.cfgShowCategoryBar
@@ -198,9 +182,6 @@ Kirigami.ShadowedRectangle {
 
     property bool _needsScrollToTop: false
 
-    // When used as a native Plasma popup, skip custom chrome (Plasma provides its own)
-    property bool nativePopup: false
-
     // The standalone daemon shows a header gear to open its own settings window
     // (the plasmoid variants configure via System Settings, so they leave it off).
     property bool showConfigButton: false
@@ -222,7 +203,7 @@ Kirigami.ShadowedRectangle {
     readonly property real estCellHeight: GridMetrics.labelledCellHeight(gridIconSize,
                                           Kirigami.Units.gridUnit, Kirigami.Units.smallSpacing, densityScale)
 
-    readonly property real panelMargin: nativePopup ? Kirigami.Units.largeSpacing : Kirigami.Units.largeSpacing * 2
+    readonly property real panelMargin: Kirigami.Units.largeSpacing
     readonly property real headerHeight: Kirigami.Units.gridUnit * 5
     readonly property real panelWidth: estCellWidth * columns + panelMargin * 2
     readonly property real panelHeight: estCellHeight * rows + panelMargin * 2 + headerHeight
@@ -230,66 +211,26 @@ Kirigami.ShadowedRectangle {
     // power buttons), no slack for a category bar or grid below.
     readonly property real compactHeight: headerRow.implicitHeight + panelMargin * 2
     readonly property real effectiveHeight: _emptyHiddenState ? compactHeight : panelHeight
-    // Negative half-delta between the current and full height. With this
-    // offset the expanded panel sits at the standard centered position
-    // (shift = 0); the compact panel slides up to where the full panel
-    // would put its search bar, so the visible search results stay
-    // vertically centered when the user starts typing. Consumed by
-    // GridWindow for the panel translate and the blur clip; zero when
-    // compact mode is off.
-    readonly property real compactShift: effectiveHideGridWhenEmpty
-        ? (height - panelHeight) / 2
-        : 0
 
-    // Center variant: GridWindow centers a fixed-size panel, so the size
-    // is hard-bound to the icon-grid estimate (compact-mode aware).
-    // Panel variant: only seed the *initial* popup size via implicitWidth/
-    // Height and leave width/height + preferred size unbound, so Plasma's
-    // own popup-resize persistence owns it. A hard preferred-size binding
-    // re-asserted the estimate on every layout pass (e.g. a monitor wake)
-    // and snapped the user's edge-drag back, shrinking the popup (#146).
-    implicitWidth: nativePopup ? panelWidth : 0
+    // Only seed the *initial* popup size via implicitWidth/Height and leave
+    // width/height + preferred size unbound, so Plasma's own popup-resize
+    // persistence owns it. A hard preferred-size binding re-asserted the estimate
+    // on every layout pass (e.g. a monitor wake) and snapped the user's edge-drag
+    // back, shrinking the popup (#146).
+    implicitWidth: panelWidth
     // sizeToContent (daemon): track the compact-aware effectiveHeight so the
     // hosting PlasmaWindow shrinks for compact mode and grows when the grid
-    // reveals. Plain nativePopup (panel variant): seed panelHeight only.
-    implicitHeight: nativePopup ? (sizeToContent ? effectiveHeight : panelHeight) : 0
+    // reveals. Plain popup (panel variant): seed panelHeight only.
+    implicitHeight: sizeToContent ? effectiveHeight : panelHeight
 
-    // Snap the size to the device-pixel grid so the panel's painted edges and
-    // the blur region (PanelGeometry snaps it to the same grid) round to the same
-    // device pixels under fractional scaling — otherwise a frosted panel seams on
-    // its far edges (#188). No-op at integer scale. The centred position is
-    // snapped to the same grid by GridWindow.
-    Binding on width {
-        when: !panel.nativePopup
-        value: DevicePixels.snap(Math.min(panel.panelWidth, panel.availableWidth * 0.9), panel.devicePixelRatio)
-    }
-    Binding on height {
-        when: !panel.nativePopup
-        value: DevicePixels.snap(Math.min(panel.effectiveHeight, panel.availableHeight * 0.9), panel.devicePixelRatio)
-    }
-
-    // Set by on_EmptyHiddenStateChanged to skip the next height Behavior
-    // animation. See the comment on that handler for the full rationale.
-    property bool _snapHeight: false
-
-    Behavior on height {
-        enabled: !panel.nativePopup && effectiveHideGridWhenEmpty && !panel._snapHeight
-        NumberAnimation {
-            duration: Kirigami.Units.longDuration
-            easing.type: Easing.OutCubic
-        }
-    }
-
-    Layout.preferredWidth: nativePopup ? -1 : width
-    Layout.preferredHeight: nativePopup ? -1 : height
-    Layout.minimumWidth: nativePopup ? Kirigami.Units.gridUnit * 12 : width
-    Layout.minimumHeight: nativePopup ? Kirigami.Units.gridUnit * 12 : height
+    Layout.preferredWidth: -1
+    Layout.preferredHeight: -1
+    Layout.minimumWidth: Kirigami.Units.gridUnit * 12
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     // The launcher always renders inside a Plasma popup / PlasmaWindow, which draws
     // the themed background, blur, contrast and shadow itself (the theme owns the
-    // corner), so the panel rect is transparent, chromeless and square. nativePopup
-    // is true in every shipped variant; the non-popup fallback rounds to the theme
-    // corner clamped to the geometric max (half the smaller dimension).
-    radius: nativePopup ? 0 : Math.min(Kirigami.Units.cornerRadius, Math.floor(Math.min(width, height) / 2))
+    // corner), so the panel rect is transparent, chromeless and square.
+    radius: 0
 
     color: "transparent"
     border.width: 0
@@ -379,15 +320,6 @@ Kirigami.ShadowedRectangle {
     readonly property alias sharedFavoritesModel: favorites.sharedFavoritesModel
     readonly property alias mirrorRequired: favorites.mirrorRequired
 
-
-    // Snap the panel height instantly on every compact-mode transition
-    // (open/close, typing into the search bar, revealing the grid) so
-    // children don't reflow inside an animating panel and the blur clip
-    // doesn't chase a shrinking surface during a close fade-out.
-    on_EmptyHiddenStateChanged: {
-        _snapHeight = true
-        Qt.callLater(function() { _snapHeight = false })
-    }
 
     // Reset everything that should be back to its just-opened state on
     // every show or hide: the search input (SearchBar.onTextChanged
@@ -958,7 +890,7 @@ Kirigami.ShadowedRectangle {
                 dragSource: panel.appletInterface
                                     ? panel.appletInterface.dragSource : null
                 columns: panel.columns
-                adaptiveColumns: panel.nativePopup
+                adaptiveColumns: true
                 iconSize: panel.gridIconSize
                 fontScale: panel.densityScale
                 reduceGridSpacing: cfg.reduceGridSpacing

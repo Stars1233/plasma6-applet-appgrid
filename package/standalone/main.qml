@@ -56,7 +56,6 @@ PlasmaCore.Window {
 
     mainItem: Views.GridPanel {
         id: panel
-        nativePopup: true               // PlasmaWindow draws the background
         sizeToContent: true             // window is sized from implicitHeight; track compact
         // Header gear (opens the settings window) is shown only when no panel
         // plasmoid manages us — i.e. started directly / autostart / shortcut, not
@@ -74,8 +73,6 @@ PlasmaCore.Window {
         updateChecker: appGridController.isUniversalBuild ? appGridController.updateChecker : null
         favoritesClientInstance: Const.FAVORITES_CLIENT_ID
         sysInfo: appGridController.systemInfo("Standalone")
-        availableWidth: win.screen ? win.screen.width : Screen.width
-        availableHeight: win.screen ? win.screen.height : Screen.height
         onCloseRequested: win.closeWindow()
 
         Component.onCompleted: {

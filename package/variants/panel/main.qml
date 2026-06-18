@@ -62,7 +62,6 @@ PlasmoidItem {
         id: fullRepresentationComponent
         Views.GridPanel {
             id: panel
-            nativePopup: true
             appletInterface: appgrid
             appsModel: Plasmoid.appsModel
             searchModel: Plasmoid.searchModel
