@@ -90,6 +90,23 @@ Kirigami.ApplicationWindow {
 
     function _capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1) }
 
+    // The live config as this window last saw it (captured on every sync/apply).
+    // _apply writes back only the keys the user actually changed against this
+    // baseline, so a concurrent launcher live-write is not clobbered (#4).
+    property var _liveBaseline: ({})
+
+    // Deep (value) copy of every editable key off `src`, detaching the
+    // list-valued ones (hiddenApps, headerActions) so the baseline doesn't
+    // alias the live object.
+    function _snapshotKeys(src) {
+        var snap = ({})
+        for (var i = 0; i < _editableKeys.length; ++i) {
+            var k = _editableKeys[i]
+            snap[k] = JSON.parse(JSON.stringify(src[k]))
+        }
+        return snap
+    }
+
     // True when the buffer differs from the live config in any editable key.
     // Reads both sides so it re-evaluates on any change; JSON.stringify handles
     // the list-valued keys (hiddenApps, headerActions) that === compares by ref.
@@ -124,6 +141,7 @@ Kirigami.ApplicationWindow {
             var k = _editableKeys[i]
             appGridConfigBuffer[k] = appGridConfig[k]
         }
+        win._liveBaseline = _snapshotKeys(appGridConfig)
         win.revision++
     }
 
@@ -150,13 +168,22 @@ Kirigami.ApplicationWindow {
 
     // Commit the buffer to the live config and persist. Only now does the
     // launcher see the change (its Connections re-sync) and the file save.
+    //
+    // Write back only the keys the user actually changed in this session
+    // (buffer differs from the baseline captured at the last sync). A key the
+    // user left untouched is NOT re-written, so a concurrent launcher live-write
+    // — e.g. right-click "Hide Application" mutating hiddenApps while this window
+    // is open — is preserved instead of clobbered by the stale buffer value (#4).
+    // Then re-sync from the now-authoritative live config so the pages and
+    // `dirty` reflect both the applied edits and any concurrent change.
     function _apply() {
         for (var i = 0; i < _editableKeys.length; ++i) {
             var k = _editableKeys[i]
-            appGridConfig[k] = appGridConfigBuffer[k]
+            if (JSON.stringify(appGridConfigBuffer[k]) !== JSON.stringify(win._liveBaseline[k]))
+                appGridConfig[k] = appGridConfigBuffer[k]
         }
         appGridConfig.save()
-        win.revision++   // refresh `dirty` (now false)
+        _syncFromLive()   // re-baseline + refresh `dirty` (now false)
     }
 
     Component.onCompleted: _syncFromLive()
