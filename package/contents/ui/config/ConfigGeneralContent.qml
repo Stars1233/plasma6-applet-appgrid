@@ -37,12 +37,23 @@ Kirigami.FormLayout {
     // Bumped by the host to force the value bindings below to re-read.
     property int revision: 0
 
-    ConfigButtonContent {
+    // Direct children of this one FormLayout (not a nested sub-form) so the
+    // Icon: / Text label: rows share the page's label column and wide/wrap mode
+    // with everything below them (#191).
+    IconPickerButton {
         visible: root.showButtonAppearance
+        Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Icon:")
         configuration: root.configuration
-        formFactor: root.formFactor
         location: root.location
         defaultIcon: root.defaultIcon
+        revision: root.revision
+    }
+
+    LauncherLabelField {
+        visible: root.showButtonAppearance
+        Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Text label:")
+        configuration: root.configuration
+        formFactor: root.formFactor
         revision: root.revision
     }
 

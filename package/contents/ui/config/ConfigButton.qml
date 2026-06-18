@@ -8,9 +8,9 @@
     header actions, hidden apps), so the applet config carries just the button
     appearance here plus Plasma's own Keyboard Shortcuts and About pages.
 
-    ConfigButtonContent is itself a Kirigami.FormLayout; nested in this outer one
-    it registers as a twin, so the Icon:/Text label: column aligns with the
-    Launcher: row below.
+    The Icon: / Text label: controls are placed as direct children of this one
+    FormLayout (not a nested sub-form) so they share its label column and wide/
+    wrap mode with the Launcher: row below — see #191.
 */
 
 import QtQuick
@@ -45,11 +45,17 @@ KCM.SimpleKCM {
     Kirigami.FormLayout {
         id: form
 
-        ConfigButtonContent {
+        IconPickerButton {
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Icon:")
             configuration: buffer
-            formFactor: Plasmoid.formFactor
             location: Plasmoid.location
             defaultIcon: Const.PLUGIN_ID_CENTER
+        }
+
+        LauncherLabelField {
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Text label:")
+            configuration: buffer
+            formFactor: Plasmoid.formFactor
         }
 
         Item { Kirigami.FormData.isSection: true }
