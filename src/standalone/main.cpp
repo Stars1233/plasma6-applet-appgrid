@@ -52,13 +52,7 @@ int main(int argc, char *argv[])
 
     KLocalizedString::setApplicationDomain(QByteArrayLiteral(APPGRID_APP_ID));
 
-    // The panel plasmoid launches us with --from-plasmoid: it carries its own
-    // "Configure Launcher…" config access, so the launcher hides its header gear
-    // to avoid a duplicate route to the same settings. Started any other way
-    // (run directly, autostart, a global shortcut) there is no plasmoid to reach
-    // settings from, so the gear is shown.
     const QStringList appArgs = app.arguments();
-    const bool showConfigButton = !appArgs.contains(AppGrid::Standalone::FlagFromPlasmoid);
     // --configure: open the settings window straight away and skip auto-showing
     // the launcher (the plasmoid's "Configure Launcher…" when we were not yet
     // running). The launcher window is still created, ready for a later toggle.
@@ -180,7 +174,6 @@ int main(int argc, char *argv[])
         {QStringLiteral("appGridController"), QVariant::fromValue(&controller)},
         {QStringLiteral("appGridConfig"), QVariant::fromValue(&config)},
         {QStringLiteral("appGridStandalone"), QVariant::fromValue(&standalone)},
-        {QStringLiteral("appGridShowConfigButton"), showConfigButton},
         {QStringLiteral("appGridAutoShow"), !openConfigOnStart},
         {QStringLiteral("appGridStartCompact"), startCompact},
     };

@@ -36,7 +36,6 @@ inline constexpr QLatin1String MethodQuit{"Quit"};
 namespace Standalone
 {
 inline constexpr QLatin1String Executable{"appgrid"};
-inline constexpr QLatin1String FlagFromPlasmoid{"--from-plasmoid"};
 inline constexpr QLatin1String FlagConfigure{"--configure"};
 inline constexpr QLatin1String FlagCompact{"--compact"};
 // Replace a running (stale) daemon instead of forwarding to it — used by the

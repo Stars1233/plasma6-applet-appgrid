@@ -13,7 +13,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 
 RowLayout {
     id: root
@@ -30,13 +29,12 @@ RowLayout {
     property bool iconShadow: false
     property var updateChecker: null
     property var sessionActions: null
-    // Settings gear — standalone daemon only.
-    property bool showConfigButton: false
     // Whether the in-strip "settings" header action can open settings (both
     // shipped variants can; a host without a settings surface sets it false).
     property bool canConfigure: true
 
     signal actionTriggered()
+    // Emitted by the "settings" header action; the host opens its settings.
     signal configureRequested()
 
     // Mid-animation flag (search field hides its X while the slot resizes) and
@@ -101,18 +99,5 @@ RowLayout {
             source: root.currentResultIcon
             shadowEnabled: root.iconShadow
         }
-    }
-
-    // Settings gear — standalone daemon only (see showConfigButton).
-    PlasmaComponents.ToolButton {
-        Layout.alignment: Qt.AlignVCenter
-        visible: root.showConfigButton && !root.isSearching
-        icon.name: "configure"
-        display: PlasmaComponents.AbstractButton.IconOnly
-        text: i18nd("dev.xarbit.appgrid", "Configure AppGrid…")
-        onClicked: root.configureRequested()
-        PlasmaComponents.ToolTip.text: text
-        PlasmaComponents.ToolTip.visible: hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
     }
 }

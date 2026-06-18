@@ -36,13 +36,11 @@ PlasmaCore.Window {
     //                           method surface PlasmoidBridge forwards)
     //   appGridConfig         — the KConfigXT-generated AppGridConfig
     //   appGridStandalone     — single-instance bridge with show/hide/toggle signals
-    //   appGridShowConfigButton — show the header settings gear (no managing plasmoid)
     //   appGridAutoShow       — open the launcher on startup (vs. wait for a toggle)
     //   appGridStartCompact   — open collapsed to the search bar
     required property var appGridController
     required property var appGridConfig
     required property var appGridStandalone
-    required property bool appGridShowConfigButton
     required property bool appGridAutoShow
     required property bool appGridStartCompact
 
@@ -70,12 +68,9 @@ PlasmaCore.Window {
     mainItem: Views.GridPanel {
         id: panel
         sizeToContent: true             // window is sized from implicitHeight; track compact
-        // Header gear (opens the settings window) is shown only when no panel
-        // plasmoid manages us — i.e. started directly / autostart / shortcut, not
-        // via the plasmoid's --from-plasmoid launch. (Context property from C++.)
-        showConfigButton: appGridShowConfigButton
-        // Route to C++ (AppGridStandalone) so the settings window loads in its
-        // own desktop-themed engine, not this Plasma-themed one.
+        // The "settings" header action routes here. Go through C++
+        // (AppGridStandalone) so the settings window loads in its own
+        // desktop-themed engine, not this Plasma-themed one.
         onConfigureRequested: appGridStandalone.Configure()
         appletInterface: win.appletInterface
         appsModel: appGridController.appsModel

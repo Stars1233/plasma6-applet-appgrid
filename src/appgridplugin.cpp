@@ -336,10 +336,9 @@ void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringLi
 
 void AppGridPlugin::configureStandaloneWindow()
 {
-    // Open straight into the settings window; --from-plasmoid keeps the daemon's
-    // header gear hidden (the plasmoid is the config route) and --configure skips
-    // popping the launcher.
-    triggerStandalone(AppGrid::Dbus::MethodConfigure, {AppGrid::Standalone::FlagFromPlasmoid, AppGrid::Standalone::FlagConfigure});
+    // Open straight into the settings window; --configure skips popping the
+    // launcher.
+    triggerStandalone(AppGrid::Dbus::MethodConfigure, {AppGrid::Standalone::FlagConfigure});
 }
 
 void AppGridPlugin::migrateConfigToStandalone()
@@ -361,10 +360,10 @@ void AppGridPlugin::migrateConfigToStandalone()
 void AppGridPlugin::toggleStandaloneWindowCompact()
 {
     // Secondary "Open in Compact Mode" shortcut.
-    triggerStandalone(AppGrid::Dbus::MethodToggleCompact, {AppGrid::Standalone::FlagFromPlasmoid, AppGrid::Standalone::FlagCompact});
+    triggerStandalone(AppGrid::Dbus::MethodToggleCompact, {AppGrid::Standalone::FlagCompact});
 }
 
 void AppGridPlugin::toggleStandaloneWindow()
 {
-    triggerStandalone(AppGrid::Dbus::MethodToggle, {AppGrid::Standalone::FlagFromPlasmoid});
+    triggerStandalone(AppGrid::Dbus::MethodToggle, {});
 }

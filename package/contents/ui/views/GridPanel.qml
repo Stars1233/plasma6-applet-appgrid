@@ -181,9 +181,8 @@ Kirigami.ShadowedRectangle {
 
     property bool _needsScrollToTop: false
 
-    // The standalone daemon shows a header gear to open its own settings window
-    // (the plasmoid variants configure via System Settings, so they leave it off).
-    property bool showConfigButton: false
+    // Raised by the "settings" header action; the host opens its settings
+    // surface (the daemon's window, or the applet config for the panel variant).
     signal configureRequested()
 
     // The daemon hosts the panel in a fixed-size PlasmaWindow it sizes from the
@@ -569,7 +568,6 @@ Kirigami.ShadowedRectangle {
                 iconShadow: cfg.iconShadow
                 updateChecker: panel.updateChecker
                 sessionActions: sessionActions
-                showConfigButton: panel.showConfigButton
                 onActionTriggered: panel.closeRequested()
                 onConfigureRequested: panel.configureRequested()
             }
