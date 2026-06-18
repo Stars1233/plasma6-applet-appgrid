@@ -172,16 +172,22 @@ int main(int argc, char *argv[])
     // the KirigamiPlasmaStyle plugin. This is what the Plasma QML stack sets up
     // for in-shell QML; a standalone binary must set it itself.
     engine.engine()->setProperty("_kirigamiTheme", QStringLiteral("Plasma"));
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridController"), &controller);
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridConfig"), &config);
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridStandalone"), &standalone);
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridShowConfigButton"), showConfigButton);
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridAutoShow"), !openConfigOnStart);
-    engine.rootContext()->setContextProperty(QStringLiteral("appGridStartCompact"), startCompact);
+    // Inject the C++ dependencies as the entry root's *initial properties* (not
+    // loose context properties): Main.qml declares each one `required`, so a
+    // forgotten or renamed injection fails loudly at QML load instead of
+    // silently resolving to undefined and half-breaking the launcher (#6).
+    const QVariantHash entryProperties{
+        {QStringLiteral("appGridController"), QVariant::fromValue(&controller)},
+        {QStringLiteral("appGridConfig"), QVariant::fromValue(&config)},
+        {QStringLiteral("appGridStandalone"), QVariant::fromValue(&standalone)},
+        {QStringLiteral("appGridShowConfigButton"), showConfigButton},
+        {QStringLiteral("appGridAutoShow"), !openConfigOnStart},
+        {QStringLiteral("appGridStartCompact"), startCompact},
+    };
     // Bundled at this qrc path by qt_add_resources (see CMakeLists). The root is
     // a PlasmaCore.Window (PlasmaWindow) hosting GridPanel as its mainItem.
     engine.setSource(QUrl(QStringLiteral("qrc:/qt/qml/appgrid/Main.qml")));
-    engine.completeInitialization();
+    engine.completeInitialization(entryProperties);
     if (!engine.rootObject()) {
         qWarning("AppGrid: failed to load standalone entry QML");
         return 1;
@@ -196,9 +202,13 @@ int main(int argc, char *argv[])
         if (!configEngine) {
             configEngine = new QQmlApplicationEngine(&app);
             configEngine->rootContext()->setContextObject(new KLocalizedContext(configEngine));
-            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridConfig"), &config);
-            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridConfigBuffer"), &configBuffer);
-            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridController"), &controller);
+            // Same fail-loud contract as the launcher engine: ConfigWindow.qml
+            // declares these `required`, so a missing injection errors at load (#6).
+            configEngine->setInitialProperties({
+                {QStringLiteral("appGridConfig"), QVariant::fromValue(&config)},
+                {QStringLiteral("appGridConfigBuffer"), QVariant::fromValue(&configBuffer)},
+                {QStringLiteral("appGridController"), QVariant::fromValue(&controller)},
+            });
             configEngine->load(QUrl(QStringLiteral("qrc:/qt/qml/appgrid/ConfigWindow.qml")));
         }
         const auto roots = configEngine->rootObjects();

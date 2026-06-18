@@ -43,6 +43,17 @@ import "config"
 Kirigami.ApplicationWindow {
     id: win
 
+    // Injected from C++ as this root's initial properties (main.cpp,
+    // setInitialProperties). Declared `required` so a missing or renamed
+    // injection fails loudly at QML load rather than silently resolving to
+    // undefined (#6).
+    //   appGridConfig       — the live AppGridConfig (read on open, written on Apply)
+    //   appGridConfigBuffer — the staging AppGridConfig the pages edit
+    //   appGridController   — exposes availableShells() / isUniversalBuild / appsModel
+    required property var appGridConfig
+    required property var appGridConfigBuffer
+    required property var appGridController
+
     title: i18nd("dev.xarbit.appgrid", "AppGrid Settings")
     width: Kirigami.Units.gridUnit * 44
     height: Kirigami.Units.gridUnit * 34

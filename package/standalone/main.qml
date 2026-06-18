@@ -27,11 +27,24 @@ import "js/constants.js" as Const
 PlasmaCore.Window {
     id: win
 
-    // Injected from C++ (main.cpp context properties):
-    //   appGridController — AppGridController (models + window glue + the same
-    //                       method surface PlasmoidBridge forwards)
-    //   appGridConfig     — the KConfigXT-generated AppGridConfig
-    //   appGridStandalone — single-instance bridge with show/hide/toggle signals
+    // Injected from C++ as this root's initial properties (main.cpp,
+    // completeInitialization). Declared `required` so a missing or renamed
+    // injection fails loudly at QML load rather than silently resolving to
+    // undefined (#6). Typed `var` because the C++ classes aren't registered as
+    // QML types — the daemon QML is a plain resource bundle, not a QML module.
+    //   appGridController     — AppGridController (models + window glue + the same
+    //                           method surface PlasmoidBridge forwards)
+    //   appGridConfig         — the KConfigXT-generated AppGridConfig
+    //   appGridStandalone     — single-instance bridge with show/hide/toggle signals
+    //   appGridShowConfigButton — show the header settings gear (no managing plasmoid)
+    //   appGridAutoShow       — open the launcher on startup (vs. wait for a toggle)
+    //   appGridStartCompact   — open collapsed to the search bar
+    required property var appGridController
+    required property var appGridConfig
+    required property var appGridStandalone
+    required property bool appGridShowConfigButton
+    required property bool appGridAutoShow
+    required property bool appGridStartCompact
 
     visible: false
     color: "transparent"
