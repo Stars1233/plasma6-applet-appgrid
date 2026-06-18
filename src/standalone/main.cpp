@@ -39,6 +39,13 @@ int main(int argc, char *argv[])
     // theme + colours come from PlasmaWindow + SharedQmlEngine. Forcing any of
     // those here only fights that setup. QApplication (not QGui) so the KDE
     // platform style/palette apply.
+    // Use the fractional device-pixel ratio as-is, the same as plasmashell and
+    // KRunner. Without this the process falls back to Qt's default Round policy:
+    // on a fractionally scaled display (e.g. 1.5) it rounds the scale up to 2.0,
+    // so Kirigami.Units — icon sizes included — render ~1.3x larger than the
+    // plasmoid's settings page, which runs inside plasmashell. Must be set before
+    // the QApplication is constructed.
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
     // Binary name → KWin windowClass "appgrid appgrid". setDesktopFileName ties
     // the window to the installed .desktop for icon/StartupWMClass matching.

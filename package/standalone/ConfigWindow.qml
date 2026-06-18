@@ -35,6 +35,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
+import QtQuick.Window
 
 import org.kde.kirigami as Kirigami
 
@@ -200,7 +201,7 @@ Kirigami.ApplicationWindow {
             // -- Category sidebar --------------------------------------------
             QQC2.Pane {
                 Layout.fillHeight: true
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 11
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 7
                 padding: 0
                 Kirigami.Theme.colorSet: Kirigami.Theme.View
                 Kirigami.Theme.inherit: false
@@ -208,6 +209,7 @@ Kirigami.ApplicationWindow {
                 ListView {
                     id: sidebar
                     anchors.fill: parent
+                    anchors.topMargin: Kirigami.Units.smallSpacing
                     currentIndex: 0
                     keyNavigationEnabled: true
                     model: ListModel {
@@ -217,12 +219,37 @@ Kirigami.ApplicationWindow {
                         ListElement { label: "Header Actions"; iconName: "configure-toolbars" }
                         ListElement { label: "Hidden Apps";    iconName: "view-hidden" }
                     }
+                    // Mirrors Plasma's plasmoid-config sidebar (ConfigCategoryDelegate):
+                    // a medium icon over a centered, wrapping label, the style's own
+                    // ItemDelegate highlight (no custom background) on the current row.
                     delegate: QQC2.ItemDelegate {
+                        id: catDelegate
                         width: ListView.view.width
+                        hoverEnabled: true
                         highlighted: ListView.isCurrentItem
-                        icon.name: model.iconName
-                        text: i18nd("dev.xarbit.appgrid", model.label)
                         onClicked: sidebar.currentIndex = index
+
+                        contentItem: ColumnLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            Kirigami.Icon {
+                                Layout.alignment: Qt.AlignHCenter
+                                implicitWidth: Kirigami.Units.iconSizes.medium
+                                implicitHeight: Kirigami.Units.iconSizes.medium
+                                source: model.iconName
+                                selected: Window.active && (catDelegate.highlighted || catDelegate.pressed)
+                            }
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Kirigami.Units.smallSpacing
+                                Layout.rightMargin: Kirigami.Units.smallSpacing
+                                text: i18nd("dev.xarbit.appgrid", model.label)
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                horizontalAlignment: Text.AlignHCenter
+                                color: Window.active && (catDelegate.highlighted || catDelegate.pressed)
+                                    ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                            }
+                        }
                     }
                 }
             }
