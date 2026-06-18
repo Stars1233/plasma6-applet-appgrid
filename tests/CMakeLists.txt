@@ -169,6 +169,11 @@ if(Qt6QuickTest_FOUND)
         COPYONLY
     )
     configure_file(
+        ${CMAKE_SOURCE_DIR}/package/contents/ui/controllers/LaunchCoordinator.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/LaunchCoordinator.qml
+        COPYONLY
+    )
+    configure_file(
         ${CMAKE_SOURCE_DIR}/package/contents/ui/controllers/MnemonicResolver.qml
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/MnemonicResolver.qml
         COPYONLY

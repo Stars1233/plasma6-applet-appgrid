@@ -15,7 +15,6 @@ import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
 import "../widgets"
-import "../js/launchcounts.js" as LaunchCounts
 import "../js/migrations.js" as Migrations
 import "../js/searchresultnav.js" as SearchResultNav
 import "../js/constants.js" as Const
@@ -265,45 +264,21 @@ Kirigami.ShadowedRectangle {
         onTapped: { }
     }
 
-    // Sync model properties from config — called on init and reset
-    function syncModelFromConfig() {
-        if (!appsModel) return
-        appsModel.hiddenApps = cfg.hiddenApps
-        // Favorites are loaded from KAStatsFavoritesModel after migration —
-        // see FavoritesManager.qml.
-        appsModel.maxRecentApps = columns
-        appsModel.sortMode = sortMode
-        appsModel.useSystemCategories = cfg.useSystemCategories
-        appsModel.sortFavoritesAlphabetically = cfg.sortFavoritesAlphabetically
-        appsModel.searchShowsHidden = cfg.searchShowsHidden
-        appsModel.launchCounts = LaunchCounts.toMap(cfg.launchCounts)
-        appsModel.knownApps = cfg.knownApps
-        appsModel.recentApps = cfgShowRecentApps ? cfg.recentApps : []
-        if (appsModel.knownApps.length === 0)
-            appsModel.markAllKnown()
+    // The model<->config bridge (push settings into the model, persist the
+    // model's launch bookkeeping back). syncModelFromConfig stays as the public
+    // entry point — the daemon calls it when the settings window edits config.
+    ModelConfigSync {
+        id: modelSync
+        appsModel: panel.appsModel
+        cfg: cfg
+        configuration: panel.configuration
     }
+    function syncModelFromConfig() { modelSync.sync() }
 
     Component.onCompleted: {
         Migrations.migratePowerButtons(panel.configuration)
         Migrations.migrateHeaderActions(panel.configuration)
         syncModelFromConfig()
-    }
-    onColumnsChanged: if (appsModel) appsModel.maxRecentApps = columns
-
-    Connections {
-        target: panel.appsModel
-        function onRecentAppsChanged() {
-            panel.configuration.recentApps = panel.appsModel.recentApps
-        }
-        function onLaunchCountsChanged() {
-            panel.configuration.launchCounts = LaunchCounts.toList(panel.appsModel.launchCounts)
-        }
-        function onKnownAppsChanged() {
-            panel.configuration.knownApps = panel.appsModel.knownApps
-        }
-        function onHiddenAppsChanged() {
-            panel.configuration.hiddenApps = panel.appsModel.hiddenApps
-        }
     }
 
     // -- KActivities-backed favorites (always the source of truth) --
@@ -342,7 +317,7 @@ Kirigami.ShadowedRectangle {
     function resetState() {
         contextMenu.close()
         categoryBar.closeCategoryMenu()
-        headerActionStrip.closeMenus()
+        headerActions.closeMenus()
         _resetSearchSession()
 
         // Clear any stale Alt-held state: the panel popup item is reused
@@ -380,51 +355,30 @@ Kirigami.ShadowedRectangle {
         searchBar.field.forceActiveFocus()
     }
 
-    function launchSearchResult(index) {
-        var item = panel.searchModel.get(index)
-        if (!item) return
-        if (item.resultType === "app") {
-            launchApp(item.sourceIndex)
-            return
+    // Launch routing (single + bulk, the KActivities broadcast, the bulk
+    // confirm threshold) lives in the coordinator; the panel keeps the UI side
+    // effects it signals — the search-field paste and the two confirm dialogs.
+    // The functions below stay as the call sites' entry points.
+    LaunchCoordinator {
+        id: launcher
+        appsModel: panel.appsModel
+        searchModel: panel.searchModel
+        plasmoidBridge: panel.plasmoidBridge
+        onCloseRequested: panel.closeRequested()
+        onSubstitutionRequested: function(text) {
+            searchBar.field.text = text
+            searchBar.field.cursorPosition = text.length
         }
-        // KRunner UX: calculator hits paste the result back into the
-        // search field so the user can keep extending the expression.
-        var subst = panel.plasmoidBridge.runnerSubstitutionText(item.sourceIndex)
-        if (subst.length > 0) {
-            searchBar.field.text = subst
-            searchBar.field.cursorPosition = subst.length
-            return
+        onBulkLaunchConfirmRequested: function(sids) {
+            bulkLaunchDialog.pendingSids = sids
+            bulkLaunchDialog.open()
         }
-        if (panel.plasmoidBridge.runRunnerResult(item.sourceIndex))
-            closeRequested()
     }
-
-    // One launch step: KActivities broadcast plus the model launch. Shared
-    // by the single-sid path and the bulk path so neither has to repeat
-    // the notify/launch pair (notifyAppLaunched is the one-way broadcast
-    // that lets other Plasma launchers count AppGrid as a contributing
-    // source — we don't read this data back).
-    function _launchOneBySid(sid) {
-        if (!sid) return
-        panel.plasmoidBridge.notifyAppLaunched(sid)
-        appsModel.launchByStorageId(sid)
-    }
-
-    function launchApp(index) {
-        if (!appsModel || index < 0)
-            return
-        const sid = appsModel.get(index).storageId
-        if (sid) panel.plasmoidBridge.notifyAppLaunched(sid)
-        appsModel.launch(index)
-        closeRequested()
-    }
-
-    function launchAppByStorageId(sid) {
-        if (!appsModel || !sid)
-            return
-        _launchOneBySid(sid)
-        closeRequested()
-    }
+    function launchSearchResult(index) { launcher.launchSearchResult(index) }
+    function launchApp(index) { launcher.launchApp(index) }
+    function launchAppByStorageId(sid) { launcher.launchAppByStorageId(sid) }
+    function _requestBulkLaunch(sids) { launcher.requestBulkLaunch(sids) }
+    function _runBulkLaunch(sids) { launcher.runBulkLaunch(sids) }
 
     // Eat clicks so they don't pass through the panel
     MouseArea { anchors.fill: parent }
@@ -470,14 +424,14 @@ Kirigami.ShadowedRectangle {
             // buttons hide on search — implicitHeight ignores hidden
             // children, so derive it from both regardless of visibility.
             Layout.preferredHeight: Math.max(searchBar.implicitHeight,
-                                             headerActionStrip.implicitHeight)
+                                             headerActions.actionsImplicitHeight)
 
             SearchBar {
                 id: searchBar
                 // Hide the X while the header slot is mid-animation so it
                 // doesn't appear to slide in from the right with the
                 // growing field; snaps in once the layout settles.
-                clearButtonEnabled: !headerSlotAnim.running
+                clearButtonEnabled: !headerActions.animRunning
                 // Track icon-size preference: small icons → smaller search
                 // field, large icons → larger. Keeps placeholder text in
                 // proportion with grid labels without a separate setting (#163).
@@ -602,73 +556,22 @@ Kirigami.ShadowedRectangle {
                 onEnd: if (panel.showSearchResults) searchResultsList.goEnd()
             }
 
-            // Right-side header slot. Animates its allocated width
-            // between the strip's natural width (idle) and the search-
-            // result icon's width (searching). Behavior on
-            // Layout.preferredWidth turns what would be a hard reflow
-            // jump on the first keystroke into a smooth shrink, while
-            // leaving zero dead space at the steady state.
-            Item {
-                id: headerSlot
+            HeaderActions {
+                id: headerActions
                 Layout.alignment: Qt.AlignVCenter
-                Layout.preferredHeight: Math.max(headerActionStrip.implicitHeight,
-                                                 Kirigami.Units.iconSizes.medium)
-                readonly property real _iconReservation: Kirigami.Units.iconSizes.medium * panel.densityScale
-                Layout.preferredWidth: panel.isSearching
-                    ? (panel.showSearchResults && panel.currentResultIcon !== ""
-                         ? _iconReservation : 0)
-                    : headerActionStrip.implicitWidth
-                Behavior on Layout.preferredWidth {
-                    NumberAnimation {
-                        id: headerSlotAnim
-                        duration: Kirigami.Units.shortDuration
-                        easing.type: Easing.OutQuart
-                    }
-                }
-                clip: true
-
-                HeaderActionStrip {
-                    id: headerActionStrip
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    // `visible: false` (not opacity:0) so the buttons stop
-                    // hit-testing — hovering the empty slot mid-animation
-                    // otherwise pops their tooltips.
-                    visible: !panel.isSearching
-                    showActionLabels: cfg.showActionLabels
-                    hideMenuButtonLabel: cfg.hideMenuButtonLabel
-                    headerActions: cfg.headerActions
-                    updateChecker: panel.updateChecker
-                    sessionActions: sessionActions
-                    onActionTriggered: panel.closeRequested()
-                }
-
-                // Current search-result icon, shown in place of the power
-                // buttons while searching. Fixed size — a fillHeight icon
-                // rounds to different standard sizes as the header reflows,
-                // making it visibly jump.
-                ShadowedIcon {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: headerSlot._iconReservation
-                    height: headerSlot._iconReservation
-                    visible: panel.showSearchResults && panel.currentResultIcon !== ""
-                    source: panel.currentResultIcon
-                    shadowEnabled: cfg.iconShadow
-                }
-            }
-
-            // Settings gear — standalone daemon only (see showConfigButton).
-            PlasmaComponents.ToolButton {
-                Layout.alignment: Qt.AlignVCenter
-                visible: panel.showConfigButton && !panel.isSearching
-                icon.name: "configure"
-                display: PlasmaComponents.AbstractButton.IconOnly
-                text: i18nd("dev.xarbit.appgrid", "Configure AppGrid…")
-                onClicked: panel.configureRequested()
-                PlasmaComponents.ToolTip.text: text
-                PlasmaComponents.ToolTip.visible: hovered
-                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                isSearching: panel.isSearching
+                showSearchResults: panel.showSearchResults
+                currentResultIcon: panel.currentResultIcon
+                densityScale: panel.densityScale
+                showActionLabels: cfg.showActionLabels
+                hideMenuButtonLabel: cfg.hideMenuButtonLabel
+                headerActions: cfg.headerActions
+                iconShadow: cfg.iconShadow
+                updateChecker: panel.updateChecker
+                sessionActions: sessionActions
+                showConfigButton: panel.showConfigButton
+                onActionTriggered: panel.closeRequested()
+                onConfigureRequested: panel.configureRequested()
             }
         }
 
@@ -752,48 +655,10 @@ Kirigami.ShadowedRectangle {
             }
         }
 
-        // A little extra context for a certain well-known number.
-        PlasmaComponents.ItemDelegate {
-            Layout.fillWidth: true
-            leftPadding: Kirigami.Units.largeSpacing
-            rightPadding: Kirigami.Units.largeSpacing
-            visible: panel.showSearchResults && !panel.isPrefixMode
-                     && Number(searchBar.text.trim()) === 6 * 7
-            implicitHeight: Math.max(panel.gridIconSize, _answerRow.implicitHeight) + Kirigami.Units.smallSpacing * 2
-            onClicked: Qt.openUrlExternally("https://en.wikipedia.org/wiki/Phrases_from_The_Hitchhiker%27s_Guide_to_the_Galaxy")
-
-            contentItem: RowLayout {
-                id: _answerRow
-                spacing: Kirigami.Units.largeSpacing
-
-                Text {
-                    Layout.preferredWidth: panel.gridIconSize
-                    Layout.preferredHeight: panel.gridIconSize
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: Math.round(panel.gridIconSize * 0.8)
-                    text: "🌍"
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-                    PlasmaComponents.Label {
-                        Layout.fillWidth: true
-                        text: "42"
-                        font.bold: true
-                        elide: Text.ElideRight
-                    }
-                    PlasmaComponents.Label {
-                        Layout.fillWidth: true
-                        // Intentionally left untranslated (not localizable copy).
-                        text: "The Answer to the Ultimate Question of Life, the Universe, and Everything"
-                        font: Kirigami.Theme.smallFont
-                        opacity: 0.7
-                        elide: Text.ElideRight
-                    }
-                }
-            }
+        AnswerToEverything {
+            queryText: searchBar.text
+            resultsActive: panel.showSearchResults && !panel.isPrefixMode
+            iconSize: panel.gridIconSize
         }
 
         // -- Unified search results --
@@ -1001,36 +866,6 @@ Kirigami.ShadowedRectangle {
         }
     }
 
-    // Direct fire below the threshold (typical workflow bundles are
-    // 2-3 apps); above it we prompt because launching e.g. all 80
-    // installed apps would be an irrecoverable surprise.
-    readonly property int _bulkLaunchConfirmThreshold: 4
-
-    function _requestBulkLaunch(sids) {
-        if (!sids || sids.length === 0) return
-        if (sids.length >= _bulkLaunchConfirmThreshold) {
-            bulkLaunchDialog.pendingSids = sids
-            bulkLaunchDialog.open()
-        } else {
-            _runBulkLaunch(sids)
-        }
-    }
-
-    function _runBulkLaunch(sids) {
-        if (!appsModel) return
-        // launchAppByStorageId fires closeRequested per call; the bulk path
-        // calls the inner step directly so the close runs once at the end.
-        for (var i = 0; i < sids.length; ++i)
-            _launchOneBySid(sids[i])
-        closeRequested()
-    }
-
-    function _runBulkHide(sids) {
-        if (!appsModel) return
-        for (var i = 0; i < sids.length; ++i)
-            appsModel.hideByStorageId(sids[i])
-    }
-
     Kirigami.PromptDialog {
         id: bulkLaunchDialog
         property list<string> pendingSids: []
@@ -1040,7 +875,7 @@ Kirigami.ShadowedRectangle {
             "Open %1 applications at once?",
             pendingSids.length)
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-        onAccepted: panel._runBulkLaunch(pendingSids)
+        onAccepted: launcher.runBulkLaunch(pendingSids)
     }
 
     Kirigami.PromptDialog {
@@ -1052,6 +887,6 @@ Kirigami.ShadowedRectangle {
             "Hide %1 applications from AppGrid? You can unhide them later in Settings → Hidden Applications.",
             pendingSids.length)
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-        onAccepted: panel._runBulkHide(pendingSids)
+        onAccepted: launcher.runBulkHide(pendingSids)
     }
 }
