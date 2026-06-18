@@ -29,21 +29,13 @@ TestCase {
         property string menuLabel: ""
         property bool openOnActiveScreen: false
         property bool showDividers: true
-        property int openAnimation: 0
         property bool showScrollbars: true
-        property int backgroundOpacity: 90
-        property bool enableBlur: true
-        property bool enableBackgroundContrast: false
-        property bool useThemeBackground: false
-        property bool dimBackground: true
         property bool independentTextSize: false
         property int verticalOffset: 0
         property bool showTooltips: true
         property bool hoverHighlight: true
         property bool showNewAppBadge: true
         property bool iconShadow: false
-        property bool overrideRadius: false
-        property int cornerRadius: 0
         property int iconSize: 64
         property int hoverAnimation: 0
         property bool shakeOnOpen: false
@@ -148,8 +140,7 @@ TestCase {
             launchAppAction: function(sid, idx) {},
             canManageInDiscover: function(sid) { return false },
             openInDiscover: function(sid) {},
-            listDirectory: function(path) { return [] },
-            themeBackgroundCornerRadius: function(imagePath) { return 0 }
+            listDirectory: function(path) { return [] }
         })
         var obj = c.createObject(null, {
             width: 600,

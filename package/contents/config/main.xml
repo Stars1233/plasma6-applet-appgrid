@@ -34,10 +34,6 @@
       <label>Whether to show divider lines between UI sections.</label>
       <default>true</default>
     </entry>
-    <entry name="openAnimation" type="Int">
-      <label>Open/close animation style (0=None, 1=Fade, 2=Scale, 3=Pop, 4=Slide Up, 5=Glide, 6=Buzz, 7=Twist, 8=Slam).</label>
-      <default>2</default>
-    </entry>
     <entry name="showSessionButtons" type="Bool">
       <label>Legacy — migrated to powerButtonOrder / powerButtonsHidden on first run.</label>
       <default>true</default>
@@ -64,23 +60,6 @@
     </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
-      <default>false</default>
-    </entry>
-    <entry name="backgroundOpacity" type="Int">
-      <label>Background opacity percentage (0-100).</label>
-      <default>85</default>
-    </entry>
-    <entry name="enableBlur" type="Bool">
-      <label>Whether to enable background blur effect.</label>
-      <default>true</default>
-    </entry>
-    <entry name="enableBackgroundContrast" type="Bool">
-      <label>Apply Plasma's background-contrast filter alongside the blur.
-             Theme-tuned values come from the active Plasma theme.</label>
-      <default>true</default>
-    </entry>
-    <entry name="dimBackground" type="Bool">
-      <label>Whether to dim the screen behind the launcher overlay.</label>
       <default>false</default>
     </entry>
     <entry name="verticalOffset" type="Int">
@@ -186,21 +165,6 @@
     <entry name="gridRows" type="Int">
       <label>Maximum number of visible rows.</label>
       <default>4</default>
-    </entry>
-    <entry name="overrideRadius" type="Bool">
-      <label>Whether to override the default corner radius.</label>
-      <default>false</default>
-    </entry>
-    <entry name="cornerRadius" type="Int">
-      <label>Custom corner radius in pixels.</label>
-      <default>24</default>
-    </entry>
-    <entry name="useThemeBackground" type="Bool">
-      <label>Draw the panel background using the active Plasma theme's
-             dialog SVG instead of a flat tinted color. Theme owns the
-             corner radius when on, so the custom radius setting is
-             disabled.</label>
-      <default>false</default>
     </entry>
     <entry name="showRecentApps" type="Bool">
       <label>Whether to show recently used applications at the top of the grid.</label>

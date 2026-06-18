@@ -105,6 +105,13 @@ message(STATUS "AppGrid version string: ${APPGRID_VERSION_STRING}")
 set(APPGRID_APP_ID "dev.xarbit.appgrid")
 
 find_package(Qt6 REQUIRED COMPONENTS Quick Gui DBus)
+# Widgets + QuickControls2 are needed only by the standalone executable (KDE
+# platform palette + the org.kde.desktop Controls style); the plasmoid gets
+# both from the Plasma shell.
+find_package(Qt6 REQUIRED COMPONENTS Widgets QuickControls2)
+# KColorSchemeManager (standalone only): track the system color scheme so the
+# app follows the user's dark/light choice live, like every other KDE app.
+find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS ColorScheme)
 if(APPGRID_UNIVERSAL_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS Network)
 endif()
@@ -168,6 +175,8 @@ set(APPGRID_COMMON_LIBS
 # Everything except the per-variant plugin register (appgridplugin_register.cpp
 # for center, appgridpanelplugin.* for panel), which the calls add inline.
 set(APPGRID_COMMON_SOURCES
+    src/appgridcontroller.cpp
+    src/appgridcontroller.h
     src/appgridplugin.cpp
     src/appgridplugin.h
     src/appstreamresolver.cpp
@@ -252,11 +261,18 @@ function(appgrid_add_compiled_applet)
     endforeach()
     # Plasma config entry + KConfigXT schema → qrc root (the flat layout Plasma's
     # compiled applets use; config.qml's "config/Foo.qml" sources resolve under it).
-    foreach(_f config.qml main.xml)
-        set(_s ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/${_f})
-        set_source_files_properties(${_s} PROPERTIES QT_RESOURCE_ALIAS ${_f})
-        list(APPEND _files ${_s})
-    endforeach()
+    # The config model is per-variant: config-<variant>.qml aliased to config.qml
+    # when present (the center variant trims it to the panel button, the launcher
+    # being configured from the daemon's own window), else the shared config.qml.
+    set(_cfg ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/config-${A_VARIANT}.qml)
+    if(NOT EXISTS ${_cfg})
+        set(_cfg ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/config.qml)
+    endif()
+    set_source_files_properties(${_cfg} PROPERTIES QT_RESOURCE_ALIAS config.qml)
+    list(APPEND _files ${_cfg})
+    set(_xml ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/main.xml)
+    set_source_files_properties(${_xml} PROPERTIES QT_RESOURCE_ALIAS main.xml)
+    list(APPEND _files ${_xml})
     # Shared QML/JS under contents/ui/ → alias = path relative to contents/ui/,
     # preserving the subdir structure so the relative imports keep resolving.
     file(GLOB_RECURSE _ui CONFIGURE_DEPENDS
@@ -298,6 +314,80 @@ appgrid_add_compiled_applet(
     METADATA metadata-panel.json.in
     SOURCES src/appgridpanelplugin.cpp src/appgridpanelplugin.h
             src/popupsizepolicy.cpp src/popupsizepolicy.h ${APPGRID_COMMON_SOURCES})
+
+# --- Standalone executable (own process → KWin window open/close effects) ---
+# A plasmoid window lives in plasmashell, which KWin's Glide/Scale effects
+# exclude. A separate `appgrid` binary gives the window class "appgrid", so it
+# animates like KRunner. Reuses the common sources + the controller, plus a
+# KConfigXT config class generated from the SAME schema the applet uses.
+
+# Generate the standalone .kcfg from the applet's config/main.xml so the two
+# never drift: identical entries, only the backing file name differs.
+set(_appgrid_kcfg ${CMAKE_BINARY_DIR}/appgridconfig.kcfg)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/config/main.xml _appgrid_main_xml)
+string(REPLACE "<kcfgfile name=\"\"/>" "<kcfgfile name=\"appgridrc\"/>" _appgrid_main_xml "${_appgrid_main_xml}")
+file(WRITE ${_appgrid_kcfg} "${_appgrid_main_xml}")
+# The .kcfgc's File= points at this generated .kcfg (resolved against the .kcfgc
+# location); copy it next to the generated schema so kconfig_add_kcfg_files
+# finds both in the build dir.
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/standalone/appgridconfig.kcfgc
+               ${CMAKE_BINARY_DIR}/appgridconfig.kcfgc COPYONLY)
+
+set(APPGRID_STANDALONE_SOURCES
+    src/standalone/main.cpp
+    src/standalone/appgridstandalone.cpp
+    src/standalone/appgridstandalone.h
+    ${APPGRID_COMMON_SOURCES})
+
+add_executable(appgrid ${APPGRID_STANDALONE_SOURCES})
+kconfig_add_kcfg_files(appgrid GENERATE_MOC ${CMAKE_BINARY_DIR}/appgridconfig.kcfgc)
+target_include_directories(appgrid PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# KF6::ConfigGui supplies KConfigSkeleton (the generated AppGridConfig base);
+# Widgets gives the KDE platform palette, QuickControls2 the org.kde.desktop style.
+target_link_libraries(appgrid PRIVATE ${APPGRID_COMMON_LIBS} KF6::ConfigGui Qt6::Widgets Qt6::QuickControls2 KF6::ColorScheme KF6::I18nQml)
+target_compile_definitions(appgrid PRIVATE
+    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\""
+    "TRANSLATION_DOMAIN=\"${APPGRID_APP_ID}\""
+    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\"")
+if(ENABLE_X11)
+    target_compile_definitions(appgrid PRIVATE APPGRID_X11_SUPPORT)
+endif()
+if(APPGRID_UNIVERSAL_BUILD)
+    target_link_libraries(appgrid PRIVATE Qt6::Network)
+    target_compile_definitions(appgrid PRIVATE APPGRID_UNIVERSAL_BUILD)
+endif()
+if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(_w -Wall -Wextra -Wunused -Wshadow -Wnon-virtual-dtor -Werror)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND _w -Wunreachable-code-aggressive)
+    endif()
+    target_compile_options(appgrid PRIVATE ${_w})
+endif()
+
+# Bundle the shared QML the same way the applet does, but under a private prefix
+# the executable loads from. main.qml sits as a sibling of views/, controllers/,
+# js/ so its relative imports ("controllers", "../js/x.js", GridPanel, …)
+# resolve identically to the applet.
+set(_appgrid_qml_prefix "/qt/qml/appgrid")
+set(_appgrid_qml_files)
+set(_appgrid_entry ${CMAKE_CURRENT_SOURCE_DIR}/package/standalone/main.qml)
+set_source_files_properties(${_appgrid_entry} PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+list(APPEND _appgrid_qml_files ${_appgrid_entry})
+set(_appgrid_cfgwin ${CMAKE_CURRENT_SOURCE_DIR}/package/standalone/ConfigWindow.qml)
+set_source_files_properties(${_appgrid_cfgwin} PROPERTIES QT_RESOURCE_ALIAS ConfigWindow.qml)
+list(APPEND _appgrid_qml_files ${_appgrid_cfgwin})
+file(GLOB_RECURSE _appgrid_ui CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/*.qml
+    ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/*.js)
+foreach(_s ${_appgrid_ui})
+    file(RELATIVE_PATH _alias ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui ${_s})
+    set_source_files_properties(${_s} PROPERTIES QT_RESOURCE_ALIAS ${_alias})
+    list(APPEND _appgrid_qml_files ${_s})
+endforeach()
+qt_add_resources(appgrid "appgrid_standalone_qml" PREFIX ${_appgrid_qml_prefix} FILES ${_appgrid_qml_files})
+
+install(TARGETS appgrid DESTINATION ${KDE_INSTALL_BINDIR})
+install(FILES dev.xarbit.appgrid.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 
 message(STATUS "AppGrid ENABLE_X11=${ENABLE_X11}")
 

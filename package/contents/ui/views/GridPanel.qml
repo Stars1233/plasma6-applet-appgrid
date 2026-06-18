@@ -17,7 +17,6 @@ import "../widgets"
 import "../js/launchcounts.js" as LaunchCounts
 import "../js/migrations.js" as Migrations
 import "../js/searchresultnav.js" as SearchResultNav
-import "../js/themecolors.js" as ThemeColors
 import "../js/constants.js" as Const
 import "../js/gridmetrics.js" as GridMetrics
 import "../js/prefixmodes.js" as PrefixModes
@@ -106,7 +105,7 @@ Kirigami.ShadowedRectangle {
     property real devicePixelRatio: Screen.devicePixelRatio
 
     // -- Sort helpers --
-    readonly property bool isSortByCategory: sortMode === 2
+    readonly property bool isSortByCategory: sortMode === Const.SortMode.ByCategory
 
     // -- View state --
     // hideGridWhenEmpty: Compact mode — suppress grid/category chrome
@@ -122,6 +121,7 @@ Kirigami.ShadowedRectangle {
     VisibilityState {
         id: visibility
         nativePopup: panel.nativePopup
+        sizeToContent: panel.sizeToContent
         hideGridWhenEmpty: panel.effectiveHideGridWhenEmpty
         showCategoryBar: panel.cfgShowCategoryBar
         isSearching: panel.isSearching
@@ -201,6 +201,17 @@ Kirigami.ShadowedRectangle {
     // When used as a native Plasma popup, skip custom chrome (Plasma provides its own)
     property bool nativePopup: false
 
+    // The standalone daemon shows a header gear to open its own settings window
+    // (the plasmoid variants configure via System Settings, so they leave it off).
+    property bool showConfigButton: false
+    signal configureRequested()
+
+    // The daemon hosts the panel in a fixed-size PlasmaWindow it sizes from the
+    // panel's implicitHeight, so the panel must report the compact-aware
+    // effectiveHeight (like the old center GridWindow). The panel-plasmoid variant
+    // leaves this off: it seeds panelHeight then lets Plasma own the popup size.
+    property bool sizeToContent: false
+
     // Icon-based estimate avoids the circular dependency panel width →
     // grid cellWidth → grid width → panel width. estCellHeight must match
     // AppGridView.cellHeight with labels visible (gridUnit too small per
@@ -238,7 +249,10 @@ Kirigami.ShadowedRectangle {
     // re-asserted the estimate on every layout pass (e.g. a monitor wake)
     // and snapped the user's edge-drag back, shrinking the popup (#146).
     implicitWidth: nativePopup ? panelWidth : 0
-    implicitHeight: nativePopup ? panelHeight : 0
+    // sizeToContent (daemon): track the compact-aware effectiveHeight so the
+    // hosting PlasmaWindow shrinks for compact mode and grows when the grid
+    // reveals. Plain nativePopup (panel variant): seed panelHeight only.
+    implicitHeight: nativePopup ? (sizeToContent ? effectiveHeight : panelHeight) : 0
 
     // Snap the size to the device-pixel grid so the panel's painted edges and
     // the blur region (PanelGeometry snaps it to the same grid) round to the same
@@ -270,63 +284,19 @@ Kirigami.ShadowedRectangle {
     Layout.preferredHeight: nativePopup ? -1 : height
     Layout.minimumWidth: nativePopup ? Kirigami.Units.gridUnit * 12 : width
     Layout.minimumHeight: nativePopup ? Kirigami.Units.gridUnit * 12 : height
-    readonly property int requestedRadius: cfg.overrideRadius ? cfg.cornerRadius
-                                                              : Kirigami.Units.cornerRadius
-    // Half the smaller dimension is the geometric max for a valid rounded rect.
-    // In compact mode the panel collapses to roughly the search bar; a larger
-    // radius produces a degenerate shape and gaps in the matching blur region
-    // (#151). The blur region reads this same `radius` via GridWindow, so the
-    // visible panel and its blur stay consistent at every animated height.
-    readonly property int maxValidRadius: Math.floor(Math.min(width, height) / 2)
-    // Under theme chrome ThemeChrome draws the SVG corner; match the blur region
-    // to the theme's radius (clamped to the geometric max) so the frosted area
-    // lines up with the drawn curve instead of stepping past it on themes with
-    // larger corners (#188). The blur region reads this via GridWindow.
-    radius: nativePopup ? 0
-        : panel.useThemeChrome ? Math.min(themeChrome.cornerRadius, maxValidRadius)
-        : Math.min(requestedRadius, maxValidRadius)
+    // The launcher always renders inside a Plasma popup / PlasmaWindow, which draws
+    // the themed background, blur, contrast and shadow itself (the theme owns the
+    // corner), so the panel rect is transparent, chromeless and square. nativePopup
+    // is true in every shipped variant; the non-popup fallback rounds to the theme
+    // corner clamped to the geometric max (half the smaller dimension).
+    radius: nativePopup ? 0 : Math.min(Kirigami.Units.cornerRadius, Math.floor(Math.min(width, height) / 2))
 
-    readonly property real bgOpacity: cfg.effectiveBackgroundOpacity / 100
-    // Three rendering paths:
-    //   - nativePopup:                 Plasma's popup framework owns the chrome.
-    //   - cfg.useThemeBackground:      ThemeChrome draws the SVG panel face.
-    //   - default (solid-color mode):  ShadowedRectangle's own color + border.
-    readonly property bool useThemeChrome: !nativePopup && cfg.useThemeBackground
-
-    color: nativePopup || useThemeChrome
-        ? "transparent"
-        : ThemeColors.tint(Kirigami.Theme.backgroundColor, bgOpacity)
-
-    border.width: useThemeChrome || nativePopup ? 0 : 1
-    border.color: useThemeChrome || nativePopup
-        ? "transparent"
-        : Kirigami.ColorUtils.linearInterpolation(
-                Kirigami.Theme.backgroundColor,
-                Kirigami.Theme.textColor, 0.2)
-
-    // Layer-shell windows have no WM shadow, so the center variant paints its
-    // own. ThemeChrome draws the theme's dialog shadow when the theme ships one;
-    // otherwise (solid-colour mode, or a theme without a shadow prefix) this
-    // generic ShadowedRectangle shadow is used, matching the panel's radius.
-    shadow.size: nativePopup || themeChrome.hasThemeShadow ? 0 : Kirigami.Units.gridUnit
-    shadow.color: nativePopup ? "transparent" : Qt.rgba(0, 0, 0, 0.4)
-    shadow.xOffset: 0
-    shadow.yOffset: nativePopup ? 0 : Kirigami.Units.smallSpacing
+    color: "transparent"
+    border.width: 0
+    shadow.size: 0
 
     Kirigami.Theme.colorSet: Kirigami.Theme.View
     Kirigami.Theme.inherit: false
-
-    // Theme background + shadow for the center variant, behind the panel
-    // content. Supplies the corner radius the panel reads for its shadow gate
-    // and blur region. See ThemeChrome.qml.
-    ThemeChrome {
-        id: themeChrome
-        anchors.fill: parent
-        z: -1
-        bridge: panel.plasmoidBridge
-        active: panel.useThemeChrome
-        backgroundOpacity: panel.bgOpacity
-    }
 
     // Compact mode: wheel toggles the grid while the search field has
     // focus and there's no active query — down reveals, up collapses,
@@ -755,6 +725,19 @@ Kirigami.ShadowedRectangle {
                     shadowEnabled: cfg.iconShadow
                 }
             }
+
+            // Settings gear — standalone daemon only (see showConfigButton).
+            PlasmaComponents.ToolButton {
+                Layout.alignment: Qt.AlignVCenter
+                visible: panel.showConfigButton && !panel.isSearching
+                icon.name: "configure"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18nd("dev.xarbit.appgrid", "Configure AppGrid…")
+                onClicked: panel.configureRequested()
+                PlasmaComponents.ToolTip.text: text
+                PlasmaComponents.ToolTip.visible: hovered
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+            }
         }
 
         // -- Category bar --
@@ -1036,7 +1019,7 @@ Kirigami.ShadowedRectangle {
 
     LauncherActions {
         id: launcherActions
-        applet: panel.appletInterface
+        actions: panel.plasmoidBridge
     }
 
     SessionActions { id: sessionActions }
@@ -1061,6 +1044,8 @@ Kirigami.ShadowedRectangle {
         openInDiscover: panel.plasmoidBridge.openInDiscover
         pinToTaskManager: launcherActions.pinToTaskManager
         addToDesktop: launcherActions.addToDesktop
+        canPinToTaskManager: launcherActions.canPinToTaskManager
+        canAddToDesktop: launcherActions.canAddToDesktop
         editApplication: launcherActions.editMenuItem
         runRunnerAction: function(rowIdx, actIdx) {
             if (panel.plasmoidBridge.runRunnerAction(rowIdx, actIdx))

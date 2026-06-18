@@ -1,0 +1,212 @@
+/*
+    SPDX-FileCopyrightText: 2026 AppGrid Contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+#pragma once
+
+#include <KConfigWatcher>
+#include <KSharedConfig>
+#include <QObject>
+#include <QRect>
+
+namespace KRunner
+{
+class ResultsModel;
+}
+
+#include "appfiltermodel.h"
+#include "appmodel.h"
+#include "frecencyprovider.h"
+#include "runnerfiltermodel.h"
+#include "unifiedsearchmodel.h"
+
+#ifdef APPGRID_UNIVERSAL_BUILD
+#include "updatechecker.h"
+#endif
+
+class QScreen;
+class QWindow;
+
+/**
+ * @brief Applet-independent core of the AppGrid launcher.
+ *
+ * Owns the models and all of the self-contained launcher logic (window
+ * configuration, blur/shadow effects, app launch, runner, search toggles,
+ * Discover integration, directory listing, system info). It carries no
+ * Plasma::Applet dependency, so it can be driven both by the AppGridPlugin
+ * applet (which forwards to it) and by the standalone `appgrid` executable.
+ *
+ * The few pieces that genuinely need the applet — the compact global shortcut
+ * and the activation-inversion — stay in AppGridPlugin.
+ */
+class AppGridController : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
+    Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
+    // Opaque QObject* — QML uses it only via the dynamic queryString
+    // property, no static KRunner type knowledge needed across the QML/C++
+    // boundary; keeps <KRunner/ResultsModel> out of this header.
+    Q_PROPERTY(QObject *runnerSourceModel READ runnerSourceModel CONSTANT)
+    Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
+    Q_PROPERTY(bool isWayland READ isWayland CONSTANT)
+    // Drives QML's "Check for updates" visibility + i: view "Install" row.
+    Q_PROPERTY(bool isUniversalBuild READ isUniversalBuild CONSTANT)
+#ifdef APPGRID_UNIVERSAL_BUILD
+    Q_PROPERTY(UpdateChecker *updateChecker READ updateChecker CONSTANT)
+#endif
+
+public:
+    explicit AppGridController(QObject *parent = nullptr);
+
+    [[nodiscard]] AppFilterModel *appsModel() const;
+    [[nodiscard]] QAbstractItemModel *runnerModel() const;
+    [[nodiscard]] QObject *runnerSourceModel() const;
+    [[nodiscard]] UnifiedSearchModel *searchModel() const;
+    [[nodiscard]] bool isUniversalBuild() const;
+#ifdef APPGRID_UNIVERSAL_BUILD
+    [[nodiscard]] UpdateChecker *updateChecker() const;
+#endif
+    [[nodiscard]] bool isWayland() const;
+
+    /**
+     * Layer-shell scope the next configureWindow() applies. The plasmoid keeps
+     * the default "appgrid" overlay scope; the standalone executable sets a
+     * scope that KWin maps to WindowType::Normal so the window open/close
+     * effect (Glide/Scale/Fade) animates it like KRunner. Must be set before
+     * configureWindow() is called.
+     */
+    void setLayerScope(const QString &scope);
+
+    // --- Window management ---
+
+    /** Configure @p window as an overlay (LayerShell on Wayland, flags on X11). */
+    Q_INVOKABLE void configureWindow(QWindow *window);
+
+    /** Configure @p window as the centered, content-sized panel surface that
+     *  carries the theme background and blur. */
+    Q_INVOKABLE void configurePanelWindow(QWindow *window);
+
+    /** Place the panel surface on the right screen and center it vertically, in
+     *  one atomic step (KRunner's model). Picks the target screen — the active
+     *  output (from KWin, authoritative on Wayland) when @p useActiveScreen, else
+     *  the panel's screen — sets the layer surface to it explicitly, and sets the
+     *  top margin from THAT screen's height: (height - panelFullHeight)/2 plus the
+     *  user vertical offset (@p verticalOffsetPercent of the slack). Doing screen
+     *  + margin together from the same screen avoids the cross-screen jump a split
+     *  (compositor picks screen, QML computes margin off a lagging QScreen) caused.
+     *  Wayland-only. @p panelFullHeight is the full (non-compact) panel height so a
+     *  compact panel still hangs from the full panel's top. */
+    Q_INVOKABLE void positionPanelWindow(QWindow *window, int panelFullHeight, int verticalOffsetPercent, bool useActiveScreen);
+
+    /** The window's own (per-window) device-pixel ratio. */
+    Q_INVOKABLE qreal windowDevicePixelRatio(QWindow *window) const;
+
+    /** Restrict pointer input on @p window to the rectangle (x,y,w,h). */
+    Q_INVOKABLE void setInputRect(QWindow *window, int x, int y, int w, int h);
+
+    /** Broadcast an app launch to the system-wide KActivities database. */
+    Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
+
+    /** Pin @p desktopFile (an absolute .desktop path) to the panel's Task
+     *  Manager. Adds "applications:<storageId>" to every icontasks/taskmanager
+     *  applet's launcher list via plasmashell scripting (Kicker does this
+     *  in-process; a separate process must go through evaluateScript). */
+    Q_INVOKABLE void addToTaskManager(const QString &desktopFile);
+
+    /** Add @p desktopFile (an absolute .desktop path) to the desktop by dropping
+     *  it into the XDG Desktop directory (shown by Folder View). */
+    Q_INVOKABLE void addToDesktop(const QString &desktopFile);
+
+    /** True if the daemon can pin to the Task Manager — the center plasmoid's
+     *  D-Bus helper is up to run the in-process Kicker pin (absent when the
+     *  launcher runs without a plasmoid). The menu hides the action otherwise. */
+    [[nodiscard]] Q_INVOKABLE bool canPinToTaskManager() const;
+
+    /** True if a Folder View desktop exists to actually show a dropped .desktop
+     *  (the menu hides "Add to Desktop" otherwise). */
+    [[nodiscard]] Q_INVOKABLE bool canAddToDesktop() const;
+
+    /** Enable/disable the search-time frecency bias (opt-in via ConfigSearch). */
+    Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
+
+    /** Surface hidden apps in search results when @p enabled is true. */
+    Q_INVOKABLE void setSearchShowsHidden(bool enabled);
+
+    // --- Prefix mode commands ---
+
+    /** Run @p command in the user's preferred terminal emulator using @p shell. */
+    Q_INVOKABLE void runInTerminal(const QString &command, const QString &shell = QString());
+
+    /** Run @p command via the configured shell without a terminal. */
+    Q_INVOKABLE void runCommand(const QString &command, const QString &shell = QString());
+
+    /** Returns list of installed shells from /etc/shells. */
+    Q_INVOKABLE QStringList availableShells();
+
+    /** Run a KRunner result by model index. Returns true if the UI should close. */
+    Q_INVOKABLE bool runRunnerResult(int index);
+
+    /** Run secondary action @p actionIndex on the KRunner result at @p index. */
+    Q_INVOKABLE bool runRunnerAction(int index, int actionIndex);
+
+    /** Substitution text for in-place runner results (calculator), else empty. */
+    Q_INVOKABLE QString runnerSubstitutionText(int index);
+
+    /** Returns application-defined actions (jumplist) for the given storageId. */
+    Q_INVOKABLE QVariantList appActions(const QString &storageId);
+
+    /** Launch a specific app action by storageId and action index. */
+    Q_INVOKABLE void launchAppAction(const QString &storageId, int actionIndex);
+
+    /** True if KDE Discover is installed. */
+    [[nodiscard]] Q_INVOKABLE bool isDiscoverAvailable() const;
+
+    /** True if Discover has a backend that can manage the specified app. */
+    [[nodiscard]] Q_INVOKABLE bool canManageInDiscover(const QString &storageId) const;
+
+    /** Open KDE Discover focused on the application identified by @p storageId. */
+    Q_INVOKABLE void openInDiscover(const QString &storageId);
+
+    /** List directory contents at @p path. Returns {name, path, isDir, icon}. */
+    Q_INVOKABLE QVariantList listDirectory(const QString &path);
+
+    // --- System info ---
+
+    /** Returns system/environment info for issue reporting. @p variant labels
+     *  the running form factor (Center/Panel/Standalone). */
+    Q_INVOKABLE QVariantMap systemInfo(const QString &variant = QStringLiteral("Center"));
+
+private:
+    void applyRunnerFavorites();
+    [[nodiscard]] QModelIndex runnerSourceIndex(int proxyIndex) const;
+
+    [[nodiscard]] QScreen *screenForCursor() const;
+    // QScreen with the given output name (null if none / empty).
+    [[nodiscard]] QScreen *screenByName(const QString &name) const;
+    // KWin's active output (authoritative on Wayland, unlike QCursor::pos).
+    [[nodiscard]] QScreen *activeScreen() const;
+    // The screen the panel icon is on — asked of the plasmoid's D-Bus helper
+    // (the daemon has no containment of its own). Null if no plasmoid answers.
+    [[nodiscard]] QScreen *panelScreen() const;
+
+    void configureWayland(QWindow *window);
+    void configurePanelWayland(QWindow *window);
+#ifdef APPGRID_X11_SUPPORT
+    void configureX11(QWindow *window);
+#endif
+
+    AppModel m_appModel;
+    AppFilterModel m_filterModel;
+    KRunner::ResultsModel *m_runnerModel = nullptr;
+    RunnerFilterModel m_runnerFilterModel;
+    UnifiedSearchModel m_searchModel;
+    FrecencyProvider m_frecencyProvider;
+    KSharedConfig::Ptr m_krunnerConfig;
+    KConfigWatcher::Ptr m_krunnerWatcher;
+    QString m_layerScope = QStringLiteral("appgrid");
+#ifdef APPGRID_UNIVERSAL_BUILD
+    mutable UpdateChecker *m_updateChecker = nullptr;
+#endif
+};

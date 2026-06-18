@@ -24,7 +24,10 @@ var DEFAULT_ICON = "application-x-executable"
 // search" is on): dimmed enough to read as hidden, legible enough to still pick.
 var HIDDEN_RESULT_OPACITY = 0.55
 
-// Alpha of the black scrim drawn behind the centered launcher when the
-// "dim screen behind launcher" option is on (#170). The window is a
-// fullscreen layer-shell surface, so the scrim covers everything under it.
-var DIM_OVERLAY_OPACITY = 0.35
+// sortMode config values (config/main.xml + the General page's combo order).
+// Named so call sites read intent instead of a bare 0/1/2.
+var SortMode = {
+    Alphabetical: 0,
+    MostUsed: 1,
+    ByCategory: 2,
+}

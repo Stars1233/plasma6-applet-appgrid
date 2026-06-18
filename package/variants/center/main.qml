@@ -2,16 +2,17 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Root plasmoid item: panel icon + custom Window lifecycle.
-    The window opens as a centered popup over a dim overlay; see GridWindow.qml.
+    Root plasmoid item for the center variant: just the panel icon. Activating it
+    toggles the standalone `appgrid` daemon's window over D-Bus (launching the
+    daemon if needed) — the launcher window runs in its own process so KWin can
+    animate it with any window open/close effect, like KRunner. See src/standalone
+    and AppGridPlugin::toggleStandaloneWindow().
 */
 
 import QtQuick
 import org.kde.plasma.plasmoid
 
 import "controllers"
-import "views"
-import "js/constants.js" as Const
 import "js/migrations.js" as Migrations
 
 PlasmoidItem {
@@ -23,28 +24,20 @@ PlasmoidItem {
 
     activationTogglesExpanded: false
 
+    // The launcher's settings live in its own window (the daemon): opened from
+    // the gear in the launcher header, or the "Configure Launcher…" button on the
+    // General tab of this plasmoid's Plasma config (ConfigButton.qml). No separate
+    // context-menu entry — Plasma's own "Configure AppGrid…" covers the applet.
+
     ConfigCache { id: cfg; source: Plasmoid.configuration }
 
     Plasmoid.icon: cfg.useCustomButtonImage ? cfg.customButtonImage : cfg.icon
 
-    property GridWindow gridWindow: null
-    property bool gridOpen: false
-    // Set while the window is being built asynchronously; see preloadWindow().
-    property var _gridWindowIncubator: null
-
-    // Shared drag source for all app drags — see DragSource.qml.
-    readonly property alias dragSource: dragSourceImpl
-    readonly property alias isDragInFlight: dragSourceImpl.isDragInFlight
-    DragSource { id: dragSourceImpl }
-
-    PlasmoidBridge { id: bridge }
-    PlasmoidConfigSync {
-        configuration: Plasmoid.configuration
-        updateChecker: Plasmoid.updateChecker
-        bridge: bridge
+    Component.onCompleted: {
+        Migrations.migrateLauncherIcon(Plasmoid.configuration)
+        // One-shot: hand the user's existing settings to the daemon's appgridrc.
+        Plasmoid.migrateConfigToStandalone()
     }
-
-    Component.onCompleted: Migrations.migrateLauncherIcon(Plasmoid.configuration)
 
     Component {
         id: compactRepresentationComponent
@@ -52,90 +45,18 @@ PlasmoidItem {
             formFactor: Plasmoid.formFactor
             title: Plasmoid.title
             configuration: Plasmoid.configuration
-            onActivated: appgrid.toggleWindow(false)
-            onPreloadRequested: appgrid.preloadWindow()
+            onActivated: Plasmoid.toggleStandaloneWindow()
         }
     }
 
     Connections {
         target: Plasmoid
-        function onActivated() { appgrid.toggleWindow(false) }
-        function onCompactActivated() { appgrid.toggleWindow(true) }
+        function onActivated() { Plasmoid.toggleStandaloneWindow() }
+        // Secondary "Open in Compact Mode" shortcut → daemon's ToggleCompact.
+        function onCompactActivated() { Plasmoid.toggleStandaloneWindowCompact() }
     }
 
-
-    function destroyGridWindow() {
-        if (_gridWindowIncubator)
-            _gridWindowIncubator.forceCompletion()
-        if (gridWindow) {
-            gridWindow.visible = false
-            gridWindow.destroy()
-            gridWindow = null
-        }
-        gridOpen = false
-    }
-
-    // Pure toggle. forceCompact only matters on the open edge — close-time
-    // resets would race the close animation, so the value persists until
-    // the next openWindow() rewrites it.
-    function toggleWindow(forceCompact = false) {
-        if (gridOpen) {
-            closeWindow()
-        } else {
-            openWindow(forceCompact)
-        }
-    }
-
-    // Build the window off the click path. Triggered by panel-icon hover, so
-    // the tree is usually ready before the click; openWindow() forces the
-    // build to finish if the click wins the race.
-    function preloadWindow() {
-        if (gridWindow || _gridWindowIncubator)
-            return
-        const incubator = gridWindowComponent.incubateObject(
-            appgrid, { appletInterface: appgrid }, Qt.Asynchronous)
-        if (incubator.status === Component.Ready) {
-            gridWindow = incubator.object
-            return
-        }
-        _gridWindowIncubator = incubator
-        incubator.onStatusChanged = function(status) {
-            if (status === Component.Ready) {
-                appgrid.gridWindow = incubator.object
-                appgrid._gridWindowIncubator = null
-            }
-        }
-    }
-
-    function openWindow(forceCompact = false) {
-        gridOpen = true
-        if (!gridWindow) {
-            preloadWindow()
-            if (_gridWindowIncubator)
-                _gridWindowIncubator.forceCompletion()
-        }
-        // Set before showGrid() so panel geometry is correct from frame one.
-        gridWindow.forceCompact = forceCompact
-        gridWindow.showGrid()
-    }
-
-    function closeWindow() {
-        gridOpen = false
-        if (gridWindow)
-            gridWindow.closeGrid()
-    }
-
-    Component {
-        id: gridWindowComponent
-        GridWindow {
-            appsModel: Plasmoid.appsModel
-            searchModel: Plasmoid.searchModel
-            runnerSourceModel: Plasmoid.runnerSourceModel
-            configuration: Plasmoid.configuration
-            plasmoidBridge: bridge
-            updateChecker: Plasmoid.updateChecker
-            favoritesClientInstance: Const.FAVORITES_CLIENT_ID
-            sysInfo: Plasmoid.systemInfo()
-        }
-    }
+    // Runs the daemon's "Pin to Task Manager" in this applet's process (it has the
+    // corona Kicker needs); the daemon reaches us via the plasmoid D-Bus helper.
+    TaskManagerPinner { applet: appgrid }
 }

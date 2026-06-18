@@ -5,29 +5,12 @@
 
 #pragma once
 
-#include <KConfigWatcher>
 #include <Plasma/Applet>
 #include <QRect>
 
-#include <memory>
-
 class QAction;
 
-namespace KRunner
-{
-class ResultsModel;
-}
-
-namespace KSvg
-{
-class FrameSvg;
-}
-
-#include "appfiltermodel.h"
-#include "appmodel.h"
-#include "frecencyprovider.h"
-#include "runnerfiltermodel.h"
-#include "unifiedsearchmodel.h"
+#include "appgridcontroller.h"
 
 #ifdef APPGRID_UNIVERSAL_BUILD
 #include "updatechecker.h"
@@ -35,27 +18,59 @@ class FrameSvg;
 
 class QScreen;
 class QWindow;
+class AppGridPlugin;
+
+/**
+ * Minimal session-bus surface the center plasmoid exports so the standalone
+ * daemon (which has no live applet/corona) can ask it to do things that need
+ * one: pin to the Task Manager (Kicker, in-process) and report which screen the
+ * panel icon is on (the "open on the panel's screen" option). Separate from
+ * AppGridPlugin so only these reach the bus — not the applet's whole surface.
+ */
+class AppGridPlasmoidService : public QObject
+{
+    Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", APPGRID_APP_ID ".Plasmoid")
+
+public:
+    explicit AppGridPlasmoidService(AppGridPlugin *plugin, QObject *parent = nullptr);
+
+public Q_SLOTS:
+    Q_SCRIPTABLE void requestAddToTaskManager(const QString &desktopFile);
+    /** Name of the screen the panel icon sits on (empty if unknown). */
+    Q_SCRIPTABLE QString panelScreenName() const;
+
+Q_SIGNALS:
+    void addToTaskManagerRequested(const QString &desktopFile);
+
+private:
+    AppGridPlugin *const m_plugin;
+};
 
 /**
  * @brief Main Plasma applet plugin for the AppGrid application launcher.
  *
- * Provides a centered application grid overlay with category filtering,
- * search, blur effects, and session management actions. Exposes Q_INVOKABLE
- * methods for QML to configure the overlay window, manage blur, launch
- * session actions, and integrate with the desktop (task manager, desktop icons).
+ * Thin Plasma::Applet wrapper around an AppGridController, which owns the
+ * models and all of the applet-independent launcher logic. The applet keeps
+ * the same Q_PROPERTY / Q_INVOKABLE surface QML already binds to and forwards
+ * each call to the controller, so the two plasmoid variants need no QML change.
+ * The pieces that genuinely need the applet stay here: the "Open in Compact
+ * Mode" global shortcut, the activation-inversion that suppresses the native
+ * popup in custom-window mode, and feeding the controller the containment's
+ * screen for the "open on the panel's screen" path.
+ *
+ * The same controller backs the standalone `appgrid` executable (a separate
+ * process whose window KWin can animate with any open/close effect); see
+ * src/standalone.
  */
 class AppGridPlugin : public Plasma::Applet
 {
     Q_OBJECT
     Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
-    // Opaque QObject* — QML uses it only via the dynamic queryString
-    // property, no static KRunner type knowledge needed across the QML/C++
-    // boundary; keeps <KRunner/ResultsModel> out of this header.
     Q_PROPERTY(QObject *runnerSourceModel READ runnerSourceModel CONSTANT)
     Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
     Q_PROPERTY(bool isWayland READ isWayland CONSTANT)
-    // Drives QML's "Check for updates" visibility + i: view "Install" row.
     Q_PROPERTY(bool isUniversalBuild READ isUniversalBuild CONSTANT)
 #ifdef APPGRID_UNIVERSAL_BUILD
     Q_PROPERTY(UpdateChecker *updateChecker READ updateChecker CONSTANT)
@@ -63,8 +78,6 @@ class AppGridPlugin : public Plasma::Applet
 
 public:
     AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args);
-    // Out-of-line so the unique_ptr<KSvg::FrameSvg> (forward-declared) is
-    // destroyed where the type is complete.
     ~AppGridPlugin() override;
 
     [[nodiscard]] AppFilterModel *appsModel() const;
@@ -77,192 +90,106 @@ public:
 #endif
     [[nodiscard]] bool isWayland() const;
 
-    // --- Window management ---
+    // --- Window management (forwarded to the controller) ---
 
-    /** Configure @p window as an overlay (LayerShell on Wayland, flags on X11). */
     Q_INVOKABLE void configureWindow(QWindow *window);
-
-    /** Update which screen the Wayland overlay appears on (no-op on X11). */
-    Q_INVOKABLE void updateWindowScreen(QWindow *window, bool useActiveScreen);
-
-    /** Returns the target screen geometry for the overlay (used by QML on X11). */
-    Q_INVOKABLE QRect targetScreenGeometry(bool useActiveScreen);
-
-    /** Apply blur + background-contrast effects to @p window over the panel
-     *  geometry. @p enableBlur and @p enableContrast are independent. When
-     *  @p useThemeMask is set the region is the theme's dialog-background mask
-     *  (matching the drawn FrameSvg, so its antialiased corner covers the blur
-     *  edge); otherwise a rounded rectangle of @p radius. The contrast triple is
-     *  pulled from the active Plasma theme so each theme controls its look. */
-    Q_INVOKABLE void setBackgroundEffects(QWindow *window, bool enableBlur, bool enableContrast, int x, int y, int w, int h, int radius, bool useThemeMask);
-
-    /** Corner radius, in pixels, of the @p imagePath FrameSvg in the active
-     *  Plasma theme (0 if it ships no rounded corner). The center variant
-     *  queries its theme-background SVG so its blur region lines up with the
-     *  drawn corner under "Use Plasma theme background". */
-    Q_INVOKABLE int themeBackgroundCornerRadius(const QString &imagePath) const;
-
-    /** The window's own (per-window) device-pixel ratio. On Wayland fractional
-     *  scaling this is the true ratio (e.g. 1.75), unlike QML's
-     *  Screen.devicePixelRatio which reports the integer-clamped output scale
-     *  (2). The center variant snaps its panel geometry to this so the painted
-     *  edges land on the same device pixels as the blur region (#188). */
+    Q_INVOKABLE void configurePanelWindow(QWindow *window);
     Q_INVOKABLE qreal windowDevicePixelRatio(QWindow *window) const;
-
-    /**
-     * Restrict pointer input on @p window to the rectangle (x,y,w,h). The
-     * rest of the window becomes pass-through — events fall through to the
-     * surface below (e.g. the panel/taskbar/desktop under our full-screen
-     * layer overlay). If @p w or @p h is zero, the mask is cleared and the
-     * entire window receives input again.
-     *
-     * Used while a drag-out is in flight: the centred grid panel keeps full
-     * input (so internal favorites reorder still works) while the surrounding
-     * dim overlay becomes pass-through so the user can drop on external
-     * targets that are otherwise covered by AppGrid.
-     */
     Q_INVOKABLE void setInputRect(QWindow *window, int x, int y, int w, int h);
-
-    /**
-     * Broadcast an app launch to the system-wide KActivities database so
-     * other Plasma launchers (Kickoff, KRunner, etc.) count AppGrid as a
-     * contributing launcher. AppGrid does NOT read this data back; it's a
-     * one-way courtesy notification. See #95 for the rationale.
-     */
     Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
+    // Pin to Task Manager runs in-process (Kicker's ContainmentInterface needs a
+    // live applet): emit addToTaskManagerRequested so the variant's QML does it.
+    // QML calls this for an in-process menu; the daemon reaches it over D-Bus via
+    // requestAddToTaskManager (center variant only — see registerPlasmoidService).
+    Q_INVOKABLE void addToTaskManager(const QString &desktopFile);
+    Q_INVOKABLE void addToDesktop(const QString &desktopFile);
+    // Always true for the plasmoid (it pins in-process); the daemon's controller
+    // gates on its D-Bus helper instead.
+    [[nodiscard]] Q_INVOKABLE bool canPinToTaskManager() const;
+    [[nodiscard]] Q_INVOKABLE bool canAddToDesktop() const;
 
-    /**
-     * Enable/disable the search-time frecency bias (opt-in via ConfigSearch).
-     * Routes to FrecencyProvider (start/stop the KAStats query) and to the
-     * filter model's tiebreak switch. Idempotent; safe to call on every
-     * config change.
-     */
+    /** Name of the screen this applet's containment (the panel) is on — the
+     *  daemon's "open on the panel's screen" target. Empty if unknown. */
+    [[nodiscard]] QString panelScreenName() const;
     Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
-
-    /** Surface hidden apps in search results when @p enabled is true
-     *  (the default). False filters them out of both AppFilterModel
-     *  and RunnerFilterModel — matching the grid hide. */
     Q_INVOKABLE void setSearchShowsHidden(bool enabled);
 
     // --- Prefix mode commands ---
 
-    /** Run @p command in the user's preferred terminal emulator using @p shell. */
     Q_INVOKABLE void runInTerminal(const QString &command, const QString &shell = QString());
-
-    /** Run @p command via the configured shell without a terminal. */
     Q_INVOKABLE void runCommand(const QString &command, const QString &shell = QString());
-
-    /** Returns list of installed shells from /etc/shells. */
     Q_INVOKABLE QStringList availableShells();
-
-    /** Run a KRunner result by model index. Returns true if the UI should close. */
     Q_INVOKABLE bool runRunnerResult(int index);
-
-    /** Run secondary action @p actionIndex on the KRunner result at @p index. */
     Q_INVOKABLE bool runRunnerAction(int index, int actionIndex);
-
-    /**
-     * For runner results where the user typically wants to keep iterating
-     * on the search bar (calculator: paste the result and keep typing),
-     * returns the text to substitute into the query. Empty for runner
-     * rows whose normal action is "run" (file open, web shortcut, …).
-     */
     Q_INVOKABLE QString runnerSubstitutionText(int index);
-
-    /** Returns application-defined actions (jumplist) for the given storageId. */
     Q_INVOKABLE QVariantList appActions(const QString &storageId);
-
-    /** Launch a specific app action by storageId and action index. */
     Q_INVOKABLE void launchAppAction(const QString &storageId, int actionIndex);
-
-    /** True if KDE Discover is installed. Standalone check; per-app
-     *  manageability is queried separately via canManageInDiscover. */
     [[nodiscard]] Q_INVOKABLE bool isDiscoverAvailable() const;
-
-    /** True if Discover has a backend that can manage the specified
-     *  app (currently PackageKit for native packages, Flatpak for
-     *  Flatpak apps). Used to gate the "Manage in Discover" menu item
-     *  so it only appears for apps Discover will actually open. */
     [[nodiscard]] Q_INVOKABLE bool canManageInDiscover(const QString &storageId) const;
-
-    /** Open KDE Discover focused on the application identified by
-     *  @p storageId via the appstream:// URL scheme. */
     Q_INVOKABLE void openInDiscover(const QString &storageId);
-
-    /** List directory contents at @p path. Returns a list of {name, path, isDir, icon}. */
     Q_INVOKABLE QVariantList listDirectory(const QString &path);
 
     // --- System info ---
 
-    /** Returns system/environment info for issue reporting. */
     Q_INVOKABLE QVariantMap systemInfo();
+
+    /** Toggle the standalone `appgrid` daemon's window, launching the daemon if
+     *  it is not yet running. The center variant routes its activation here so
+     *  the launcher window is the separate-process one KWin can animate with any
+     *  window open/close effect, like KRunner. */
+    Q_INVOKABLE void toggleStandaloneWindow();
+
+    /** Toggle the daemon's window in compact mode (collapsed to the search bar),
+     *  launching it that way if not running. Wired to the secondary "Open in
+     *  Compact Mode" global shortcut (compactActivated). */
+    Q_INVOKABLE void toggleStandaloneWindowCompact();
+
+    /** Open the standalone daemon's settings window (launching the daemon first
+     *  if it is not running). Wired to the panel icon's "Configure AppGrid…". */
+    Q_INVOKABLE void configureStandaloneWindow();
+
+    /** One-shot: copy this applet's settings into the standalone daemon's own
+     *  config (appgridrc) the first time only, so a user upgrading from the
+     *  in-process center variant keeps their settings. After this the daemon owns
+     *  appgridrc; the applet config is no longer read. Idempotent (flagged). */
+    Q_INVOKABLE void migrateConfigToStandalone();
 
 Q_SIGNALS:
     /**
      * Emitted when the user triggers the secondary "Open in Compact Mode"
      * global shortcut. Ships unbound; user assigns the key in System
-     * Settings → Keyboard → Shortcuts → AppGrid. QML reacts by opening
-     * the launcher with the compact-mode override active for that
-     * session, regardless of the persisted `hideGridWhenEmpty` config.
+     * Settings → Keyboard → Shortcuts → AppGrid.
      */
     void compactActivated();
+
+    /** Pin @p desktopFile to the Task Manager. Handled by the variant's QML
+     *  (Kicker ContainmentInterface, which needs this applet). */
+    void addToTaskManagerRequested(const QString &desktopFile);
 
 protected:
     bool m_useNativeActivation = false;
 
 private:
+    // Export this applet on the session bus (center variant) so the standalone
+    // daemon can delegate the in-process Task Manager pin to it.
+    void registerPlasmoidService();
+
     /**
-     * Register the secondary "Open in Compact Mode" global shortcut on
-     * this applet. Deferred from the constructor so the applet's plugin
-     * metadata (used as the KGlobalAccel component identity) is fully
-     * resolved by the time we register. Called only by the center variant;
-     * the popup variant skips it via the m_useNativeActivation gate.
+     * Register the secondary "Open in Compact Mode" global shortcut on this
+     * applet. Deferred from the constructor so the applet's plugin metadata
+     * (the KGlobalAccel component identity) is fully resolved. Called only by
+     * the center variant; the popup variant skips it via m_useNativeActivation.
      */
     void registerCompactShortcut();
 
-    // --- Platform-specific window helpers ---
+    // Shared trigger for the standalone daemon: call @p dbusMethod on the running
+    // instance, or launch the executable with @p launchArgs if it is not running.
+    void triggerStandalone(const QString &dbusMethod, const QStringList &launchArgs);
 
-    [[nodiscard]] QScreen *screenForCursor() const;
-    [[nodiscard]] QScreen *screenForPanel() const;
-
-    void configureWayland(QWindow *window);
-#ifdef APPGRID_X11_SUPPORT
-    void configureX11(QWindow *window);
-#endif
-    void updateScreenWayland(QWindow *window, QScreen *target, bool useActiveScreen);
-
-    // Push the user's configured runner plugin arrangement
-    // (krunnerrc [Plugins][Favorites]) onto the ResultsModel so search results
-    // follow the same plugin order KRunner/Kickoff use (#180).
-    void applyRunnerFavorites();
-
-    // Maps a UnifiedSearchModel runner-row index (proxy) to a ResultsModel
-    // source QModelIndex. Returns an invalid QModelIndex on out-of-range so
-    // callers can early-out without repeating the bounds check.
-    [[nodiscard]] QModelIndex runnerSourceIndex(int proxyIndex) const;
-
-    // Lazily-created, reused FrameSvg for the theme-background queries below, so
-    // the per-frame blur-region updates during a resize don't reconstruct one
-    // each call (the way Plasma's Dialog keeps a single dialogBackground).
-    [[nodiscard]] KSvg::FrameSvg *themeBackgroundFrame(const QString &imagePath) const;
-    // Mask region of the theme background at @p r, rendered at @p devicePixelRatio
-    // so its edges match the painted FrameSvgItem — see setBackgroundEffects.
-    [[nodiscard]] QRegion themeBackgroundMask(const QRect &r, qreal devicePixelRatio) const;
-
-    AppModel m_appModel;
-    AppFilterModel m_filterModel;
-    KRunner::ResultsModel *m_runnerModel = nullptr;
-    RunnerFilterModel m_runnerFilterModel;
-    UnifiedSearchModel m_searchModel;
-    FrecencyProvider m_frecencyProvider;
-    // krunnerrc (the runner plugin arrangement source) and a watcher that
-    // re-applies the favorites live when it changes. Held as members so the
-    // shared config and the connection outlive the constructor.
-    KSharedConfig::Ptr m_krunnerConfig;
-    KConfigWatcher::Ptr m_krunnerWatcher;
+    AppGridController m_controller;
     QAction *m_compactAction = nullptr;
-    mutable std::unique_ptr<KSvg::FrameSvg> m_themeBackgroundFrame;
-#ifdef APPGRID_UNIVERSAL_BUILD
-    mutable UpdateChecker *m_updateChecker = nullptr;
-#endif
+    AppGridPlasmoidService *m_plasmoidService = nullptr;
+    // Cached result of the running daemon's version probe (see triggerStandalone).
+    bool m_daemonVersionChecked = false;
+    bool m_daemonStale = false;
 };

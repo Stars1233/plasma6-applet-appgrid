@@ -2,25 +2,40 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Bridge to Plasma's private kicker SPI for actions that touch other
-    surfaces (Task Manager, Desktop) or invoke external editors. Kept
-    out of the widgets so AppContextMenu (and any future caller) stays
-    free of Plasma::Private imports and is testable with a plain stub.
+    Context-menu actions that touch other Plasma surfaces (Task Manager,
+    Desktop) or invoke external editors. "Add to Desktop" / "Pin to Task
+    Manager" go through the injected bridge (the plasmoid forwards to the
+    controller; the standalone calls the controller directly), which scripts
+    plasmashell over D-Bus — Kicker's in-process ContainmentInterface needs a
+    live applet + corona and so silently no-ops in the standalone process.
+    KMenuEdit is just a process launch, so it stays on Kicker's ProcessRunner.
 */
 
 import QtQuick
 import org.kde.plasma.private.kicker as Kicker
 
 QtObject {
-    id: bridge
+    id: root
 
-    required property var applet
+    // plasmoidBridge (panel variant) or appGridController (standalone): both
+    // expose addToTaskManager(desktopFile) / addToDesktop(desktopFile).
+    required property var actions
 
     function pinToTaskManager(desktopFile) {
-        _ci.addLauncher(applet, Kicker.ContainmentInterface.TaskManager, desktopFile)
+        if (desktopFile)
+            root.actions.addToTaskManager(desktopFile)
     }
     function addToDesktop(desktopFile) {
-        _ci.addLauncher(applet, Kicker.ContainmentInterface.Desktop, desktopFile)
+        if (desktopFile)
+            root.actions.addToDesktop(desktopFile)
+    }
+    // Capability probes — the menu hides actions that would no-op. Default true
+    // if the injected bridge predates them (test stubs).
+    function canPinToTaskManager() {
+        return root.actions.canPinToTaskManager ? root.actions.canPinToTaskManager() : true
+    }
+    function canAddToDesktop() {
+        return root.actions.canAddToDesktop ? root.actions.canAddToDesktop() : true
     }
     // KMenuEdit takes either an app storage id or a menu group path — same
     // call, the editor figures out the type. Empty string opens at root.
@@ -29,8 +44,6 @@ QtObject {
     }
 
     // Typed as `var` — namespaced typenames trip QML 2's strict
-    // property-type check ("ProcessRunner* is not the same type as
-    // Kicker.ProcessRunner") even though they refer to the same C++ class.
+    // property-type check even though they refer to the same C++ class.
     readonly property var _runner: Kicker.ProcessRunner {}
-    readonly property var _ci: Kicker.ContainmentInterface {}
 }

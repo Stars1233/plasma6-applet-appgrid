@@ -103,6 +103,19 @@ add_executable(test_popup_size_policy
 target_link_libraries(test_popup_size_policy PRIVATE Qt6::Test Qt6::Core)
 add_test(NAME test_popup_size_policy COMMAND test_popup_size_policy)
 
+# AppGridStandalone — the daemon's D-Bus method→signal surface (QtDBus).
+add_executable(test_standalone
+    test_standalone.cpp
+    ${CMAKE_SOURCE_DIR}/src/standalone/appgridstandalone.cpp
+    ${CMAKE_SOURCE_DIR}/src/standalone/appgridstandalone.h
+)
+target_compile_definitions(test_standalone PRIVATE
+    "APPGRID_APP_ID=\"${APPGRID_APP_ID}\""
+    "APPGRID_VERSION=\"${APPGRID_VERSION_STRING}\"")
+target_include_directories(test_standalone PRIVATE ${CMAKE_SOURCE_DIR}/src/standalone)
+target_link_libraries(test_standalone PRIVATE Qt6::Test Qt6::Core Qt6::DBus)
+add_test(NAME test_standalone COMMAND test_standalone)
+
 # DiscoverBackends — Plasma-free string/filesystem mapping (QtCore only).
 add_executable(test_discoverbackends
     test_discoverbackends.cpp

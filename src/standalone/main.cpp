@@ -1,0 +1,221 @@
+/*
+    SPDX-FileCopyrightText: 2026 AppGrid Contributors
+    SPDX-License-Identifier: GPL-2.0-or-later
+
+    Standalone `appgrid` executable. Hosts the shared GridPanel in a PlasmaWindow,
+    in its OWN process — the same way KRunner builds its window. KWin derives a
+    window's class from the client executable's filename; a plasmoid lives in
+    plasmashell, which KWin's Glide/Scale open/close effects explicitly exclude.
+    Running as a separate `appgrid` binary gives the window class "appgrid", so it
+    is eligible for ALL window open/close effects, exactly like KRunner.
+*/
+
+#include "appgridconfig.h"
+#include "appgridconstants.h"
+#include "appgridcontroller.h"
+#include "appgridstandalone.h"
+
+#include <KConfigSkeleton>
+#include <KLocalizedContext>
+#include <KLocalizedString>
+#include <PlasmaQuick/SharedQmlEngine>
+
+#include <QApplication>
+#include <QEventLoop>
+#include <QMetaMethod>
+#include <QMetaProperty>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQmlEngine>
+#include <QQuickWindow>
+#include <QThread>
+#include <QTimer>
+
+int main(int argc, char *argv[])
+{
+    // Match KRunner exactly: it forces no QtQuick style, no platform theme and
+    // no palette. In a KDE session (XDG_CURRENT_DESKTOP=KDE) Qt auto-loads the
+    // KDE platform theme and the org.kde.desktop Controls style, and the Plasma
+    // theme + colours come from PlasmaWindow + SharedQmlEngine. Forcing any of
+    // those here only fights that setup. QApplication (not QGui) so the KDE
+    // platform style/palette apply.
+    QApplication app(argc, argv);
+    // Binary name → KWin windowClass "appgrid appgrid". setDesktopFileName ties
+    // the window to the installed .desktop for icon/StartupWMClass matching.
+    app.setApplicationName(QStringLiteral("appgrid"));
+    app.setApplicationDisplayName(QStringLiteral("AppGrid"));
+    app.setDesktopFileName(QStringLiteral("dev.xarbit.appgrid"));
+    // Stay resident after the launcher window hides (it closes on focus loss),
+    // so the process lives on as a daemon a second launch / shortcut can toggle —
+    // like KRunner. Without this, hiding the only window would quit the process.
+    app.setQuitOnLastWindowClosed(false);
+
+    KLocalizedString::setApplicationDomain(QByteArrayLiteral(APPGRID_APP_ID));
+
+    // The panel plasmoid launches us with --from-plasmoid: it carries its own
+    // "Configure Launcher…" config access, so the launcher hides its header gear
+    // to avoid a duplicate route to the same settings. Started any other way
+    // (run directly, autostart, a global shortcut) there is no plasmoid to reach
+    // settings from, so the gear is shown.
+    const QStringList appArgs = app.arguments();
+    const bool showConfigButton = !appArgs.contains(AppGrid::Standalone::FlagFromPlasmoid);
+    // --configure: open the settings window straight away and skip auto-showing
+    // the launcher (the plasmoid's "Configure Launcher…" when we were not yet
+    // running). The launcher window is still created, ready for a later toggle.
+    const bool openConfigOnStart = appArgs.contains(AppGrid::Standalone::FlagConfigure);
+    // --compact: open collapsed to the search bar (the secondary "Open in Compact
+    // Mode" shortcut fired while we were not yet running).
+    const bool startCompact = appArgs.contains(AppGrid::Standalone::FlagCompact);
+    // --replace: take over from a running (stale) daemon the plasmoid is quitting
+    // after an upgrade — poll for the bus name to free instead of forwarding to it.
+    const bool replaceRunning = appArgs.contains(AppGrid::Standalone::FlagReplace);
+
+    // Single instance: a second launch toggles the running window and exits, so
+    // the binary behaves like KRunner (one daemon, toggled on demand).
+    AppGridStandalone standalone;
+    if (!standalone.registerService()) {
+        if (replaceRunning) {
+            // The old daemon was just asked to Quit; wait for it to release the
+            // name (it exits in its own process), then register as the new owner.
+            constexpr int kReplaceRetries = 40;
+            constexpr int kReplaceWaitMs = 25;
+            bool registered = false;
+            for (int i = 0; i < kReplaceRetries && !(registered = standalone.registerService()); ++i) {
+                QThread::msleep(kReplaceWaitMs);
+            }
+            if (!registered) {
+                AppGridStandalone::callToggleOnRunningInstance();
+                return 0;
+            }
+        } else {
+            AppGridStandalone::callToggleOnRunningInstance();
+            return 0;
+        }
+    }
+    QObject::connect(&standalone, &AppGridStandalone::quitRequested, &app, &QCoreApplication::quit);
+
+    // Alpha buffer is required for the transparent overlay + blur region. The
+    // controller also sets this, but do it here too in case any QML window is
+    // created before the controller's constructor runs.
+    QQuickWindow::setDefaultAlphaBuffer(true);
+
+    AppGridController controller;
+    // A scope KWin does NOT special-case → scopeToType() falls through to
+    // WindowType::Normal, so the window open/close effect animates it. (The
+    // plasmoid keeps the "appgrid"/"utility"-style overlay scope.)
+    controller.setLayerScope(QStringLiteral("appgrid-standalone"));
+
+    AppGridConfig config;
+
+    // A second, never-saved AppGridConfig the settings window edits in isolation.
+    // The launcher reads `config`, so editing a separate buffer keeps changes out
+    // of the live launcher until the user hits Apply/OK (standard KCM behaviour):
+    // ConfigWindow copies buffer -> config + save() on Apply, config -> buffer on
+    // open/Reset, and compares the two for its dirty state.
+    AppGridConfig configBuffer;
+
+    // KConfigXT setters mutate in-memory items but don't persist. The launcher
+    // writes settings live (hide an app, favourite toggles, recents, launch
+    // counts), so flush them to the file with a debounced save plus a final one
+    // at quit.
+    //
+    // The save trigger is every property's NOTIFY signal, NOT the skeleton's
+    // configChanged(): the generated setters emit their per-property *Changed()
+    // signal on set, but configChanged() only fires around save() itself — so a
+    // configChanged()-driven timer would never start from a live write and the
+    // change would be lost on a hard kill. Connecting each NOTIFY covers every
+    // writable key and stays correct as the schema grows.
+    // Debounce window for coalescing bursts of live config writes into one save.
+    constexpr int kConfigSaveDebounceMs = 500;
+    auto *saveTimer = new QTimer(&app);
+    saveTimer->setSingleShot(true);
+    saveTimer->setInterval(kConfigSaveDebounceMs);
+    QObject::connect(saveTimer, &QTimer::timeout, &config, [&config]() {
+        config.save();
+    });
+    const QMetaObject *configMeta = config.metaObject();
+    const QMetaMethod startTimer = saveTimer->metaObject()->method(saveTimer->metaObject()->indexOfMethod("start()"));
+    for (int i = configMeta->propertyOffset(); i < configMeta->propertyCount(); ++i) {
+        const QMetaProperty prop = configMeta->property(i);
+        if (prop.hasNotifySignal()) {
+            QObject::connect(&config, prop.notifySignal(), saveTimer, startTimer);
+        }
+    }
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, &config, [&config]() {
+        config.save();
+    });
+
+    // The app model defers its .desktop scan to the first event-loop pass (so it
+    // never blocks plasmashell at startup). The plasmoid is created long before
+    // its window opens, so the scan is always done by then; the standalone loads
+    // its QML immediately, so pump the loop here to let the scan finish first —
+    // otherwise the window's syncModelFromConfig() runs against an empty model
+    // and the category bar / hidden-apps filter start blank until the next reset.
+    constexpr int kModelScanBudgetMs = 500;
+    QCoreApplication::processEvents(QEventLoop::AllEvents, kModelScanBudgetMs);
+
+    // Load the QML through PlasmaQuick::SharedQmlEngine — the same engine
+    // KRunner uses. Unlike a bare QQmlApplicationEngine it wires up everything a
+    // plasmoid normally gets from the shell: the KLocalizedContext for i18n, the
+    // Plasma theme + color scheme, and the Kirigami platform. Without it the
+    // reused plasmoid QML renders unthemed and half-broken. rootContext() is a
+    // child context, so our context properties don't leak into the shared engine.
+    PlasmaQuick::SharedQmlEngine engine;
+    engine.setTranslationDomain(QStringLiteral(APPGRID_APP_ID));
+    engine.setInitializationDelayed(true);
+    // Make Kirigami.Theme source its colours from Plasma::Theme (the active
+    // Plasma Style), so text follows the Plasma desktop theme like the plasmoid
+    // and KRunner — not the kdeglobals colour scheme (which may be a light scheme
+    // and renders dark-on-dark over the dark Plasma background). Kirigami reads
+    // this engine property to choose its colour platform plugin
+    // (PlatformTheme::qmlAttachedProperties → findPlugin), and "Plasma" matches
+    // the KirigamiPlasmaStyle plugin. This is what the Plasma QML stack sets up
+    // for in-shell QML; a standalone binary must set it itself.
+    engine.engine()->setProperty("_kirigamiTheme", QStringLiteral("Plasma"));
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridController"), &controller);
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridConfig"), &config);
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridStandalone"), &standalone);
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridShowConfigButton"), showConfigButton);
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridAutoShow"), !openConfigOnStart);
+    engine.rootContext()->setContextProperty(QStringLiteral("appGridStartCompact"), startCompact);
+    // Bundled at this qrc path by qt_add_resources (see CMakeLists). The root is
+    // a PlasmaCore.Window (PlasmaWindow) hosting GridPanel as its mainItem.
+    engine.setSource(QUrl(QStringLiteral("qrc:/qt/qml/appgrid/Main.qml")));
+    engine.completeInitialization();
+    if (!engine.rootObject()) {
+        qWarning("AppGrid: failed to load standalone entry QML");
+        return 1;
+    }
+
+    // The settings window loads in its OWN QQmlApplicationEngine — deliberately
+    // without the launcher engine's "_kirigamiTheme=Plasma" — so Kirigami uses
+    // the desktop colour platform (the system colour scheme), themed like a
+    // normal KDE app / KRunner's config, not the dark Plasma desktop theme.
+    QQmlApplicationEngine *configEngine = nullptr;
+    QObject::connect(&standalone, &AppGridStandalone::configureRequested, &app, [&]() {
+        if (!configEngine) {
+            configEngine = new QQmlApplicationEngine(&app);
+            configEngine->rootContext()->setContextObject(new KLocalizedContext(configEngine));
+            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridConfig"), &config);
+            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridConfigBuffer"), &configBuffer);
+            configEngine->rootContext()->setContextProperty(QStringLiteral("appGridController"), &controller);
+            configEngine->load(QUrl(QStringLiteral("qrc:/qt/qml/appgrid/ConfigWindow.qml")));
+        }
+        const auto roots = configEngine->rootObjects();
+        if (!roots.isEmpty()) {
+            if (auto *w = qobject_cast<QQuickWindow *>(roots.first())) {
+                w->show();
+                w->raise();
+                w->requestActivate();
+            }
+        }
+    });
+
+    // Launched as "appgrid --configure" (plasmoid, daemon not yet running): open
+    // the settings window now. The launcher itself stayed hidden (appGridAutoShow).
+    if (openConfigOnStart) {
+        standalone.Configure();
+    }
+
+    return app.exec();
+}

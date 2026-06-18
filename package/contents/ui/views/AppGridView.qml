@@ -228,7 +228,7 @@ GridView {
             return favoritesActive
 
         // Most Used without startWithFavorites → recents disabled
-        if (appsModel.sortMode === 1)
+        if (appsModel.sortMode === Const.SortMode.MostUsed)
             return false
 
         return !favoritesActive

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=AppGrid
+GenericName=Application Launcher
+Comment=A modern centered application grid launcher
+Icon=dev.xarbit.appgrid
+Exec=appgrid
+Terminal=false
+Categories=Utility;
+# A launcher daemon, not a normal app: hide it from menus / the app grid (like
+# KRunner) while keeping the .desktop for the window's icon + StartupWMClass.
+NoDisplay=true
+StartupWMClass=appgrid
+X-KDE-StartupNotify=false

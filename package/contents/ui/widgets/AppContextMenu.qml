@@ -43,6 +43,11 @@ Item {
     required property var openInDiscover
     required property var pinToTaskManager
     required property var addToDesktop
+    // Capability probes (bool-returning) — hide actions that would no-op: the
+    // Task Manager pin needs the plasmoid's D-Bus helper (absent when the daemon
+    // runs without a plasmoid), Add to Desktop needs a Folder View desktop.
+    required property var canPinToTaskManager
+    required property var canAddToDesktop
     required property var editApplication
     required property var runRunnerAction
 
@@ -53,6 +58,10 @@ Item {
     property string popupDesktopFile: ""
     property bool popupIsFavorite: false
     property bool popupIsHidden: false
+    // Re-probed on each open: capabilities can change (plasmoid added/removed,
+    // desktop switched to/from Folder View).
+    property bool popupCanPin: true
+    property bool popupCanAddToDesktop: true
     property var popupActions: []
     property list<string> popupSelectedSids: []
     property bool popupIsSelected: false
@@ -128,6 +137,8 @@ Item {
         popupFavCount = favs
         popupNonFavCount = popupSelectedSids.length - favs
         popupActions = isMultiSelect ? [] : (contextMenu.appActions(storageId) || [])
+        popupCanPin = contextMenu.canPinToTaskManager()
+        popupCanAddToDesktop = contextMenu.canAddToDesktop()
 
         if (isMultiSelect)
             bulkMenu.popup()
@@ -259,12 +270,14 @@ Item {
         PlasmaComponents.MenuItem {
             icon.name: "pin"
             text: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
+            visible: contextMenu.popupCanPin
             onClicked: contextMenu.pinToTaskManager(contextMenu.popupDesktopFile)
         }
 
         PlasmaComponents.MenuItem {
             icon.name: "desktop"
             text: i18nd("dev.xarbit.appgrid", "Add to Desktop")
+            visible: contextMenu.popupCanAddToDesktop
             onClicked: contextMenu.addToDesktop(contextMenu.popupDesktopFile)
         }
 
@@ -346,6 +359,7 @@ Item {
             text: i18ndp("dev.xarbit.appgrid",
                          "Pin %1 to Task Manager", "Pin %1 to Task Manager",
                          contextMenu.popupSelectedSids.length)
+            visible: contextMenu.popupCanPin
             onClicked: contextMenu._bulkAdd(contextMenu.pinToTaskManager)
         }
 
@@ -354,6 +368,7 @@ Item {
             text: i18ndp("dev.xarbit.appgrid",
                          "Add %1 to Desktop", "Add %1 to Desktop",
                          contextMenu.popupSelectedSids.length)
+            visible: contextMenu.popupCanAddToDesktop
             onClicked: contextMenu._bulkAdd(contextMenu.addToDesktop)
         }
 

@@ -1,0 +1,7 @@
+File=appgridconfig.kcfg
+ClassName=AppGridConfig
+Singleton=false
+Mutators=true
+GenerateProperties=true
+DefaultValueGetters=true
+ItemAccessors=true

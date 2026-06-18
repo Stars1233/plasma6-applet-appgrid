@@ -21,6 +21,10 @@ QtObject {
     readonly property bool isWayland: Plasmoid.isWayland
 
     function notifyAppLaunched(sid)         { Plasmoid.notifyAppLaunched(sid) }
+    function addToTaskManager(desktopFile)  { Plasmoid.addToTaskManager(desktopFile) }
+    function addToDesktop(desktopFile)      { Plasmoid.addToDesktop(desktopFile) }
+    function canPinToTaskManager()          { return Plasmoid.canPinToTaskManager() }
+    function canAddToDesktop()              { return Plasmoid.canAddToDesktop() }
     function runInTerminal(cmd, shell)      { Plasmoid.runInTerminal(cmd, shell) }
     function runCommand(cmd, shell)         { Plasmoid.runCommand(cmd, shell) }
     function runRunnerResult(idx)           { return Plasmoid.runRunnerResult(idx) }
@@ -36,10 +40,7 @@ QtObject {
 
     // -- Window-management glue, used by GridWindow.qml --
     function configureWindow(window)                       { Plasmoid.configureWindow(window) }
-    function updateWindowScreen(window, useActiveScreen)   { Plasmoid.updateWindowScreen(window, useActiveScreen) }
-    function targetScreenGeometry(useActiveScreen)         { return Plasmoid.targetScreenGeometry(useActiveScreen) }
-    function setBackgroundEffects(window, blur, contrast, x, y, w, h, radius, useThemeMask) { Plasmoid.setBackgroundEffects(window, blur, contrast, x, y, w, h, radius, useThemeMask) }
+    function configurePanelWindow(window)                  { Plasmoid.configurePanelWindow(window) }
     function setInputRect(window, x, y, w, h)              { Plasmoid.setInputRect(window, x, y, w, h) }
-    function themeBackgroundCornerRadius(imagePath)       { return Plasmoid.themeBackgroundCornerRadius(imagePath) }
     function windowDevicePixelRatio(window)               { return Plasmoid.windowDevicePixelRatio(window) }
 }
