@@ -36,6 +36,8 @@
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #include <QDBusReply>
 #include <QDir>
 #include <QFile>
@@ -441,10 +443,75 @@ void AppGridController::addToDesktop(const QString &desktopFile)
                               | QFileDevice::ReadOther | QFileDevice::ExeOther);
 }
 
-bool AppGridController::canPinToTaskManager() const
+bool AppGridController::plasmoidServicePresent() const
 {
     auto bus = QDBusConnection::sessionBus();
     return bus.interface() && bus.interface()->isServiceRegistered(AppGrid::PlasmoidDbus::Service);
+}
+
+bool AppGridController::canPinToTaskManager() const
+{
+    return plasmoidServicePresent();
+}
+
+bool AppGridController::canConfigureButton() const
+{
+    // Only when the settings window was opened from a specific center plasmoid's
+    // "Configure Launcher" (an explicit target was set) AND that plasmoid is on
+    // the bus. A launcher started from a terminal / autostart / the in-launcher
+    // settings action has no origin plasmoid, so it edits no button.
+    return !m_buttonTargetPath.isEmpty() && plasmoidServicePresent();
+}
+
+void AppGridController::setButtonTargetId(const QString &plasmoidId)
+{
+    // The settings window edits this specific center plasmoid's button. Empty id
+    // (no origin plasmoid — terminal / autostart / the launcher's own settings
+    // action) → no target, so the button rows stay hidden.
+    const QString path = plasmoidId.isEmpty() ? QString() : AppGrid::PlasmoidDbus::pathFor(plasmoidId);
+    if (m_buttonTargetPath == path) {
+        return;
+    }
+    m_buttonTargetPath = path;
+    Q_EMIT buttonTargetChanged();
+}
+
+QVariantMap AppGridController::plasmoidButtonAppearance() const
+{
+    return m_lastButtonAppearance;
+}
+
+void AppGridController::requestPlasmoidButtonAppearance()
+{
+    if (m_buttonTargetPath.isEmpty()) {
+        return;
+    }
+    // Asynchronous: a blocking call here would spin a nested event loop inside
+    // the settings window's QML construction (deadlock-prone, can crash). Fetch
+    // and notify when the reply lands instead.
+    auto msg = QDBusMessage::createMethodCall(AppGrid::PlasmoidDbus::Service,
+                                              m_buttonTargetPath,
+                                              AppGrid::PlasmoidDbus::Interface,
+                                              AppGrid::PlasmoidDbus::ButtonAppearance);
+    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *call) {
+        const QDBusPendingReply<QVariantMap> reply = *call;
+        if (reply.isValid()) {
+            m_lastButtonAppearance = reply.value();
+            Q_EMIT plasmoidButtonAppearanceChanged();
+        }
+        call->deleteLater();
+    });
+}
+
+void AppGridController::setPlasmoidButtonAppearance(const QVariantMap &values)
+{
+    auto msg = QDBusMessage::createMethodCall(AppGrid::PlasmoidDbus::Service,
+                                              m_buttonTargetPath,
+                                              AppGrid::PlasmoidDbus::Interface,
+                                              AppGrid::PlasmoidDbus::SetButtonAppearance);
+    msg.setArguments({values});
+    QDBusConnection::sessionBus().call(msg, QDBus::NoBlock);
 }
 
 bool AppGridController::canAddToDesktop() const

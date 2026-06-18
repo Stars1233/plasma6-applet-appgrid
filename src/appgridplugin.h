@@ -7,6 +7,7 @@
 
 #include <Plasma/Applet>
 #include <QRect>
+#include <QVariantMap>
 
 class QAction;
 
@@ -39,9 +40,15 @@ public Q_SLOTS:
     Q_SCRIPTABLE void requestAddToTaskManager(const QString &desktopFile);
     /** Name of the screen the panel icon sits on (empty if unknown). */
     Q_SCRIPTABLE QString panelScreenName() const;
+    /** The panel button's appearance (read live from the plugin), for the daemon
+     *  settings window to show. */
+    Q_SCRIPTABLE QVariantMap buttonAppearance() const;
+    /** Apply a new button appearance — forwarded to QML which writes the config. */
+    Q_SCRIPTABLE void setButtonAppearance(const QVariantMap &values);
 
 Q_SIGNALS:
     void addToTaskManagerRequested(const QString &desktopFile);
+    void setButtonAppearanceRequested(const QVariantMap &values);
 
 private:
     AppGridPlugin *const m_plugin;
@@ -154,6 +161,15 @@ public:
      *  appgridrc; the applet config is no longer read. Idempotent (flagged). */
     Q_INVOKABLE void migrateConfigToStandalone();
 
+    /** Push the current panel-button appearance (icon/customButtonImage/
+     *  useCustomButtonImage/menuLabel) into the D-Bus helper so the daemon's
+     *  settings window reads live values. Called by the center variant QML on
+     *  config change. No-op without the helper (panel variant). */
+    Q_INVOKABLE void updateButtonAppearanceCache(const QVariantMap &values);
+    /** The cached panel-button appearance, read by the D-Bus helper. Held here
+     *  (not the helper) so the QML push lands even before the helper exists. */
+    [[nodiscard]] QVariantMap buttonAppearance() const;
+
 Q_SIGNALS:
     /**
      * Emitted when the user triggers the secondary "Open in Compact Mode"
@@ -165,6 +181,10 @@ Q_SIGNALS:
     /** Pin @p desktopFile to the Task Manager. Handled by the variant's QML
      *  (Kicker ContainmentInterface, which needs this applet). */
     void addToTaskManagerRequested(const QString &desktopFile);
+
+    /** The daemon's settings window asked to change the panel button's
+     *  appearance; the center variant QML writes it into Plasmoid.configuration. */
+    void setButtonAppearanceRequested(const QVariantMap &values);
 
 protected:
     bool m_useNativeActivation = false;
@@ -184,11 +204,15 @@ private:
 
     // Shared trigger for the standalone daemon: call @p dbusMethod on the running
     // instance, or launch the executable with @p launchArgs if it is not running.
-    void triggerStandalone(const QString &dbusMethod, const QStringList &launchArgs);
+    void triggerStandalone(const QString &dbusMethod, const QStringList &launchArgs, const QVariantList &dbusArgs = {});
+    /** triggerStandalone() tagged with this applet's id, so the daemon knows which
+     *  center plasmoid owns the launcher session / settings it opens (#191). */
+    void triggerStandaloneAsOwner(const QString &dbusMethod, const QStringList &extraFlags = {});
 
     AppGridController m_controller;
     QAction *m_compactAction = nullptr;
     AppGridPlasmoidService *m_plasmoidService = nullptr;
+    QVariantMap m_buttonAppearance;
     // Cached result of the running daemon's version probe (see triggerStandalone).
     bool m_daemonVersionChecked = false;
     bool m_daemonStale = false;

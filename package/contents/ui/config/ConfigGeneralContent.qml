@@ -30,10 +30,13 @@ Kirigami.FormLayout {
     property var availableShells: []    // string list of shell paths
     property bool isUniversalBuild: false
     property string defaultIcon: "dev.xarbit.appgrid"
-    // The launcher button's icon + text label belong to the panel plasmoid, not
-    // the launcher window: the daemon's settings window hides them (it has no
-    // panel button), the Plasma applet config shows them.
+    // The launcher button's icon + text label belong to the panel plasmoid. The
+    // Plasma applet config edits them in `configuration` directly; the daemon's
+    // settings window edits them on a separate object that round-trips to the
+    // plasmoid over D-Bus, so they read/write `buttonConfiguration` (defaults to
+    // `configuration` for the applet KCM). Shown only when a button exists (#191).
     property bool showButtonAppearance: true
+    property var buttonConfiguration: configuration
     // Bumped by the host to force the value bindings below to re-read.
     property int revision: 0
 
@@ -43,7 +46,7 @@ Kirigami.FormLayout {
     IconPickerButton {
         visible: root.showButtonAppearance
         Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Icon:")
-        configuration: root.configuration
+        configuration: root.buttonConfiguration
         location: root.location
         defaultIcon: root.defaultIcon
         revision: root.revision
@@ -52,7 +55,7 @@ Kirigami.FormLayout {
     LauncherLabelField {
         visible: root.showButtonAppearance
         Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Text label:")
-        configuration: root.configuration
+        configuration: root.buttonConfiguration
         formFactor: root.formFactor
         revision: root.revision
     }

@@ -92,6 +92,16 @@ int main(int argc, char *argv[])
     // --replace: take over from a running (stale) daemon the plasmoid is quitting
     // after an upgrade — poll for the bus name to free instead of forwarding to it.
     const bool replaceRunning = appArgs.contains(AppGrid::Standalone::FlagReplace);
+    // --plasmoid-id=<id>: the center plasmoid that opened the settings, so the
+    // daemon edits that instance's panel button. Empty when launched directly
+    // (terminal / autostart), which clears any button-edit binding.
+    QString plasmoidId;
+    for (const QString &arg : appArgs) {
+        if (arg.startsWith(AppGrid::Standalone::FlagPlasmoidId)) {
+            plasmoidId = arg.mid(AppGrid::Standalone::FlagPlasmoidId.size());
+            break;
+        }
+    }
 
     // Single instance: a second launch toggles the running window and exits, so
     // the binary behaves like KRunner (one daemon, toggled on demand).
@@ -107,11 +117,18 @@ int main(int argc, char *argv[])
                 QThread::msleep(kReplaceWaitMs);
             }
             if (!registered) {
-                AppGridStandalone::callToggleOnRunningInstance();
+                AppGridStandalone::callToggleOnRunningInstance(plasmoidId);
                 return 0;
             }
         } else {
-            AppGridStandalone::callToggleOnRunningInstance();
+            // A second launch forwards its intent to the running daemon: open
+            // settings (carrying the origin plasmoid id, empty for a terminal
+            // launch so the binding clears) for --configure, else toggle.
+            if (openConfigOnStart) {
+                AppGridStandalone::callConfigureOnRunningInstance(plasmoidId);
+            } else {
+                AppGridStandalone::callToggleOnRunningInstance(plasmoidId);
+            }
             return 0;
         }
     }
@@ -127,6 +144,17 @@ int main(int argc, char *argv[])
     // WindowType::Normal, so the window open/close effect animates it. (The
     // plasmoid keeps the "appgrid"/"utility"-style overlay scope.)
     controller.setLayerScope(QStringLiteral("appgrid-standalone"));
+
+    // The plasmoid that opened this launcher session owns it: its Toggle/Configure
+    // carry its id, so the settings window edits that instance's panel button.
+    // Empty (terminal/autostart) → no owner, no button rows. Seed it from this
+    // launch and update it whenever a (different) plasmoid toggles/configures us.
+    controller.setButtonTargetId(plasmoidId);
+    const auto setOwner = [&controller](const QString &id) {
+        controller.setButtonTargetId(id);
+    };
+    QObject::connect(&standalone, &AppGridStandalone::toggleRequested, &controller, setOwner);
+    QObject::connect(&standalone, &AppGridStandalone::toggleCompactRequested, &controller, setOwner);
 
     AppGridConfig config;
 
@@ -220,7 +248,7 @@ int main(int argc, char *argv[])
     // the desktop colour platform (the system colour scheme), themed like a
     // normal KDE app / KRunner's config, not the dark Plasma desktop theme.
     QQmlApplicationEngine *configEngine = nullptr;
-    QObject::connect(&standalone, &AppGridStandalone::configureRequested, &app, [&]() {
+    auto showConfigWindow = [&]() {
         if (!configEngine) {
             configEngine = new QQmlApplicationEngine(&app);
             configEngine->rootContext()->setContextObject(new KLocalizedContext(configEngine));
@@ -242,12 +270,22 @@ int main(int argc, char *argv[])
                 w->requestActivate();
             }
         }
+    };
+    // Configure (from a plasmoid's "Configure Launcher", or a terminal --configure)
+    // retargets the button-edit owner to that plasmoid (empty clears it).
+    QObject::connect(&standalone, &AppGridStandalone::configureRequested, &app, [&](const QString &plasmoidId) {
+        controller.setButtonTargetId(plasmoidId);
+        showConfigWindow();
     });
+    // The launcher's own Settings action: open the window keeping the owner set
+    // by the Toggle that opened this launcher session.
+    QObject::connect(&standalone, &AppGridStandalone::openSettingsRequested, &app, showConfigWindow);
 
     // Launched as "appgrid --configure" (plasmoid, daemon not yet running): open
     // the settings window now. The launcher itself stayed hidden (appGridAutoShow).
+    // plasmoidId targets that center plasmoid's button (empty for a terminal launch).
     if (openConfigOnStart) {
-        standalone.Configure();
+        standalone.Configure(plasmoidId);
     }
 
     return app.exec();

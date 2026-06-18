@@ -128,6 +128,25 @@ public:
      *  (the menu hides "Add to Desktop" otherwise). */
     [[nodiscard]] Q_INVOKABLE bool canAddToDesktop() const;
 
+    /** Whether a center plasmoid is present to apply the panel button's icon +
+     *  label. The daemon edits those over D-Bus; false when the launcher runs
+     *  standalone (no panel button), so the settings window hides those rows. */
+    [[nodiscard]] Q_INVOKABLE bool canConfigureButton() const;
+    /** The plasmoid's panel-button appearance as last fetched (icon/
+     *  customButtonImage/useCustomButtonImage/menuLabel). Async — call
+     *  requestPlasmoidButtonAppearance() to refresh, then read on the changed signal. */
+    [[nodiscard]] Q_INVOKABLE QVariantMap plasmoidButtonAppearance() const;
+    /** Fetch the target plasmoid's button appearance asynchronously; emits
+     *  plasmoidButtonAppearanceChanged() when it arrives. */
+    Q_INVOKABLE void requestPlasmoidButtonAppearance();
+    /** Apply a new panel-button appearance on the plasmoid, over D-Bus. */
+    Q_INVOKABLE void setPlasmoidButtonAppearance(const QVariantMap &values);
+
+    /** Target the center plasmoid @p plasmoidId for the button get/set above (its
+     *  unique D-Bus object path). Empty → the shared owner path. Set from the
+     *  Configure() id when the settings window opens from a specific plasmoid. */
+    void setButtonTargetId(const QString &plasmoidId);
+
     /** Enable/disable the search-time frecency bias (opt-in via ConfigSearch). */
     Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
 
@@ -178,9 +197,19 @@ public:
      *  the running form factor (Center/Panel/Standalone). */
     Q_INVOKABLE QVariantMap systemInfo(const QString &variant = QStringLiteral("Center"));
 
+Q_SIGNALS:
+    /** The button-edit target changed (settings opened from a different center
+     *  plasmoid while open); the settings window re-reads that instance's button. */
+    void buttonTargetChanged();
+    /** An async requestPlasmoidButtonAppearance() reply arrived. */
+    void plasmoidButtonAppearanceChanged();
+
 private:
     void applyRunnerFavorites();
     [[nodiscard]] QModelIndex runnerSourceIndex(int proxyIndex) const;
+    /** Whether the center plasmoid's D-Bus helper is on the bus (gates the
+     *  pin-to-taskmanager and button-edit features). */
+    [[nodiscard]] bool plasmoidServicePresent() const;
 
     [[nodiscard]] QScreen *screenForCursor() const;
     // QScreen with the given output name (null if none / empty).
@@ -206,6 +235,11 @@ private:
     KSharedConfig::Ptr m_krunnerConfig;
     KConfigWatcher::Ptr m_krunnerWatcher;
     QString m_layerScope = QStringLiteral("appgrid");
+    // D-Bus object path of the plasmoid whose panel button the settings window
+    // edits; set in the constructor to the shared path, retargeted per instance
+    // by setButtonTargetId().
+    QString m_buttonTargetPath;
+    QVariantMap m_lastButtonAppearance;
 #ifdef APPGRID_UNIVERSAL_BUILD
     mutable UpdateChecker *m_updateChecker = nullptr;
 #endif

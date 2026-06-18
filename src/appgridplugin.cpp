@@ -75,12 +75,41 @@ QString AppGridPlasmoidService::panelScreenName() const
     return m_plugin ? m_plugin->panelScreenName() : QString();
 }
 
+QVariantMap AppGridPlasmoidService::buttonAppearance() const
+{
+    return m_plugin ? m_plugin->buttonAppearance() : QVariantMap();
+}
+
+void AppGridPlasmoidService::setButtonAppearance(const QVariantMap &values)
+{
+    Q_EMIT setButtonAppearanceRequested(values);
+}
+
+void AppGridPlugin::updateButtonAppearanceCache(const QVariantMap &values)
+{
+    // Stored on the plugin (not the helper), so a QML push before the helper is
+    // created in the deferred init still lands and the daemon reads live values.
+    m_buttonAppearance = values;
+}
+
+QVariantMap AppGridPlugin::buttonAppearance() const
+{
+    return m_buttonAppearance;
+}
+
 void AppGridPlugin::registerPlasmoidService()
 {
     m_plasmoidService = new AppGridPlasmoidService(this, this);
     connect(m_plasmoidService, &AppGridPlasmoidService::addToTaskManagerRequested, this, &AppGridPlugin::addToTaskManagerRequested);
+    connect(m_plasmoidService, &AppGridPlasmoidService::setButtonAppearanceRequested, this, &AppGridPlugin::setButtonAppearanceRequested);
 
     auto bus = QDBusConnection::sessionBus();
+    // Per-instance object path so the daemon can address THIS plasmoid's button
+    // (icon/label) specifically when the user configures from it (#191). Each
+    // instance owns a different path, so registration never collides.
+    bus.registerObject(AppGrid::PlasmoidDbus::pathFor(QString::number(id())), m_plasmoidService, QDBusConnection::ExportScriptableContents);
+    // Also at the shared /Plasmoid path: the first instance wins it and services
+    // the corona-only ops (pin, panel screen) and the no-origin settings case.
     bus.registerObject(AppGrid::PlasmoidDbus::Path, m_plasmoidService, QDBusConnection::ExportScriptableContents);
     // registerService may fail if another center plasmoid already owns the name —
     // harmless: that instance services the daemon's requests.
@@ -297,7 +326,7 @@ QVariantMap AppGridPlugin::systemInfo()
     return m_controller.systemInfo(m_useNativeActivation ? QStringLiteral("Panel") : QStringLiteral("Center"));
 }
 
-void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringList &launchArgs)
+void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringList &launchArgs, const QVariantList &dbusArgs)
 {
     auto bus = QDBusConnection::sessionBus();
     const bool running = bus.interface() && bus.interface()->isServiceRegistered(AppGrid::Dbus::Service);
@@ -313,8 +342,12 @@ void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringLi
             m_daemonVersionChecked = true;
         }
         if (!m_daemonStale) {
-            // Current daemon — invoke the requested method on it.
-            bus.send(QDBusMessage::createMethodCall(AppGrid::Dbus::Service, AppGrid::Dbus::Path, AppGrid::Dbus::Interface, dbusMethod));
+            // Current daemon — invoke the requested method on it (with any args).
+            auto call = QDBusMessage::createMethodCall(AppGrid::Dbus::Service, AppGrid::Dbus::Path, AppGrid::Dbus::Interface, dbusMethod);
+            if (!dbusArgs.isEmpty()) {
+                call.setArguments(dbusArgs);
+            }
+            bus.send(call);
             return;
         }
         // Stale: ask it to quit, then relaunch our build with --replace (it polls
@@ -334,11 +367,20 @@ void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringLi
     job->start();
 }
 
+void AppGridPlugin::triggerStandaloneAsOwner(const QString &dbusMethod, const QStringList &extraFlags)
+{
+    // The id reaches a running daemon as the D-Bus method arg and a cold start as
+    // a launch flag, so either way it learns which plasmoid this came from.
+    const QString plasmoidId = QString::number(id());
+    QStringList launchArgs = extraFlags;
+    launchArgs << AppGrid::Standalone::FlagPlasmoidId + plasmoidId;
+    triggerStandalone(dbusMethod, launchArgs, {plasmoidId});
+}
+
 void AppGridPlugin::configureStandaloneWindow()
 {
-    // Open straight into the settings window; --configure skips popping the
-    // launcher.
-    triggerStandalone(AppGrid::Dbus::MethodConfigure, {AppGrid::Standalone::FlagConfigure});
+    // Open straight into the settings window; --configure skips popping the launcher.
+    triggerStandaloneAsOwner(AppGrid::Dbus::MethodConfigure, {AppGrid::Standalone::FlagConfigure});
 }
 
 void AppGridPlugin::migrateConfigToStandalone()
@@ -360,10 +402,12 @@ void AppGridPlugin::migrateConfigToStandalone()
 void AppGridPlugin::toggleStandaloneWindowCompact()
 {
     // Secondary "Open in Compact Mode" shortcut.
-    triggerStandalone(AppGrid::Dbus::MethodToggleCompact, {AppGrid::Standalone::FlagCompact});
+    triggerStandaloneAsOwner(AppGrid::Dbus::MethodToggleCompact, {AppGrid::Standalone::FlagCompact});
 }
 
 void AppGridPlugin::toggleStandaloneWindow()
 {
-    triggerStandalone(AppGrid::Dbus::MethodToggle, {});
+    // This plasmoid owns the launcher session it opens, so the launcher's
+    // Settings action edits this plasmoid's panel button (#191).
+    triggerStandaloneAsOwner(AppGrid::Dbus::MethodToggle);
 }

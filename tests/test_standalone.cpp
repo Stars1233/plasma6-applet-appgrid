@@ -30,9 +30,9 @@ void TestAppGridStandalone::methodsEmitSignals_data()
 
     QTest::newRow("Show") << QByteArray("Show") << QByteArray(SIGNAL(showRequested()));
     QTest::newRow("Hide") << QByteArray("Hide") << QByteArray(SIGNAL(hideRequested()));
-    QTest::newRow("Toggle") << QByteArray("Toggle") << QByteArray(SIGNAL(toggleRequested()));
-    QTest::newRow("ToggleCompact") << QByteArray("ToggleCompact") << QByteArray(SIGNAL(toggleCompactRequested()));
-    QTest::newRow("Configure") << QByteArray("Configure") << QByteArray(SIGNAL(configureRequested()));
+    QTest::newRow("Toggle") << QByteArray("Toggle") << QByteArray(SIGNAL(toggleRequested(QString)));
+    QTest::newRow("ToggleCompact") << QByteArray("ToggleCompact") << QByteArray(SIGNAL(toggleCompactRequested(QString)));
+    QTest::newRow("Configure") << QByteArray("Configure") << QByteArray(SIGNAL(configureRequested(QString)));
     QTest::newRow("Quit") << QByteArray("Quit") << QByteArray(SIGNAL(quitRequested()));
 }
 

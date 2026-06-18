@@ -41,16 +41,22 @@ bool AppGridStandalone::registerService()
     return bus.registerService(serviceName());
 }
 
-bool AppGridStandalone::callToggleOnRunningInstance()
+bool AppGridStandalone::callToggleOnRunningInstance(const QString &plasmoidId)
 {
     auto msg = QDBusMessage::createMethodCall(serviceName(), objectPath(), interfaceName(), QStringLiteral("Toggle"));
+    // Carry the origin plasmoid id (empty for a terminal launch) so the running
+    // daemon's settings edit that instance's button — or none.
+    msg.setArguments({plasmoidId});
     // Fire-and-forget: we exit straight after, so no reply is awaited.
     return QDBusConnection::sessionBus().send(msg);
 }
 
-bool AppGridStandalone::callConfigureOnRunningInstance()
+bool AppGridStandalone::callConfigureOnRunningInstance(const QString &plasmoidId)
 {
     auto msg = QDBusMessage::createMethodCall(serviceName(), objectPath(), interfaceName(), QStringLiteral("Configure"));
+    // Carry the origin plasmoid id (empty when launched from a terminal) so the
+    // running daemon retargets — or clears — the button-edit binding to match.
+    msg.setArguments({plasmoidId});
     return QDBusConnection::sessionBus().send(msg);
 }
 
@@ -64,19 +70,24 @@ void AppGridStandalone::Hide()
     Q_EMIT hideRequested();
 }
 
-void AppGridStandalone::Toggle()
+void AppGridStandalone::Toggle(const QString &plasmoidId)
 {
-    Q_EMIT toggleRequested();
+    Q_EMIT toggleRequested(plasmoidId);
 }
 
-void AppGridStandalone::ToggleCompact()
+void AppGridStandalone::ToggleCompact(const QString &plasmoidId)
 {
-    Q_EMIT toggleCompactRequested();
+    Q_EMIT toggleCompactRequested(plasmoidId);
 }
 
-void AppGridStandalone::Configure()
+void AppGridStandalone::Configure(const QString &plasmoidId)
 {
-    Q_EMIT configureRequested();
+    Q_EMIT configureRequested(plasmoidId);
+}
+
+void AppGridStandalone::openSettings()
+{
+    Q_EMIT openSettingsRequested();
 }
 
 QString AppGridStandalone::Version() const

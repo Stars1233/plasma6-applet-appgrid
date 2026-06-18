@@ -33,19 +33,28 @@ public:
     /** True if registration succeeded (we are the primary instance). */
     bool registerService();
 
-    /** Ask an already-running primary instance to toggle its window. Returns
-     *  true if the call was dispatched. Used by a secondary invocation. */
-    static bool callToggleOnRunningInstance();
+    /** Ask an already-running primary instance to toggle its window. @p plasmoidId
+     *  is the center plasmoid that opened the launcher (empty for a terminal
+     *  launch), which becomes the owner the settings button rows edit. */
+    static bool callToggleOnRunningInstance(const QString &plasmoidId = QString());
 
     /** Ask an already-running primary instance to open its config window. */
-    static bool callConfigureOnRunningInstance();
+    static bool callConfigureOnRunningInstance(const QString &plasmoidId = QString());
+
+    /** Open the daemon's own settings window in-process (the launcher's Settings
+     *  action), keeping the current owner plasmoid — not a D-Bus entry point. */
+    Q_INVOKABLE void openSettings();
 
 public Q_SLOTS:
     Q_SCRIPTABLE void Show();
     Q_SCRIPTABLE void Hide();
-    Q_SCRIPTABLE void Toggle();
-    Q_SCRIPTABLE void ToggleCompact();
-    Q_SCRIPTABLE void Configure();
+    /** @p plasmoidId — the center plasmoid that owns this launcher session
+     *  (empty for a terminal launch), so the settings button rows edit it. */
+    Q_SCRIPTABLE void Toggle(const QString &plasmoidId = QString());
+    Q_SCRIPTABLE void ToggleCompact(const QString &plasmoidId = QString());
+    /** Open the settings window from a specific center plasmoid's "Configure
+     *  Launcher" (@p plasmoidId; empty clears the owner). */
+    Q_SCRIPTABLE void Configure(const QString &plasmoidId = QString());
     /** Build version of this daemon — the plasmoid compares it against the
      *  installed build to detect a stale daemon left over from an upgrade. */
     Q_SCRIPTABLE QString Version() const;
@@ -55,8 +64,10 @@ public Q_SLOTS:
 Q_SIGNALS:
     void showRequested();
     void hideRequested();
-    void toggleRequested();
-    void toggleCompactRequested();
-    void configureRequested();
+    void toggleRequested(const QString &plasmoidId);
+    void toggleCompactRequested(const QString &plasmoidId);
+    void configureRequested(const QString &plasmoidId);
+    /** The launcher's own Settings action — open the window, keep the owner. */
+    void openSettingsRequested();
     void quitRequested();
 };

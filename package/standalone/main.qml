@@ -68,10 +68,11 @@ PlasmaCore.Window {
     mainItem: Views.GridPanel {
         id: panel
         sizeToContent: true             // window is sized from implicitHeight; track compact
-        // The "settings" header action routes here. Go through C++
-        // (AppGridStandalone) so the settings window loads in its own
-        // desktop-themed engine, not this Plasma-themed one.
-        onConfigureRequested: appGridStandalone.Configure()
+        // The "settings" header action routes here. openSettings() (not Configure)
+        // keeps the owner plasmoid set when this launcher session was opened, so
+        // its panel-button rows show. Goes through C++ so the settings window
+        // loads in its own desktop-themed engine, not this Plasma-themed one.
+        onConfigureRequested: appGridStandalone.openSettings()
         appletInterface: win.appletInterface
         appsModel: appGridController.appsModel
         searchModel: appGridController.searchModel

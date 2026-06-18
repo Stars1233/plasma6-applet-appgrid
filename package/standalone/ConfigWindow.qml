@@ -98,11 +98,57 @@ Kirigami.ApplicationWindow {
     // value math lives in configbuffer.js (unit-tested in tst_ConfigBuffer.qml).
     property var _liveBaseline: ({})
 
+    // -- Panel button appearance (icon + text label) ---------------------------
+    // Edited here only when a center plasmoid is in the panel to apply them; the
+    // values round-trip to it over D-Bus (controller.plasmoidButtonAppearance /
+    // setPlasmoidButtonAppearance). Buffered like the rest so Apply/Cancel work (#191).
+    readonly property var _buttonKeys: ["icon", "customButtonImage", "useCustomButtonImage", "menuLabel"]
+    readonly property bool canConfigureButton: {
+        void win.revision
+        return appGridController.canConfigureButton()
+    }
+    property var _buttonBaseline: ({})
+    QtObject {
+        id: buttonBuffer
+        property string icon
+        property string customButtonImage
+        property bool useCustomButtonImage
+        property string menuLabel
+    }
+    function _fillButtonBuffer() {
+        var live = appGridController.plasmoidButtonAppearance()
+        for (var i = 0; i < _buttonKeys.length; ++i) {
+            var k = _buttonKeys[i]
+            if (live[k] !== undefined)
+                buttonBuffer[k] = live[k]
+        }
+        win._buttonBaseline = ConfigBuffer.snapshot(buttonBuffer, _buttonKeys)
+    }
+    function _syncButtonFromPlasmoid() {
+        if (!appGridController.canConfigureButton())
+            return
+        // Async: request a refresh (filled in on plasmoidButtonAppearanceChanged)
+        // and seed from the last known value now. Never blocks the UI.
+        appGridController.requestPlasmoidButtonAppearance()
+        _fillButtonBuffer()
+    }
+    function _applyButtonToPlasmoid() {
+        if (!appGridController.canConfigureButton())
+            return
+        if (!ConfigBuffer.isDirty(buttonBuffer, win._buttonBaseline, _buttonKeys))
+            return
+        var values = ({})
+        for (var i = 0; i < _buttonKeys.length; ++i)
+            values[_buttonKeys[i]] = buttonBuffer[_buttonKeys[i]]
+        appGridController.setPlasmoidButtonAppearance(values)
+    }
+
     // True when the buffer differs from the live config in any editable key.
     // Reads both sides + revision so it re-evaluates on any change.
     readonly property bool dirty: {
         void win.revision   // re-check after a bulk copy
         return ConfigBuffer.isDirty(appGridConfigBuffer, appGridConfig, _editableKeys)
+            || (canConfigureButton && ConfigBuffer.isDirty(buttonBuffer, win._buttonBaseline, _buttonKeys))
     }
 
     // True when the buffer already holds every key's default (Defaults disables).
@@ -115,6 +161,7 @@ Kirigami.ApplicationWindow {
     // Called on open and on Reset (discard staged edits).
     function _syncFromLive() {
         win._liveBaseline = ConfigBuffer.syncFromLive(appGridConfigBuffer, appGridConfig, _editableKeys)
+        _syncButtonFromPlasmoid()
         win.revision++
     }
 
@@ -146,6 +193,7 @@ Kirigami.ApplicationWindow {
     function _apply() {
         ConfigBuffer.applyChanged(appGridConfigBuffer, appGridConfig, win._liveBaseline, _editableKeys)
         appGridConfig.save()
+        _applyButtonToPlasmoid()
         _syncFromLive()   // re-baseline + refresh `dirty` (now false)
     }
 
@@ -154,6 +202,17 @@ Kirigami.ApplicationWindow {
     // across opens (main.cpp caches the engine), and the launcher may have
     // mutated the live config in between (e.g. right-click "Hide Application").
     onVisibleChanged: if (visible) _syncFromLive()
+
+    // The button-edit target switched to another plasmoid (Configure opened from
+    // a different instance while this window was already up) — re-read its button.
+    Connections {
+        target: appGridController
+        function onButtonTargetChanged() { win._syncFromLive() }
+        function onPlasmoidButtonAppearanceChanged() {
+            win._fillButtonBuffer()
+            win.revision++
+        }
+    }
 
     pageStack.initialPage: Kirigami.Page {
         padding: 0
@@ -276,9 +335,11 @@ Kirigami.ApplicationWindow {
                             Layout.margins: Kirigami.Units.largeSpacing
                             configuration: appGridConfigBuffer
                             isPanel: false
-                            // The launcher button's icon + text label belong to
-                            // the panel plasmoid, configured there — not here.
-                            showButtonAppearance: false
+                            // The panel button's icon + text label belong to the
+                            // center plasmoid; show + edit them here only when one
+                            // is present, round-tripping over D-Bus via buttonBuffer.
+                            showButtonAppearance: win.canConfigureButton
+                            buttonConfiguration: buttonBuffer
                             formFactor: 0
                             location: 0
                             availableShells: appGridController.availableShells()

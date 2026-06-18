@@ -41,6 +41,10 @@ inline constexpr QLatin1String FlagCompact{"--compact"};
 // Replace a running (stale) daemon instead of forwarding to it — used by the
 // plasmoid when the running daemon's version differs from the installed build.
 inline constexpr QLatin1String FlagReplace{"--replace"};
+// Identifies the center plasmoid that opened the settings window, so the daemon
+// edits that exact instance's panel button (icon/label) over D-Bus (#191). Cold
+// launch only; a running daemon gets the id as the Configure() D-Bus argument.
+inline constexpr QLatin1String FlagPlasmoidId{"--plasmoid-id="};
 }
 
 /** KWin's session D-Bus surface. Queried for the active output to place the
@@ -64,6 +68,16 @@ inline constexpr QLatin1String Path{"/Plasmoid"};
 inline constexpr QLatin1String Interface{APPGRID_APP_ID ".Plasmoid"};
 inline constexpr QLatin1String AddToTaskManager{"requestAddToTaskManager"};
 inline constexpr QLatin1String PanelScreenName{"panelScreenName"};
+// Read/write the panel button's appearance (icon + text label) so the daemon's
+// settings window can edit it on the plasmoid when one is present (#191).
+inline constexpr QLatin1String ButtonAppearance{"buttonAppearance"};
+inline constexpr QLatin1String SetButtonAppearance{"setButtonAppearance"};
+// Per-instance object path so the daemon can address one specific plasmoid's
+// button. Each center plasmoid registers its service here (and shares Path).
+inline QString pathFor(const QString &appletId)
+{
+    return Path + QLatin1String("/") + appletId;
+}
 }
 
 /** Keys for reading the Plasma shell layout (which desktops/containments exist).

@@ -33,10 +33,40 @@ PlasmoidItem {
 
     Plasmoid.icon: cfg.useCustomButtonImage ? cfg.customButtonImage : cfg.icon
 
+    // Mirror the panel button's appearance into the D-Bus helper so the daemon's
+    // settings window can show + edit it (icon + text label) when this plasmoid
+    // is present (#191). Recomputes whenever any of the four config values change.
+    readonly property var buttonAppearance: ({
+        "icon": Plasmoid.configuration.icon,
+        // Stringify: customButtonImage is a url, which has no D-Bus type — a raw
+        // QUrl in the a{sv} map breaks marshalling.
+        "customButtonImage": String(Plasmoid.configuration.customButtonImage),
+        "useCustomButtonImage": Plasmoid.configuration.useCustomButtonImage,
+        "menuLabel": Plasmoid.configuration.menuLabel
+    })
+    onButtonAppearanceChanged: Plasmoid.updateButtonAppearanceCache(buttonAppearance)
+
+    // The daemon settings window pushed a new appearance back — write it into the
+    // applet config (live button update + persistence).
+    Connections {
+        target: Plasmoid
+        function onSetButtonAppearanceRequested(values) {
+            if (values.icon !== undefined)
+                Plasmoid.configuration.icon = values.icon
+            if (values.customButtonImage !== undefined)
+                Plasmoid.configuration.customButtonImage = values.customButtonImage
+            if (values.useCustomButtonImage !== undefined)
+                Plasmoid.configuration.useCustomButtonImage = values.useCustomButtonImage
+            if (values.menuLabel !== undefined)
+                Plasmoid.configuration.menuLabel = values.menuLabel
+        }
+    }
+
     Component.onCompleted: {
         Migrations.migrateLauncherIcon(Plasmoid.configuration)
         // One-shot: hand the user's existing settings to the daemon's appgridrc.
         Plasmoid.migrateConfigToStandalone()
+        Plasmoid.updateButtonAppearanceCache(buttonAppearance)
     }
 
     Component {
