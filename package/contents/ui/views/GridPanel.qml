@@ -15,6 +15,7 @@ import org.kde.plasma.components as PlasmaComponents
 
 import "../controllers"
 import "../widgets"
+import "../js/favoriteid.js" as FavoriteId
 import "../js/migrations.js" as Migrations
 import "../js/searchresultnav.js" as SearchResultNav
 import "../js/constants.js" as Const
@@ -32,6 +33,7 @@ Kirigami.ShadowedRectangle {
     // tests pass plain QtObject mocks that expose the same properties
     // (dragSource, isDragInFlight, closeWindow(), favoritesDragProxy, …).
     property var appletInterface: null
+    readonly property var dragSource: appletInterface ? appletInterface.dragSource : null
 
     function shakeAllIcons() {
         appGrid.shakeAllIcons()
@@ -293,6 +295,57 @@ Kirigami.ShadowedRectangle {
     readonly property alias favoriteIdRole: favorites.favoriteIdRole
     readonly property alias sharedFavoritesModel: favorites.sharedFavoritesModel
     readonly property alias mirrorRequired: favorites.mirrorRequired
+
+    // #193: drop a favorite into the launcher's empty space (anywhere that isn't
+    // the favorites grid, but inside the window) to remove it. Lowest z, so the
+    // grid's own reorder DropArea catches reorders first; a drop the compositor
+    // routes outside the window never reaches here, so it stays put. Acts only on
+    // an own drag whose source is actually a favorite — other drops fall through.
+    DropArea {
+        id: favoriteRemoveArea
+        anchors.fill: parent
+        z: -10
+        enabled: panel.sharedFavoritesModel !== null
+
+        // The dragged sids that are actually favorites (empty unless this is an
+        // own drag with at least one favorite source). Drives both the ✕ marker
+        // and the drop removal.
+        function _favoriteSids(drag) {
+            const src = panel.dragSource
+            if (!src || !src.isOwnDrag(drag) || !panel.sharedFavoritesModel) {
+                return []
+            }
+            const all = src.sourceStorageIds.length > 0 ? src.sourceStorageIds : [src.sourceStorageId]
+            return all.filter(sid => sid && panel.sharedFavoritesModel.isFavorite(FavoriteId.toPrefixed(sid)))
+        }
+
+        // Hovering empty space with a favorite drag arms removal: flag the drag
+        // source (the favorites delegate shows a ✕ on its cell) and accept so the
+        // cursor reads droppable. onExited reverts when the cursor returns to the
+        // grid (reorder) or leaves the window.
+        onEntered: drag => {
+            if (favoriteRemoveArea._favoriteSids(drag).length > 0) {
+                panel.dragSource.dropWillRemove = true
+                drag.accept(Qt.MoveAction)
+            }
+        }
+        onPositionChanged: drag => {
+            if (favoriteRemoveArea._favoriteSids(drag).length > 0)
+                drag.accept(Qt.MoveAction)
+        }
+        onExited: { if (panel.dragSource) panel.dragSource.dropWillRemove = false }
+
+        onDropped: drag => {
+            const sids = favoriteRemoveArea._favoriteSids(drag)
+            if (sids.length === 0) {
+                return
+            }
+            for (var i = 0; i < sids.length; ++i) {
+                panel.sharedFavoritesModel.removeFavorite(FavoriteId.toPrefixed(sids[i]))
+            }
+            drag.accept(Qt.MoveAction)
+        }
+    }
 
 
     // Reset everything that should be back to its just-opened state on
@@ -711,8 +764,7 @@ Kirigami.ShadowedRectangle {
             showDividers: panel.cfgShowDividers
             showTooltips: panel.cfgShowTooltips
             showNewAppBadge: panel.cfgShowNewAppBadge
-            dragSource: panel.appletInterface
-                                ? panel.appletInterface.dragSource : null
+            dragSource: panel.dragSource
             showRecents: panel.cfgShowRecentApps
                          && panel.appsModel
                          && panel.appsModel.recentApps.length > 0
@@ -750,8 +802,7 @@ Kirigami.ShadowedRectangle {
                 appsModel: panel.appsModel
                 sharedFavoritesModel: panel.sharedFavoritesModel
                 favoriteIdRole: panel.favoriteIdRole
-                dragSource: panel.appletInterface
-                                    ? panel.appletInterface.dragSource : null
+                dragSource: panel.dragSource
                 columns: panel.columns
                 adaptiveColumns: true
                 iconSize: panel.gridIconSize

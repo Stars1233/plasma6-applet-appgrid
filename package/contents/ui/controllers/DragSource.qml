@@ -46,6 +46,11 @@ Item {
     // drop target sees the full URL list via Drag.mimeData "text/uri-list".
     property list<string> sourceStorageIds: []
 
+    // True while the cursor is over the launcher's "drop here to remove" area
+    // during a favorites drag-out (#193). The favorites delegate watches this to
+    // swap its source cell for a remove (✕) marker, Kickoff-style.
+    property bool dropWillRemove: false
+
     readonly property bool isDragInFlight: source.Drag.active
 
     Drag.dragType: Drag.Automatic
@@ -153,5 +158,6 @@ Item {
         source.sourceStorageId = ""
         source.sourceDesktopFile = ""
         source.sourceStorageIds = []
+        source.dropWillRemove = false
     }
 }

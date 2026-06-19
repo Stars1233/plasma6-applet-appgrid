@@ -77,12 +77,13 @@ Item {
                  && gridView.count > 0
         onActivated: gridView.selectAllVisible()
     }
-    // Delete intentionally gated to the favorites view — the All / category
-    // views have nothing to remove (apps are listed, not owned). Silently
-    // doing nothing on Delete elsewhere reads as broken UX; better to leave
-    // the key unbound there.
+    // Delete / Ctrl+D remove the selected favorites, gated to the favorites view
+    // — the All / category views have nothing to remove (apps are listed, not
+    // owned), and silently doing nothing elsewhere reads as broken UX, so the
+    // keys stay unbound there. Ctrl+D mirrors Delete as a second familiar
+    // "remove" combo (#193).
     Shortcut {
-        sequence: "Delete"
+        sequences: ["Delete", "Ctrl+D"]
         enabled: gridView.favoritesActive && gridView.multiSelectActive
                  && gridView.activeFocus && gridView.selectionCount > 0
         onActivated: gridView.removeSelectedFromFavorites()

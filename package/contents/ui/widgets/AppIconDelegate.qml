@@ -168,6 +168,18 @@ Item {
             implicitWidth: root.iconSize
             implicitHeight: root.iconSize
 
+            // True while this cell is part of the favorites drag being held over
+            // the launcher's delete area — its icon yields to a ✕ remove marker,
+            // Kickoff-style, reverting the moment the cursor returns to the grid
+            // or leaves the window (#193). For a multi-drag every selected cell
+            // is marked (its storageId is in the drag's sid list), not just the
+            // one the drag started from.
+            readonly property bool _showRemoveMarker: root.dragSource
+                && root.dragSource.dropWillRemove
+                && (root.dragSource.sourceItem === root
+                    || (root.storageId.length > 0
+                        && root.dragSource.sourceStorageIds.indexOf(root.storageId) >= 0))
+
             ShadowedIcon {
                 id: delegateIcon
                 anchors.fill: parent
@@ -177,6 +189,16 @@ Item {
                 // No icon brighten — hover is shown by the Rectangle above (#106).
                 active: false
                 transformOrigin: Item.Center
+                opacity: parent._showRemoveMarker ? 0.25 : 1.0
+            }
+
+            Kirigami.Icon {
+                anchors.centerIn: parent
+                width: root.iconSize
+                height: root.iconSize
+                visible: parent._showRemoveMarker
+                source: "edit-delete-remove"
+                color: Kirigami.Theme.negativeTextColor
             }
 
             // "New" badge dot
