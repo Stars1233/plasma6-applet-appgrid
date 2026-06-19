@@ -112,11 +112,12 @@ bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList 
     bool migrated = false;
     // Seed a list only when the store currently has none (empty or absent), so
     // the first launcher to migrate wins and a populated store is never clobbered.
+    const auto flags = KConfigBase::Persistent | KConfigBase::Notify;
     const auto seed = [&](const QString &key, QStringList &current, const QStringList &incoming) {
         if (incoming.isEmpty() || !current.isEmpty()) {
             return;
         }
-        group.writeEntry(key, incoming);
+        group.writeEntry(key, incoming, flags);
         current = incoming;
         migrated = true;
     };
@@ -124,7 +125,7 @@ bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList 
     seed(kRecentKey, m_recent, recent);
     seed(kKnownKey, m_known, known);
     if (!counts.isEmpty() && m_launchCounts.isEmpty()) {
-        group.writeEntry(kLaunchCountsKey, counts);
+        group.writeEntry(kLaunchCountsKey, counts, flags);
         m_launchCounts = countsFromList(counts);
         migrated = true;
     }
@@ -155,11 +156,15 @@ void LaunchStateStore::scheduleSave()
 
 void LaunchStateStore::save()
 {
+    // Notify: emit the D-Bus change signal on sync so another launcher process's
+    // KConfigWatcher fires and re-reads — without it the other variant only sees
+    // the change on its next restart.
+    const auto flags = KConfigBase::Persistent | KConfigBase::Notify;
     KConfigGroup group = m_config->group(kGroup);
-    group.writeEntry(kHiddenKey, m_hidden);
-    group.writeEntry(kRecentKey, m_recent);
-    group.writeEntry(kKnownKey, m_known);
-    group.writeEntry(kLaunchCountsKey, countsToList(m_launchCounts));
+    group.writeEntry(kHiddenKey, m_hidden, flags);
+    group.writeEntry(kRecentKey, m_recent, flags);
+    group.writeEntry(kKnownKey, m_known, flags);
+    group.writeEntry(kLaunchCountsKey, countsToList(m_launchCounts), flags);
     group.sync();
 }
 
