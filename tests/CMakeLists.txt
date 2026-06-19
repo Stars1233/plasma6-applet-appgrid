@@ -70,9 +70,33 @@ add_executable(test_launchstatestore
     test_launchstatestore.cpp
     ${CMAKE_SOURCE_DIR}/src/launchstatestore.cpp
     ${CMAKE_SOURCE_DIR}/src/launchstatestore.h
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.cpp
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.h
 )
 target_link_libraries(test_launchstatestore PRIVATE Qt6::Test Qt6::Core KF6::ConfigCore)
 add_test(NAME test_launchstatestore COMMAND test_launchstatestore)
+
+# FavoritesFolderLogic — pure folder/layout transforms, QtCore only (issue #18).
+add_executable(test_favoritesfolderlogic
+    test_favoritesfolderlogic.cpp
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.cpp
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.h
+)
+target_link_libraries(test_favoritesfolderlogic PRIVATE Qt6::Test Qt6::Core)
+add_test(NAME test_favoritesfolderlogic COMMAND test_favoritesfolderlogic)
+
+# FavoritesGroupedModel — editable grouped model (QtCore item model, no Kicker).
+add_executable(test_favoritesgroupedmodel
+    test_favoritesgroupedmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/abstractgroupedmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/abstractgroupedmodel.h
+    ${CMAKE_SOURCE_DIR}/src/favoritesgroupedmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/favoritesgroupedmodel.h
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.cpp
+    ${CMAKE_SOURCE_DIR}/src/favoritesfolderlogic.h
+)
+target_link_libraries(test_favoritesgroupedmodel PRIVATE Qt6::Test Qt6::Core)
+add_test(NAME test_favoritesgroupedmodel COMMAND test_favoritesgroupedmodel)
 
 # LaunchBookkeeping is a plain value type (QtCore only) — light standalone
 # target like test_pluginhelpers.

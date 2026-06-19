@@ -19,6 +19,10 @@ import org.kde.plasma.plasmoid
 
 QtObject {
     readonly property bool isWayland: Plasmoid.isWayland
+    // The shared favourites-folder model (appgridrc, global across variants); the
+    // grid binds folders through it. Without this forward the plasmoid variants
+    // get null and never show folders the standalone window created (#18).
+    readonly property var favoritesGroupedModel: Plasmoid.favoritesGroupedModel
 
     function notifyAppLaunched(sid)         { Plasmoid.notifyAppLaunched(sid) }
     function addToTaskManager(desktopFile)  { Plasmoid.addToTaskManager(desktopFile) }

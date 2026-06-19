@@ -7,8 +7,8 @@
     items inside one shared Menu via `visible: false` left ghost layout
     rows because PlasmaComponents.MenuItem's internal padding/insets
     don't fully collapse with implicitHeight=0. Truly-conditional items
-    (jumplist, bulk Add/Remove favorites) use Instantiator so
-    non-applicable rows don't exist at all.
+    (jumplist, bulk Add/Remove favorites, Remove from Folder) use
+    Instantiator so non-applicable rows don't exist at all.
 */
 
 pragma ComponentBehavior: Bound
@@ -25,10 +25,24 @@ Item {
     signal bulkLaunchRequested(var sids)
     signal bulkHideRequested(var sids)
     signal toggleSelectionRequested(string sid)
+    signal clearSelectionRequested()
 
     property var appletInterface: null
     property var appsModel: null
     property var sharedFavoritesModel: null
+    // Favourites folders (issue #18): the editable grouped model + whether the
+    // favourites tab is active, gating the folder menu rows.
+    property var favoritesGroupedModel: null
+    property bool favoritesActive: false
+    property string popupFolderId: ""
+    // Folders available at all (model present + editable). The favourites-tab
+    // gate is applied per-action where it matters (bulk/empty/folder menus).
+    readonly property bool _canFolder: favoritesGroupedModel && favoritesGroupedModel.editable
+    property bool _folderSubAdded: false
+    property bool _bulkFolderSubAdded: false
+    signal openFolderRequested(string folderId)
+    signal renameFolderRequested(string folderId)
+    signal launchFolderRequested(string folderId)
 
     // Plasmoid-glue callbacks, injected from the boundary:
     //   appActions(sid) -> list        launchAppAction(sid, idx)
@@ -145,6 +159,32 @@ Item {
         popupCanPin = contextMenu.canPinToTaskManager()
         popupCanAddToDesktop = contextMenu.canAddToDesktop()
 
+        // Attach the "Add to Folder" submenu only for a favourite on the
+        // favourites tab; a submenu's `visible` is its open-state, so it can't be
+        // bound — add/remove it instead.
+        if (!isMultiSelect) {
+            // Any app can be added to a folder; a non-favourite is favourited in
+            // the process (see the submenu handlers).
+            const wantFolderSub = _canFolder && popupStorageId.length > 0
+            if (wantFolderSub && !_folderSubAdded) {
+                singleMenu.addMenu(addToFolderSubmenu)
+                _folderSubAdded = true
+            } else if (!wantFolderSub && _folderSubAdded) {
+                singleMenu.removeMenu(addToFolderSubmenu)
+                _folderSubAdded = false
+            }
+        } else {
+            // Bulk "Add to Folder" — any selection; non-favourites are favourited.
+            const wantBulkSub = _canFolder && popupSelectedSids.length > 0
+            if (wantBulkSub && !_bulkFolderSubAdded) {
+                bulkMenu.addMenu(addSelectionToFolderSubmenu)
+                _bulkFolderSubAdded = true
+            } else if (!wantBulkSub && _bulkFolderSubAdded) {
+                bulkMenu.removeMenu(addSelectionToFolderSubmenu)
+                _bulkFolderSubAdded = false
+            }
+        }
+
         if (isMultiSelect)
             bulkMenu.popup()
         else
@@ -162,10 +202,25 @@ Item {
         runnerMenu.popup()
     }
 
+    function showForFolder(folderId) {
+        if (!_canFolder || !folderId)
+            return
+        popupFolderId = folderId
+        folderMenu.popup()
+    }
+
+    function showForEmptyArea() {
+        if (!_canFolder)
+            return
+        emptyAreaMenu.popup()
+    }
+
     function close() {
         singleMenu.close()
         bulkMenu.close()
         runnerMenu.close()
+        folderMenu.close()
+        emptyAreaMenu.close()
     }
 
     function _desktopFileFor(sid) {
@@ -187,10 +242,42 @@ Item {
     // grid-app row and the app-backed runner-result row.
     function _toggleFavorite(id) {
         if (!sharedFavoritesModel || !id) return
-        if (sharedFavoritesModel.isFavorite(id))
+        if (sharedFavoritesModel.isFavorite(id)) {
             sharedFavoritesModel.removeFavorite(id)
-        else
+            _removeFromAnyFolder(FavoriteId.stripPrefix(id))
+        } else {
             sharedFavoritesModel.addFavorite(id)
+        }
+    }
+
+    // Take @p sid out of whatever folder it's in (no-op if it's in none). Folder
+    // removal is always a deliberate user action — reconcile keeps members through
+    // favourite churn — so both "Remove from Folder" and unfavouriting route here. #18
+    function _removeFromAnyFolder(sid) {
+        if (!favoritesGroupedModel || !sid) return
+        const fid = favoritesGroupedModel.folderOfMember(sid)
+        if (fid.length > 0)
+            favoritesGroupedModel.removeFromFolder(fid, sid)
+    }
+
+    // Favourite @p sid if it isn't already — so adding any app to a folder
+    // (folders hold favourites) just works, auto-favouriting in one step (#18).
+    function _ensureFavorite(sid) {
+        if (!sharedFavoritesModel || !sid)
+            return
+        const prefixed = FavoriteId.toPrefixed(sid)
+        if (!sharedFavoritesModel.isFavorite(prefixed))
+            sharedFavoritesModel.addFavorite(prefixed)
+    }
+
+    // Add the whole selection to @p folderId, favouriting any that aren't (#18).
+    function _addSelectionToFolder(folderId) {
+        if (!favoritesGroupedModel || !folderId)
+            return
+        for (var i = 0; i < popupSelectedSids.length; ++i) {
+            _ensureFavorite(popupSelectedSids[i])
+            favoritesGroupedModel.addToFolder(folderId, popupSelectedSids[i])
+        }
     }
 
     function _bulkSetFavorite(addNotRemove) {
@@ -199,10 +286,12 @@ Item {
         for (var i = 0; i < sids.length; ++i) {
             const prefixed = FavoriteId.toPrefixed(sids[i])
             const isFav = sharedFavoritesModel.isFavorite(prefixed)
-            if (addNotRemove && !isFav)
+            if (addNotRemove && !isFav) {
                 sharedFavoritesModel.addFavorite(prefixed)
-            else if (!addNotRemove && isFav)
+            } else if (!addNotRemove && isFav) {
                 sharedFavoritesModel.removeFavorite(prefixed)
+                _removeFromAnyFolder(sids[i])
+            }
         }
     }
 
@@ -255,6 +344,22 @@ Item {
                     contextMenu._toggleFavorite(FavoriteId.toPrefixed(contextMenu.popupStorageId))
             }
         }
+
+        // Take the app out of its folder (it stays a favourite) — only shown
+        // when it is currently in one. Instantiator + active rather than
+        // visible:false, which leaves a blank ghost row (see header) (#18).
+        Instantiator {
+            active: contextMenu._canFolder && contextMenu.favoritesGroupedModel
+                    && contextMenu.favoritesGroupedModel.folderOfMember(contextMenu.popupStorageId).length > 0
+            delegate: PlasmaComponents.MenuItem {
+                icon.name: "folder-remove"
+                text: i18nd("dev.xarbit.appgrid", "Remove from Folder")
+                onClicked: contextMenu._removeFromAnyFolder(contextMenu.popupStorageId)
+            }
+            onObjectAdded: (idx, obj) => singleMenu.insertItem(idx, obj)
+            onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
+        }
+
 
         // Instantiator + active rather than `visible: false` so the row
         // doesn't leave a blank padding gap when the originating view
@@ -366,6 +471,7 @@ Item {
             onObjectRemoved: (idx, obj) => bulkMenu.removeItem(obj)
         }
 
+
         PlasmaComponents.MenuItem {
             icon.name: "pin"
             text: i18ndp("dev.xarbit.appgrid",
@@ -416,6 +522,100 @@ Item {
             icon.name: "edit-select-none"
             text: i18nd("dev.xarbit.appgrid", "Remove from Selection")
             onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
+        }
+    }
+
+    // Folder cell actions (issue #18). Right-clicking a folder in the favourites
+    // grid; "Ungroup" returns its members to loose favourites.
+    PlasmaComponents.Menu {
+        id: folderMenu
+
+        PlasmaComponents.MenuItem {
+            icon.name: "folder-open"
+            text: i18nd("dev.xarbit.appgrid", "Open Folder")
+            onClicked: {
+                contextMenu.openFolderRequested(contextMenu.popupFolderId)
+                folderMenu.close()
+            }
+        }
+        // Launch every app in the folder, through the same bulk-launch path (so
+        // the "open many at once?" confirm threshold still applies).
+        PlasmaComponents.MenuItem {
+            icon.name: "system-run"
+            text: i18nd("dev.xarbit.appgrid", "Launch All")
+            enabled: contextMenu.favoritesGroupedModel
+                     && contextMenu.favoritesGroupedModel.folderMembers(contextMenu.popupFolderId).length > 0
+            onClicked: {
+                contextMenu.launchFolderRequested(contextMenu.popupFolderId)
+                folderMenu.close()
+            }
+        }
+        PlasmaComponents.MenuItem {
+            icon.name: "edit-rename"
+            text: i18nd("dev.xarbit.appgrid", "Rename Folder…")
+            onClicked: {
+                contextMenu.renameFolderRequested(contextMenu.popupFolderId)
+                folderMenu.close()
+            }
+        }
+        PlasmaComponents.MenuSeparator {}
+        PlasmaComponents.MenuItem {
+            icon.name: "folder-remove"
+            text: i18nd("dev.xarbit.appgrid", "Ungroup Folder")
+            enabled: contextMenu.favoritesGroupedModel
+            onClicked: {
+                contextMenu.favoritesGroupedModel.ungroupFolder(contextMenu.popupFolderId)
+                folderMenu.close()
+            }
+        }
+    }
+
+    // "Add to Folder" submenu — attached to the single menu only for favourites
+    // (see showForApp). Adds (and favourites, if needed) the clicked app (#18).
+    FolderTargetMenu {
+        id: addToFolderSubmenu
+        foldersModel: contextMenu.favoritesGroupedModel
+        disabledMemberSid: contextMenu.popupStorageId
+        onFolderChosen: folderId => {
+            contextMenu._ensureFavorite(contextMenu.popupStorageId)
+            contextMenu.favoritesGroupedModel.addToFolder(folderId, contextMenu.popupStorageId)
+            contextMenu.close()
+        }
+        onNewFolderRequested: {
+            contextMenu._ensureFavorite(contextMenu.popupStorageId)
+            contextMenu.favoritesGroupedModel.createFolderFromMembers([contextMenu.popupStorageId])
+            contextMenu.close()
+        }
+    }
+
+    // Bulk "Add to Folder" — attached to the multi-select menu; adds the whole
+    // selection to a folder, or makes a new folder from it (#18).
+    FolderTargetMenu {
+        id: addSelectionToFolderSubmenu
+        foldersModel: contextMenu.favoritesGroupedModel
+        onFolderChosen: folderId => {
+            contextMenu._addSelectionToFolder(folderId)
+            contextMenu.clearSelectionRequested()
+            contextMenu.close()
+        }
+        onNewFolderRequested: {
+            for (var i = 0; i < contextMenu.popupSelectedSids.length; ++i)
+                contextMenu._ensureFavorite(contextMenu.popupSelectedSids[i])
+            contextMenu.favoritesGroupedModel.createFolderFromMembers(
+                contextMenu.popupSelectedSids, i18nd("dev.xarbit.appgrid", "New Folder"))
+            contextMenu.clearSelectionRequested()
+            contextMenu.close()
+        }
+    }
+
+    // Right-click on empty favourites space: create a new (empty) folder (#18).
+    PlasmaComponents.Menu {
+        id: emptyAreaMenu
+        PlasmaComponents.MenuItem {
+            icon.name: "folder-new"
+            text: i18nd("dev.xarbit.appgrid", "Create Folder…")
+            enabled: contextMenu.favoritesGroupedModel
+            onClicked: contextMenu.favoritesGroupedModel.createEmptyFolder()
         }
     }
 

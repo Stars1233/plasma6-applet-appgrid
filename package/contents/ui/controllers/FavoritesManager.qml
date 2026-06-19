@@ -24,6 +24,11 @@ Item {
 
     property var appsModel: null
 
+    // The C++ grouped model (issue #18). Fed the live flat favourite list on
+    // every KAStats change so it can reconcile its folder layout; left null
+    // disables folders (e.g. tests).
+    property var favoritesGroupedModel: null
+
     // KAStats client id for the favorites provider. Production builds it
     // from the plasmoid id; the default keeps tests isolated from the
     // user's real favorites store.
@@ -126,6 +131,7 @@ Item {
         // else: fresh install — leave KAStats's seed alone.
 
         _mirrorFavorites()
+        _pushGrouped()
     }
 
     function _mirrorFavorites() {
@@ -133,6 +139,16 @@ Item {
         if (favoriteIdRole < 0) return
         appsModel.favoriteApps = FavoritesMigration.collectMirrorIds(
             sharedFavoritesModel, favoriteIdRole)
+    }
+
+    // Push the live, ordered favourite ids into the grouped model so it can
+    // reconcile its folder layout against the real favourites (issue #18). Runs
+    // regardless of alpha-sort — folders are independent of the mirror.
+    function _pushGrouped() {
+        if (!favoritesGroupedModel || !sharedFavoritesModel) return
+        if (favoriteIdRole < 0) return
+        favoritesGroupedModel.setFlatFavorites(
+            FavoritesMigration.collectMirrorIds(sharedFavoritesModel, favoriteIdRole))
     }
 
     // --- Watchers ---
@@ -164,6 +180,7 @@ Item {
             }
             if (manager.mirrorRequired)
                 manager._mirrorFavorites()
+            manager._pushGrouped()
         }
     }
 

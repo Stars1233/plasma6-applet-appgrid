@@ -38,6 +38,8 @@ Item {
     // Cached at beginDrag() so the drop handler can still identify what was
     // being dragged after the source delegate is gone.
     property string sourceStorageId: ""
+    // Set when a folder cell is dragged (#18) — empty for app drags.
+    property string sourceFolderId: ""
     property string sourceDesktopFile: ""
 
     // Cached selection at beginDrag() — populated only when the dragged item
@@ -50,6 +52,12 @@ Item {
     // during a favorites drag-out (#193). The favorites delegate watches this to
     // swap its source cell for a remove (✕) marker, Kickoff-style.
     property bool dropWillRemove: false
+
+    // Fold target armed while a favourite hovers the centre of another favourite
+    // (→ create folder) or a folder (→ add to it). The target cell watches these
+    // to draw a merge highlight; cleared on drop/exit (issue #18).
+    property string foldTargetStorageId: ""
+    property string foldTargetFolderId: ""
 
     readonly property bool isDragInFlight: source.Drag.active
 
@@ -106,6 +114,19 @@ Item {
         }
     }
 
+    // Cache the dragged delegate's identity and go live. Shared by the single
+    // and multi grab callbacks.
+    function _activate(delegate, mimeData, imageUrl, sids) {
+        source.sourceItem = delegate
+        source.sourceStorageId = delegate.storageId || ""
+        source.sourceFolderId = delegate.folderId || ""
+        source.sourceDesktopFile = delegate.desktopFile || ""
+        source.sourceStorageIds = sids
+        source.Drag.imageSource = imageUrl
+        source.Drag.mimeData = mimeData
+        source.Drag.active = true
+    }
+
     // Begin a drag on behalf of `delegate` (the delegate Item being dragged),
     // taking the drag pixmap from `iconItem` (single-item) or rendering a
     // stacked preview (multi-item) and advertising `mimeData`. The `handler`
@@ -125,13 +146,7 @@ Item {
                         stackComposite.icons = []
                         return
                     }
-                    source.sourceItem = delegate
-                    source.sourceStorageId = delegate.storageId || ""
-                    source.sourceDesktopFile = delegate.desktopFile || ""
-                    source.sourceStorageIds = sids
-                    source.Drag.imageSource = result.url
-                    source.Drag.mimeData = mimeData
-                    source.Drag.active = true
+                    source._activate(delegate, mimeData, result.url, sids)
                     stackComposite.icons = []
                 })
             })
@@ -139,13 +154,7 @@ Item {
         }
         iconItem.grabToImage(function(result) {
             if (!handler.active) return
-            source.sourceItem = delegate
-            source.sourceStorageId = delegate.storageId || ""
-            source.sourceDesktopFile = delegate.desktopFile || ""
-            source.sourceStorageIds = sids && sids.length > 1 ? sids : []
-            source.Drag.imageSource = result.url
-            source.Drag.mimeData = mimeData
-            source.Drag.active = true
+            source._activate(delegate, mimeData, result.url, sids && sids.length > 1 ? sids : [])
         })
     }
 
@@ -156,8 +165,11 @@ Item {
         source.Drag.imageSource = ""
         source.sourceItem = null
         source.sourceStorageId = ""
+        source.sourceFolderId = ""
         source.sourceDesktopFile = ""
         source.sourceStorageIds = []
         source.dropWillRemove = false
+        source.foldTargetStorageId = ""
+        source.foldTargetFolderId = ""
     }
 }

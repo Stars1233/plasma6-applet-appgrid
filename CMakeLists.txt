@@ -225,6 +225,12 @@ set(APPGRID_COMMON_SOURCES
     src/launchbookkeeping.h
     src/launchstatestore.cpp
     src/launchstatestore.h
+    src/favoritesfolderlogic.cpp
+    src/favoritesfolderlogic.h
+    src/abstractgroupedmodel.cpp
+    src/abstractgroupedmodel.h
+    src/favoritesgroupedmodel.cpp
+    src/favoritesgroupedmodel.h
     src/runnerfiltermodel.cpp
     src/runnerfiltermodel.h
     src/unifiedsearchmodel.cpp

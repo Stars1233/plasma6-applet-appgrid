@@ -184,6 +184,9 @@ private:
     void invalidateFilterCompat();
     void invalidateStorageIdCache();
     void ensureStorageIdCache() const;
+    // Drop recents whose app left the database (uninstalled); keeps the recents
+    // row from showing dead entries. Runs on every KSycoca reload.
+    void pruneRecentsToExisting();
     void invalidateHaystackCache();
     [[nodiscard]] QString ensureHaystack(int sourceRow) const;
 

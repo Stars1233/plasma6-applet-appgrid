@@ -152,6 +152,22 @@ Item {
         visible: root.selected && !(pointerDrag.active || touchDrag.active)
     }
 
+    // -- Fold target halo (#18) --
+    // Another favourite is hovering this cell's centre long enough to merge into
+    // a folder; a strong accent ring previews the fold.
+    readonly property bool _isFoldTarget: root.dragSource
+        && root.dragSource.foldTargetStorageId.length > 0
+        && root.dragSource.foldTargetStorageId === root.storageId
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius
+        color: ThemeColors.tint(Kirigami.Theme.highlightColor, 0.3)
+        border.width: 2
+        border.color: Kirigami.Theme.highlightColor
+        visible: root._isFoldTarget
+    }
+
     // Icon + label, sized to its content and centred vertically in the cell.
     // The cell height budget (gridmetrics) is slightly taller than two text
     // lines; centring splits that slack evenly top/bottom instead of pooling
@@ -304,11 +320,12 @@ Item {
         // selection. DragSource caches the sid list so internal reorder can
         // opt out; external targets (Plasma panel, Dolphin) consume the
         // multi-entry text/uri-list directly.
-        const isMulti = root.selected
-                        && root.multiSelectionUrls.length > 1
-                        && root.multiSelectionSids.length > 1
+        // Multi-drag is decided by the selection's storageIds, not its URLs:
+        // internal reorder/fold needs the sids, and some favourites (System
+        // Settings modules) have no .desktop URL to advertise.
+        const isMulti = root.selected && root.multiSelectionSids.length > 1
         let mime = {}
-        if (isMulti) {
+        if (isMulti && root.multiSelectionUrls.length > 1) {
             // Newline-joined wire format per RFC 2483. The single-item
             // path below relies on a `property url` for QString → QUrl
             // coercion at the property boundary; that trick doesn't work

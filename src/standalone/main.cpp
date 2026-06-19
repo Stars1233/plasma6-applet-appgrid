@@ -49,7 +49,8 @@ class ResidentQuitGuard : public QObject
 public:
     bool allowQuit = false;
 
-protected:
+    // QObject::eventFilter is public; keep the same visibility so the override
+    // doesn't narrow it (clang-tidy misc-override-with-different-visibility).
     bool eventFilter(QObject *watched, QEvent *event) override
     {
         if (event->type() == QEvent::Quit && !allowQuit) {
@@ -125,7 +126,7 @@ private:
             {QStringLiteral("aboutData"), QVariant::fromValue(KAboutData::applicationData())},
         });
         m_engine->load(QUrl(QStringLiteral("qrc:/qt/qml/appgrid/ConfigWindow.qml")));
-        if (QQuickWindow *w = window()) {
+        if (const QQuickWindow *w = window()) {
             QObject::connect(w, &QWindow::visibleChanged, m_engine, [this](bool visible) {
                 if (!visible) {
                     destroy();
@@ -382,8 +383,8 @@ int main(int argc, char *argv[])
 
     // Configure (from a plasmoid's "Configure Launcher", or a terminal --configure)
     // retargets the button-edit owner to that plasmoid (empty clears it).
-    QObject::connect(&standalone, &AppGridStandalone::configureRequested, &app, [&](const QString &plasmoidId) {
-        controller.setButtonTargetId(plasmoidId);
+    QObject::connect(&standalone, &AppGridStandalone::configureRequested, &app, [&](const QString &targetId) {
+        controller.setButtonTargetId(targetId);
         settings.show();
     });
     // The launcher's own Settings action: open the window keeping the owner set

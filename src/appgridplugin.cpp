@@ -113,6 +113,11 @@ AppFilterModel *AppGridPlugin::appsModel() const
     return m_controller.appsModel();
 }
 
+FavoritesGroupedModel *AppGridPlugin::favoritesGroupedModel() const
+{
+    return m_controller.favoritesGroupedModel();
+}
+
 QAbstractItemModel *AppGridPlugin::runnerModel() const
 {
     return m_controller.runnerModel();

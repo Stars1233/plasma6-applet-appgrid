@@ -25,6 +25,8 @@ private Q_SLOTS:
     void launchCounts_roundtripThroughFile();
     void persists_acrossInstances();
     void migrateFrom_seedsOnlyAbsentKeys();
+    void favoriteFolders_roundtripThroughFile();
+    void favoriteLayout_roundtripThroughFile();
 
 private:
     KSharedConfig::Ptr freshConfig();
@@ -118,6 +120,43 @@ void TestLaunchStateStore::migrateFrom_seedsOnlyAbsentKeys()
 
     // A second migrate finds every key present → no-op.
     QVERIFY(!store.migrateFrom({QStringLiteral("p.desktop")}, {}, {}, {}));
+}
+
+void TestLaunchStateStore::favoriteFolders_roundtripThroughFile()
+{
+    auto cfg = freshConfig();
+    const QVariantList folders = {QVariantMap{
+        {QStringLiteral("id"), QStringLiteral("f1")},
+        {QStringLiteral("name"), QStringLiteral("Games")},
+        {QStringLiteral("members"), QStringList({QStringLiteral("a.desktop"), QStringLiteral("b.desktop")})},
+    }};
+    {
+        LaunchStateStore store(cfg);
+        store.setFavoriteFolders(folders);
+        QTest::qWait(700);
+    }
+    // On disk: one compact-JSON object per StringList entry.
+    const QStringList raw = cfg->group(QStringLiteral("General")).readEntry("favoriteFolders", QStringList());
+    QCOMPARE(raw.size(), 1);
+    QVERIFY(raw.first().contains(QStringLiteral("Games")));
+
+    LaunchStateStore reopened(cfg);
+    QCOMPARE(reopened.favoriteFolders().size(), 1);
+    QCOMPARE(reopened.favoriteFolders().first().toMap().value(QStringLiteral("id")).toString(), QStringLiteral("f1"));
+    QCOMPARE(reopened.favoriteFolders().first().toMap().value(QStringLiteral("members")).toStringList().size(), 2);
+}
+
+void TestLaunchStateStore::favoriteLayout_roundtripThroughFile()
+{
+    auto cfg = freshConfig();
+    const QStringList layout = {QStringLiteral("folder:f1"), QStringLiteral("app:c.desktop")};
+    {
+        LaunchStateStore store(cfg);
+        store.setFavoriteLayout(layout);
+        QTest::qWait(700);
+    }
+    LaunchStateStore reopened(cfg);
+    QCOMPARE(reopened.favoriteLayout(), layout);
 }
 
 QTEST_MAIN(TestLaunchStateStore)

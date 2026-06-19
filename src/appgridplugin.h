@@ -72,6 +72,7 @@ class AppGridPlugin : public Plasma::Applet
 {
     Q_OBJECT
     Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
+    Q_PROPERTY(FavoritesGroupedModel *favoritesGroupedModel READ favoritesGroupedModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
     Q_PROPERTY(QObject *runnerSourceModel READ runnerSourceModel CONSTANT)
     Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
@@ -86,6 +87,7 @@ public:
     ~AppGridPlugin() override;
 
     [[nodiscard]] AppFilterModel *appsModel() const;
+    [[nodiscard]] FavoritesGroupedModel *favoritesGroupedModel() const;
     [[nodiscard]] QAbstractItemModel *runnerModel() const;
     [[nodiscard]] QObject *runnerSourceModel() const;
     [[nodiscard]] UnifiedSearchModel *searchModel() const;

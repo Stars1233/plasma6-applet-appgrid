@@ -96,6 +96,9 @@ AppFilterModel::AppFilterModel(QObject *parent)
             invalidateRowScoreCache();
         };
         connect(src, &QAbstractItemModel::modelReset, this, invalidateBoth);
+        // After a database reload the app set may have shrunk (uninstall); drop any
+        // recents whose app is now gone so the recents row doesn't show dead ids.
+        connect(src, &QAbstractItemModel::modelReset, this, &AppFilterModel::pruneRecentsToExisting);
         connect(src, &QAbstractItemModel::rowsInserted, this, invalidateBoth);
         connect(src, &QAbstractItemModel::rowsRemoved, this, invalidateBoth);
         // Per-row data updates (e.g. icon refresh) keep the storage id
@@ -159,6 +162,24 @@ void AppFilterModel::ensureStorageIdCache() const
         }
     }
     m_storageIdCacheDirty = false;
+}
+
+void AppFilterModel::pruneRecentsToExisting()
+{
+    ensureStorageIdCache();
+    const QStringList current = m_book.recent();
+    QStringList kept;
+    kept.reserve(current.size());
+    for (const auto &sid : current) {
+        if (m_storageIdToSourceRow.contains(sid)) {
+            kept.append(sid);
+        }
+    }
+    if (kept.size() != current.size()) {
+        // setRecentApps emits recentAppsChanged, which the controller mirrors back
+        // into the persisted launch-state store.
+        setRecentApps(kept);
+    }
 }
 
 // --- Property accessors ---

@@ -286,6 +286,7 @@ Kirigami.ShadowedRectangle {
     FavoritesManager {
         id: favorites
         appsModel: panel.appsModel
+        favoritesGroupedModel: panel.favoritesGroupedModel
         clientInstance: panel.favoritesClientInstance
         sortFavoritesAlphabetically: cfg.sortFavoritesAlphabetically
         favoritesPortedToKAstats: cfg.favoritesPortedToKAstats
@@ -295,6 +296,42 @@ Kirigami.ShadowedRectangle {
     readonly property alias favoriteIdRole: favorites.favoriteIdRole
     readonly property alias sharedFavoritesModel: favorites.sharedFavoritesModel
     readonly property alias mirrorRequired: favorites.mirrorRequired
+
+    // Favourites folders (issue #18). The C++ grouped model (shared by both
+    // variants via the bridge) composes KAStats favourites with the folder layout.
+    // The folder grid is used only on the favourites tab, with folders enabled and
+    // alpha-sort off (KAStats order is authoritative there, not the folder layout).
+    readonly property var favoritesGroupedModel: panel.plasmoidBridge
+        ? panel.plasmoidBridge.favoritesGroupedModel : null
+    readonly property bool useFolderGrid: cfg.favoriteFoldersEnabled
+                                          && favoritesGroupedModel
+                                          && !cfg.sortFavoritesAlphabetically
+    // The model that drives the main grid: the grouped folders model on the
+    // favourites tab, else the flat KAStats favourites (manual order), else the
+    // filtered app model (All / categories / alpha-sorted favourites).
+    readonly property var gridModel: !isFavoritesActive ? appsModel
+        : (useFolderGrid ? favoritesGroupedModel
+           : (sharedFavoritesModel && !cfg.sortFavoritesAlphabetically ? sharedFavoritesModel : appsModel))
+    // Folder currently open (empty = none); the open-mode host watches this.
+    property string openFolderId: ""
+    // Bumped when the grouped model reconciles, so an open folder re-reads its
+    // live name/members; closes the overlay if the folder is gone (ungrouped).
+    property int _foldersRevision: 0
+    Connections {
+        target: panel.favoritesGroupedModel
+        ignoreUnknownSignals: true
+        function onFoldersChanged() {
+            panel._foldersRevision++
+            if (panel.openFolderId.length > 0
+                    && panel.favoritesGroupedModel.folderMembers(panel.openFolderId).length === 0)
+                panel.openFolderId = ""
+        }
+        function onLayoutChanged() { panel._foldersRevision++ }
+        // Prompt for a name as soon as a folder is created (drag-fold, menu, empty).
+        function onFolderCreated(folderId) { renameFolderDialog.openFor(folderId) }
+    }
+    // Leaving the favourites tab closes any open folder.
+    onIsFavoritesActiveChanged: if (!isFavoritesActive) openFolderId = ""
 
     // #193: drop a favorite into the launcher's empty space (anywhere that isn't
     // the favorites grid, but inside the window) to remove it. Lowest z, so the
@@ -319,23 +356,40 @@ Kirigami.ShadowedRectangle {
             return all.filter(sid => sid && panel.sharedFavoritesModel.isFavorite(FavoriteId.toPrefixed(sid)))
         }
 
-        // Hovering empty space with a favorite drag arms removal: flag the drag
-        // source (the favorites delegate shows a ✕ on its cell) and accept so the
-        // cursor reads droppable. onExited reverts when the cursor returns to the
-        // grid (reorder) or leaves the window.
+        // The dragged folder's id, if a folder cell is being dragged here (#18).
+        function _folderId(drag) {
+            const src = panel.dragSource
+            return (src && src.isOwnDrag(drag)) ? (src.sourceFolderId || "") : ""
+        }
+
+        function _removable(drag) {
+            return _favoriteSids(drag).length > 0 || _folderId(drag).length > 0
+        }
+
+        // Hovering empty space with a favorite/folder drag arms removal: flag the
+        // drag source (the cell shows a ✕) and accept so the cursor reads
+        // droppable. onExited reverts when the cursor returns to the grid.
         onEntered: drag => {
-            if (favoriteRemoveArea._favoriteSids(drag).length > 0) {
+            if (favoriteRemoveArea._removable(drag)) {
                 panel.dragSource.dropWillRemove = true
                 drag.accept(Qt.MoveAction)
             }
         }
         onPositionChanged: drag => {
-            if (favoriteRemoveArea._favoriteSids(drag).length > 0)
+            if (favoriteRemoveArea._removable(drag))
                 drag.accept(Qt.MoveAction)
         }
         onExited: { if (panel.dragSource) panel.dragSource.dropWillRemove = false }
 
         onDropped: drag => {
+            // A folder dropped here is dissolved (members return to favourites),
+            // the folder equivalent of removing an icon.
+            const folderId = favoriteRemoveArea._folderId(drag)
+            if (folderId.length > 0 && panel.favoritesGroupedModel) {
+                panel.favoritesGroupedModel.ungroupFolder(folderId)
+                drag.accept(Qt.MoveAction)
+                return
+            }
             const sids = favoriteRemoveArea._favoriteSids(drag)
             if (sids.length === 0) {
                 return
@@ -363,6 +417,8 @@ Kirigami.ShadowedRectangle {
     function resetOnClose() {
         categoryBar.resetScroll()
         _resetSearchSession()
+        // Don't reopen the last folder on the next launch (#18).
+        openFolderId = ""
     }
 
     // -- Reset state (called when showing the grid) --
@@ -430,6 +486,27 @@ Kirigami.ShadowedRectangle {
     function launchApp(index) { launcher.launchApp(index) }
     function launchAppByStorageId(sid) { launcher.launchAppByStorageId(sid) }
     function _requestBulkLaunch(sids) { launcher.requestBulkLaunch(sids) }
+
+    // Launch every app in a folder. Unlike the plain bulk path, each member is
+    // launched favourite-aware (a KCM goes through KAStats, not the app
+    // launcher), and the "open many at once?" threshold still applies (#18).
+    function launchFolder(folderId) {
+        const members = panel.favoritesGroupedModel
+            ? panel.favoritesGroupedModel.folderMembers(folderId) : []
+        if (members.length === 0)
+            return
+        if (members.length >= launcher.bulkLaunchConfirmThreshold) {
+            folderLaunchDialog.pendingMembers = members
+            folderLaunchDialog.open()
+        } else {
+            panel._launchFolderMembers(members)
+        }
+    }
+    function _launchFolderMembers(members) {
+        for (var i = 0; i < members.length; ++i)
+            appGrid.launchFavoriteNoClose(members[i])
+        panel.closeRequested()
+    }
     function _runBulkLaunch(sids) { launcher.runBulkLaunch(sids) }
 
     // Eat clicks so they don't pass through the panel
@@ -790,18 +867,13 @@ Kirigami.ShadowedRectangle {
                 id: appGrid
                 anchors.fill: parent
                 PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: cfg.showScrollbars }
-                // In favorites tab, drive the grid from KAStats directly so
-                // reorder animations and pointer grabs work natively.
-                // Elsewhere, or when alphabetical sort is enabled (which
-                // KAStats does not support), use the filter proxy.
-                model: panel.isSearching ? null
-                       : (panel.isFavoritesActive
-                          && panel.sharedFavoritesModel
-                          && !cfg.sortFavoritesAlphabetically
-                          ? panel.sharedFavoritesModel
-                          : panel.appsModel)
+                model: panel.isSearching ? null : panel.gridModel
                 appsModel: panel.appsModel
                 sharedFavoritesModel: panel.sharedFavoritesModel
+                favoritesGroupedModel: panel.favoritesGroupedModel
+                onOpenFolderRequested: folderId => panel.openFolderId = folderId
+                onFolderContextMenuRequested: folderId => contextMenu.showForFolder(folderId)
+                onEmptyAreaContextMenuRequested: contextMenu.showForEmptyArea()
                 favoriteIdRole: panel.favoriteIdRole
                 dragSource: panel.dragSource
                 columns: panel.columns
@@ -856,6 +928,50 @@ Kirigami.ShadowedRectangle {
                 }
             }
 
+            // The folder popup overlays the grid. _foldersRevision re-reads the
+            // live name/members when the model reconciles while it's open (#18).
+            Loader {
+                anchors.fill: parent
+                z: 20
+                active: panel.openFolderId.length > 0 && panel.favoritesGroupedModel
+                sourceComponent: FolderOpenHost {
+                    readonly property int _rev: panel._foldersRevision
+                    folderName: panel.favoritesGroupedModel.folderName(panel.openFolderId)
+                    members: { _rev; return panel.favoritesGroupedModel.folderMembers(panel.openFolderId) }
+                    appsModel: panel.appsModel
+                    sharedFavoritesModel: panel.sharedFavoritesModel
+                    favoriteIdRole: panel.favoriteIdRole
+                    dragSource: panel.dragSource
+                    columns: appGrid.effectiveColumns
+                    cellWidth: appGrid.cellWidth
+                    cellHeight: appGrid.cellHeight
+                    iconSize: panel.gridIconSize
+                    fontScale: panel.densityScale
+                    shadowEnabled: cfg.iconShadow
+                    reduceGridSpacing: cfg.reduceGridSpacing
+                    hoverAnimation: cfg.hoverAnimation
+                    hoverHighlight: cfg.hoverHighlight
+                    Component.onCompleted: forceActiveFocus()
+                    onCloseRequested: panel.openFolderId = ""
+                    onMemberRemoveRequested: sid => {
+                        if (panel.favoritesGroupedModel)
+                            panel.favoritesGroupedModel.removeFromFolder(panel.openFolderId, sid)
+                    }
+                    onMemberReorderRequested: (from, to) => {
+                        if (panel.favoritesGroupedModel)
+                            panel.favoritesGroupedModel.reorderInFolder(panel.openFolderId, from, to)
+                    }
+                    onMemberContextRequested: (sid, df) => contextMenu.showForApp(sid, df, [])
+                    onMemberLaunched: sid => {
+                        panel.openFolderId = ""
+                        // launchFavorite handles both apps and KCMs (which need
+                        // KAStats trigger, not the app launcher); then close.
+                        appGrid.launchFavorite(sid)
+                        panel.closeRequested()
+                    }
+                }
+            }
+
         }
     }
 
@@ -883,7 +999,14 @@ Kirigami.ShadowedRectangle {
         id: contextMenu
         appsModel: panel.appsModel
         sharedFavoritesModel: panel.sharedFavoritesModel
+        // Always available so "Add to Folder" works for a favourite right-clicked
+        // anywhere (grid, search) — not only on the favourites tab.
+        favoritesGroupedModel: panel.favoritesGroupedModel
+        favoritesActive: panel.isFavoritesActive
         appletInterface: panel.appletInterface
+        onOpenFolderRequested: folderId => panel.openFolderId = folderId
+        onRenameFolderRequested: folderId => renameFolderDialog.openFor(folderId)
+        onLaunchFolderRequested: folderId => panel.launchFolder(folderId)
 
         // Wrap the bridge's C++ methods in closures (not bare refs): called as
         // contextMenu.<prop>() the bare ref would run with the menu as `this`, not
@@ -918,6 +1041,10 @@ Kirigami.ShadowedRectangle {
             const v = panel.activeMultiSelectView
             if (v && sid) v.toggleSelectionBySid(sid)
         }
+        onClearSelectionRequested: {
+            const v = panel.activeMultiSelectView
+            if (v) v.clearSelection()
+        }
     }
 
     Kirigami.PromptDialog {
@@ -932,6 +1059,20 @@ Kirigami.ShadowedRectangle {
         onAccepted: launcher.runBulkLaunch(pendingSids)
     }
 
+    // Folder "Launch All" confirm — like bulkLaunchDialog but launches each
+    // member favourite-aware (handles KCMs) via _launchFolderMembers (#18).
+    Kirigami.PromptDialog {
+        id: folderLaunchDialog
+        property var pendingMembers: []
+        title: i18nd("dev.xarbit.appgrid", "Launch all in folder?")
+        subtitle: i18ndp("dev.xarbit.appgrid",
+            "Open %1 application at once?",
+            "Open %1 applications at once?",
+            pendingMembers.length)
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        onAccepted: panel._launchFolderMembers(pendingMembers)
+    }
+
     Kirigami.PromptDialog {
         id: bulkHideDialog
         property list<string> pendingSids: []
@@ -942,5 +1083,32 @@ Kirigami.ShadowedRectangle {
             pendingSids.length)
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
         onAccepted: launcher.runBulkHide(pendingSids)
+    }
+
+    // Folder rename (#18).
+    Kirigami.PromptDialog {
+        id: renameFolderDialog
+        property string folderId: ""
+        title: i18nd("dev.xarbit.appgrid", "Rename Folder")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+
+        function openFor(fid) {
+            folderId = fid
+            nameField.text = panel.favoritesGroupedModel
+                ? panel.favoritesGroupedModel.folderName(fid) : ""
+            open()
+            nameField.forceActiveFocus()
+            nameField.selectAll()
+        }
+        onAccepted: {
+            const name = nameField.text.trim()
+            if (panel.favoritesGroupedModel && folderId.length > 0 && name.length > 0)
+                panel.favoritesGroupedModel.renameFolder(folderId, name)
+        }
+
+        PlasmaComponents.TextField {
+            id: nameField
+            onAccepted: renameFolderDialog.accept()
+        }
     }
 }

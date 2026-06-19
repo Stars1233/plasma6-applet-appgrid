@@ -91,7 +91,12 @@ Kirigami.FormLayout {
         checked: (root.revision, root.configuration.hideLabelsOnFavorites)
         onToggled: root.configuration.hideLabelsOnFavorites = checked
     }
-
+    QQC2.CheckBox {
+        id: favoriteFoldersEnabled
+        text: i18nd("dev.xarbit.appgrid", "Group favorites into folders")
+        checked: (root.revision, root.configuration.favoriteFoldersEnabled)
+        onToggled: root.configuration.favoriteFoldersEnabled = checked
+    }
     Item {
         visible: !root.isPanel
         Kirigami.FormData.isSection: true

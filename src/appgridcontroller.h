@@ -17,6 +17,7 @@ class ResultsModel;
 
 #include "appfiltermodel.h"
 #include "appmodel.h"
+#include "favoritesgroupedmodel.h"
 #include "frecencyprovider.h"
 #include "launchstatestore.h"
 #include "runnerfiltermodel.h"
@@ -45,6 +46,7 @@ class AppGridController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
+    Q_PROPERTY(FavoritesGroupedModel *favoritesGroupedModel READ favoritesGroupedModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
     // Opaque QObject* — QML uses it only via the dynamic queryString
     // property, no static KRunner type knowledge needed across the QML/C++
@@ -62,6 +64,8 @@ public:
     explicit AppGridController(QObject *parent = nullptr);
 
     [[nodiscard]] AppFilterModel *appsModel() const;
+    /** The favourites folder grouping model (issue #18), shared by both variants. */
+    [[nodiscard]] FavoritesGroupedModel *favoritesGroupedModel() const;
     /** The shared launch-state store (appgridrc); the plasmoid uses it to seed
      *  the store from its old per-applet config on upgrade. */
     [[nodiscard]] LaunchStateStore *launchState() const;
@@ -246,6 +250,7 @@ private:
     AppModel m_appModel;
     AppFilterModel m_filterModel;
     LaunchStateStore m_launchState;
+    FavoritesGroupedModel m_favoritesGrouped;
     KRunner::ResultsModel *m_runnerModel = nullptr;
     RunnerFilterModel m_runnerFilterModel;
     UnifiedSearchModel m_searchModel;

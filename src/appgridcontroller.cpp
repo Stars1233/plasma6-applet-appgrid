@@ -128,6 +128,28 @@ void AppGridController::wireLaunchState()
     connect(&m_filterModel, &AppFilterModel::launchCountsChanged, &m_launchState, [this]() {
         m_launchState.setLaunchCounts(m_filterModel.launchCountsMap());
     });
+
+    // Favourites folders (issue #18): the store owns the persisted definitions +
+    // layout, the grouped model owns the live reconciled view. Store → model is a
+    // plain read (incoming external changes update the view). Model → store writes
+    // ONLY on the model's persist signals, which fire for local user actions — not
+    // when the model reconciled an incoming change. That stops a process that's
+    // merely reading another instance's update from echoing it back and clobbering
+    // a member another instance just added.
+    m_favoritesGrouped.setFavoriteFolders(m_launchState.favoriteFolders());
+    m_favoritesGrouped.setFavoriteLayout(m_launchState.favoriteLayout());
+    connect(&m_launchState, &LaunchStateStore::favoriteFoldersChanged, &m_favoritesGrouped, [this]() {
+        m_favoritesGrouped.setFavoriteFolders(m_launchState.favoriteFolders());
+    });
+    connect(&m_launchState, &LaunchStateStore::favoriteLayoutChanged, &m_favoritesGrouped, [this]() {
+        m_favoritesGrouped.setFavoriteLayout(m_launchState.favoriteLayout());
+    });
+    connect(&m_favoritesGrouped, &FavoritesGroupedModel::foldersPersistRequested, &m_launchState, [this]() {
+        m_launchState.setFavoriteFolders(m_favoritesGrouped.favoriteFolders());
+    });
+    connect(&m_favoritesGrouped, &FavoritesGroupedModel::layoutPersistRequested, &m_launchState, [this]() {
+        m_launchState.setFavoriteLayout(m_favoritesGrouped.favoriteLayout());
+    });
 }
 
 LaunchStateStore *AppGridController::launchState() const
@@ -143,6 +165,11 @@ void AppGridController::setLayerScope(const QString &scope)
 AppFilterModel *AppGridController::appsModel() const
 {
     return const_cast<AppFilterModel *>(&m_filterModel);
+}
+
+FavoritesGroupedModel *AppGridController::favoritesGroupedModel() const
+{
+    return const_cast<FavoritesGroupedModel *>(&m_favoritesGrouped);
 }
 
 QAbstractItemModel *AppGridController::runnerModel() const

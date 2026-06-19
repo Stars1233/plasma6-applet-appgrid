@@ -21,6 +21,7 @@ import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 
+import "../widgets"
 import "../js/constants.js" as Const
 
 ColumnLayout {
@@ -96,19 +97,19 @@ ColumnLayout {
             spacing: 0
             reuseItems: true
 
-            Kirigami.PlaceholderMessage {
+            EmptyStateMessage {
                 anchors.centerIn: parent
                 width: parent.width - Kirigami.Units.gridUnit * 4
                 visible: root._hidden.length === 0
-                icon.name: "view-visible"
+                iconSource: "view-visible"
                 text: i18nd("dev.xarbit.appgrid", "No hidden applications")
             }
 
-            Kirigami.PlaceholderMessage {
+            EmptyStateMessage {
                 anchors.centerIn: parent
                 width: parent.width - Kirigami.Units.gridUnit * 4
                 visible: root._hidden.length > 0 && root._filteredApps.length === 0
-                icon.name: "system-search-symbolic"
+                iconSource: "system-search-symbolic"
                 text: i18nd("dev.xarbit.appgrid", "No matches")
             }
 

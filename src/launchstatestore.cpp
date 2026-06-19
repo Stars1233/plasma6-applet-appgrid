@@ -5,6 +5,8 @@
 
 #include "launchstatestore.h"
 
+#include "favoritesfolderlogic.h"
+
 #include <KConfigGroup>
 #include <QTimer>
 
@@ -18,12 +20,14 @@ const QString kHiddenKey = QStringLiteral("hiddenApps");
 const QString kRecentKey = QStringLiteral("recentApps");
 const QString kKnownKey = QStringLiteral("knownApps");
 const QString kLaunchCountsKey = QStringLiteral("launchCounts");
+const QString kFoldersKey = QStringLiteral("favoriteFolders");
+const QString kLayoutKey = QStringLiteral("favoriteLayout");
 
 // Coalesce bursts of live writes (hide, launch, recents) into one save.
 constexpr int kSaveDebounceMs = 500;
 }
 
-LaunchStateStore::LaunchStateStore(KSharedConfig::Ptr config, QObject *parent)
+LaunchStateStore::LaunchStateStore(const KSharedConfig::Ptr &config, QObject *parent)
     : QObject(parent)
     , m_config(config ? config : KSharedConfig::openConfig(kConfigName))
 {
@@ -106,6 +110,36 @@ void LaunchStateStore::setLaunchCounts(const QVariantMap &counts)
     Q_EMIT launchCountsChanged();
 }
 
+QVariantList LaunchStateStore::favoriteFolders() const
+{
+    return m_favoriteFolders;
+}
+
+QStringList LaunchStateStore::favoriteLayout() const
+{
+    return m_favoriteLayout;
+}
+
+void LaunchStateStore::setFavoriteFolders(const QVariantList &folders)
+{
+    if (m_favoriteFolders == folders) {
+        return;
+    }
+    m_favoriteFolders = folders;
+    scheduleSave();
+    Q_EMIT favoriteFoldersChanged();
+}
+
+void LaunchStateStore::setFavoriteLayout(const QStringList &layout)
+{
+    if (m_favoriteLayout == layout) {
+        return;
+    }
+    m_favoriteLayout = layout;
+    scheduleSave();
+    Q_EMIT favoriteLayoutChanged();
+}
+
 bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList &recent, const QStringList &known, const QStringList &counts)
 {
     KConfigGroup group = m_config->group(kGroup);
@@ -147,6 +181,8 @@ void LaunchStateStore::load()
     m_recent = group.readEntry(kRecentKey, QStringList());
     m_known = group.readEntry(kKnownKey, QStringList());
     m_launchCounts = countsFromList(group.readEntry(kLaunchCountsKey, QStringList()));
+    m_favoriteFolders = FavoritesFolderLogic::foldersFromJsonList(group.readEntry(kFoldersKey, QStringList()));
+    m_favoriteLayout = group.readEntry(kLayoutKey, QStringList());
 }
 
 void LaunchStateStore::scheduleSave()
@@ -165,6 +201,8 @@ void LaunchStateStore::save()
     group.writeEntry(kRecentKey, m_recent, flags);
     group.writeEntry(kKnownKey, m_known, flags);
     group.writeEntry(kLaunchCountsKey, countsToList(m_launchCounts), flags);
+    group.writeEntry(kFoldersKey, FavoritesFolderLogic::foldersToJsonList(m_favoriteFolders), flags);
+    group.writeEntry(kLayoutKey, m_favoriteLayout, flags);
     group.sync();
 }
 
@@ -174,6 +212,8 @@ void LaunchStateStore::reloadFromExternalChange()
     const QStringList recent = m_recent;
     const QStringList known = m_known;
     const QVariantMap counts = m_launchCounts;
+    const QVariantList folders = m_favoriteFolders;
+    const QStringList layout = m_favoriteLayout;
 
     // openConfig() shares one in-memory copy per file; reparse so the read below
     // sees the on-disk change the watcher just announced.
@@ -191,6 +231,12 @@ void LaunchStateStore::reloadFromExternalChange()
     }
     if (m_launchCounts != counts) {
         Q_EMIT launchCountsChanged();
+    }
+    if (m_favoriteFolders != folders) {
+        Q_EMIT favoriteFoldersChanged();
+    }
+    if (m_favoriteLayout != layout) {
+        Q_EMIT favoriteLayoutChanged();
     }
 }
 

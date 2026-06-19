@@ -11,6 +11,7 @@ import org.kde.kirigami as Kirigami
 import "../controllers"
 import "../widgets"
 import "../js/favoriteid.js" as FavoriteId
+import "../js/favoritevisual.js" as FavoriteVisual
 import "../js/gridnav.js" as GridNav
 import "../js/gridmetrics.js" as GridMetrics
 import "../js/constants.js" as Const
@@ -54,6 +55,27 @@ GridView {
 
     // Emitted when a recent app is launched by storageId.
     signal recentLaunched(string storageId)
+    signal openFolderRequested(string folderId)
+    signal folderContextMenuRequested(string folderId)
+    signal emptyAreaContextMenuRequested()
+
+    // Right-click on empty space in the folder grid → create-folder menu. Gated
+    // on there being no cell under the cursor, so right-clicking an icon or
+    // folder (which raise their own menus) doesn't also fire this (#18).
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: eventPoint => {
+            if (!gridView._groupedFavoritesGrid)
+                return
+            // Map the scene point into the content item and ask what's there —
+            // a delegate under the cursor (icon/folder) raises its own menu, so
+            // only a hit on bare content opens the create-folder menu.
+            const p = gridView.contentItem.mapFromItem(null,
+                eventPoint.scenePosition.x, eventPoint.scenePosition.y)
+            if (!gridView.contentItem.childAt(p.x, p.y))
+                gridView.emptyAreaContextMenuRequested()
+        }
+    }
 
     // Fired when Enter is pressed with more than one item selected —
     // GridPanel routes this through the same threshold + confirm
@@ -182,12 +204,24 @@ GridView {
     // The apps model for section queries
     property var appsModel: null
     property var sharedFavoritesModel: null
+    // C++ grouped model (issue #18). When the grid is bound to it, favourite app
+    // rows still resolve via favoriteId (like KAStats), and folder rows render a
+    // FolderCell that opens on click.
+    property var favoritesGroupedModel: null
     // Shared DragSource from the plasmoid root; set by GridPanel.
     property DragSource dragSource: null
 
     // FavoriteId role index — pushed in by the owner once the shared model
     // is ready (see GridPanel.sharedFavoritesLoader). -1 disables lookup.
     property int favoriteIdRole: -1
+
+    // Name + icon for a favourite that has no row in the app model (a System
+    // Settings module favourited via #64), read from KAStats. The grouped model
+    // can't carry the KAStats QIcon, so the grouped grid resolves it here.
+    function _favoriteVisual(sid) {
+        const v = FavoriteVisual.resolve(appsModel, sharedFavoritesModel, favoriteIdRole, sid, defaultIcon)
+        return { display: v.name, decoration: v.icon }
+    }
 
     function findFavoriteRow(storageId) {
         if (!sharedFavoritesModel || favoriteIdRole < 0) return -1
@@ -264,9 +298,14 @@ GridView {
             return appsModel ? (appsModel.recentApps[virtualIdx] || "") : ""
         return _sidAt(virtualIdx - recentCount)
     }
+    // The favourites grid drives selection whether it is the direct KAStats grid
+    // or the grouped (folders) grid — both key selection by storageId.
+    readonly property bool _groupedFavoritesGrid: favoritesActive
+                                                  && favoritesGroupedModel
+                                                  && model === favoritesGroupedModel
     readonly property bool _favoritesSelect: favoritesActive
-                                             && sharedFavoritesModel
-                                             && model === sharedFavoritesModel
+                                             && ((sharedFavoritesModel && model === sharedFavoritesModel)
+                                                 || _groupedFavoritesGrid)
     readonly property bool _otherSelect: !favoritesActive
                                          && appsModel
                                          && model === appsModel
@@ -281,6 +320,11 @@ GridView {
 
     function _sidAt(idx) {
         if (!multiSelectActive || idx < 0 || idx >= count) return ""
+        if (_groupedFavoritesGrid) {
+            // 1 === AbstractGroupedModel.Folder — folders aren't selectable.
+            if (favoritesGroupedModel.entryTypeAt(idx) === 1) return ""
+            return FavoriteId.stripPrefix(favoritesGroupedModel.favoriteIdAt(idx)) || ""
+        }
         if (_favoritesSelect) {
             const v = sharedFavoritesModel.data(
                 sharedFavoritesModel.index(idx, 0), favoriteIdRole)
@@ -343,12 +387,32 @@ GridView {
     // System Settings module or other non-app favorite is launched by the KAStats
     // model itself, which resolves the "applications:<id>" entry Kicker-style —
     // our app launcher can't run a KCM (#64).
-    function launchFavorite(row, sid) {
+    function launchFavorite(sid) {
+        _launchFavorite(sid, true)
+    }
+
+    // Launch every member of a folder without closing; the caller closes once at
+    // the end (#18).
+    function launchFavoriteNoClose(sid) {
+        _launchFavorite(sid, false)
+    }
+
+    // @p closeAfter true routes a plain app through recentLaunched (records +
+    // closes); false launches it in place. A KCM / non-app favourite is always
+    // triggered by its KAStats row (never closes — Kicker owns that). The grid
+    // row may be a grouped/layout row, so resolve the KAStats row by sid.
+    function _launchFavorite(sid, closeAfter) {
         const app = (sid && appsModel) ? appsModel.getByStorageId(sid) : null
-        if (app && app.desktopFile)
-            recentLaunched(sid)
-        else if (sharedFavoritesModel)
-            sharedFavoritesModel.trigger(row, "", null)
+        if (app && app.desktopFile) {
+            if (closeAfter)
+                recentLaunched(sid)
+            else
+                appsModel.launchByStorageId(sid)
+        } else if (sharedFavoritesModel) {
+            const krow = findFavoriteRow(sid)
+            if (krow >= 0)
+                sharedFavoritesModel.trigger(krow, "", null)
+        }
     }
 
     function _launchCurrent() {
@@ -360,11 +424,18 @@ GridView {
         // In favorites view the grid is bound to KAStats directly, so the current
         // index is a favorites row, not a proxy row. Resolve to a storageId and
         // launch through launchFavorite (app → our path, else the KAStats model).
-        if (favoritesActive && sharedFavoritesModel
+        if (favoritesActive && favoritesGroupedModel && model === favoritesGroupedModel) {
+            // 1 === AbstractGroupedModel.Folder
+            if (favoritesGroupedModel.entryTypeAt(currentIndex) === 1) {
+                openFolderRequested(favoritesGroupedModel.folderIdAt(currentIndex))
+            } else {
+                launchFavorite(FavoriteId.stripPrefix(favoritesGroupedModel.favoriteIdAt(currentIndex)))
+            }
+        } else if (favoritesActive && sharedFavoritesModel
                 && model === sharedFavoritesModel) {
             const v = sharedFavoritesModel.data(
                 sharedFavoritesModel.index(currentIndex, 0), favoriteIdRole)
-            launchFavorite(currentIndex, FavoriteId.stripPrefix(v))
+            launchFavorite(FavoriteId.stripPrefix(v))
         } else {
             launched(currentIndex)
         }
@@ -578,24 +649,77 @@ GridView {
         // than AppFilterModel. Resolve the storage id from the model and
         // look up the matching AppModel row for non-essential fields
         // (genericName, comment, installSource, desktopFile, isNew).
-        readonly property bool _fromShared: gridView.favoritesActive
-                                            && gridView.sharedFavoritesModel
-                                            && gridView.model === gridView.sharedFavoritesModel
-        readonly property string _sid: _fromShared
-            ? FavoriteId.stripPrefix(model.favoriteId)
-            : (model.storageId || "")
+        // Grid bound to the grouped model (issue #18): folder rows render a
+        // FolderCell, app rows resolve via favoriteId exactly like the direct
+        // KAStats grid does.
+        readonly property bool _fromGrouped: gridView.favoritesActive
+                                             && gridView.favoritesGroupedModel
+                                             && gridView.model === gridView.favoritesGroupedModel
+        readonly property bool _isFolder: _fromGrouped && model.entryType === 1
+        // "Shared" = a favourite app row keyed by favoriteId — true for both the
+        // direct KAStats grid and the grouped model's app rows.
+        readonly property bool _fromShared: (gridView.favoritesActive
+                                             && gridView.sharedFavoritesModel
+                                             && gridView.model === gridView.sharedFavoritesModel)
+                                            || (_fromGrouped && !_isFolder)
+        readonly property string _sid: _isFolder
+            ? ""
+            : (_fromShared ? FavoriteId.stripPrefix(model.favoriteId) : (model.storageId || ""))
         readonly property var _appData: _fromShared && gridView.appsModel
                                         ? gridView.appsModel.getByStorageId(_sid) : null
+        // getByStorageId returns {} (not null) for an id the app model doesn't
+        // know, so test the icon, not the object.
+        readonly property bool _appKnown: !!(_appData && _appData.iconName)
+        // KAStats name/icon fallback for a grouped app row the app model doesn't
+        // know (a favourited KCM); the direct KAStats grid reads model.display /
+        // model.decoration instead, which the grouped model can't provide.
+        readonly property var _kvis: (_fromGrouped && !_appKnown && gridView.sharedFavoritesModel)
+                                     ? gridView._favoriteVisual(_sid) : null
+        // Member icon names for a folder's 2x2 preview, resolved via the app model.
+        readonly property var _folderIcons: {
+            if (!_isFolder)
+                return []
+            const members = model.folderMembers || []
+            const icons = []
+            for (let i = 0; i < members.length && icons.length < 4; ++i) {
+                icons.push(FavoriteVisual.resolve(gridView.appsModel, gridView.sharedFavoritesModel,
+                                                  gridView.favoriteIdRole, members[i], gridView.defaultIcon).icon)
+            }
+            return icons
+        }
+
+        FolderCell {
+            anchors.fill: parent
+            visible: delegateRoot._isFolder
+            folderId: delegateRoot._isFolder ? (model.folderId || "") : ""
+            folderName: delegateRoot._isFolder ? (model.display || "") : ""
+            memberIcons: delegateRoot._folderIcons
+            iconSize: gridView.iconSize
+            fontScale: gridView.fontScale
+            hideLabel: gridView.hideLabelsOnFavorites && gridView.favoritesActive
+            isCurrentItem: gridView.currentIndex === model.index && gridView.activeFocus
+            hoverHighlight: gridView.hoverHighlight
+            dragSource: gridView.dragSource
+            gridRow: model.index
+            onClicked: gridView.openFolderRequested(model.folderId)
+            onContextRequested: gridView.folderContextMenuRequested(model.folderId)
+        }
 
         AppIconDelegate {
             id: iconDelegate
             anchors.fill: parent
+            visible: !delegateRoot._isFolder
             appName: delegateRoot._fromShared
-                ? (model.display || (delegateRoot._appData ? delegateRoot._appData.name : "") || "")
+                ? ((delegateRoot._appKnown && delegateRoot._appData.name)
+                   || model.display
+                   || (delegateRoot._kvis && delegateRoot._kvis.display)
+                   || "")
                 : (model.name || "")
             appIcon: delegateRoot._fromShared
-                ? ((delegateRoot._appData && delegateRoot._appData.iconName)
-                   || model.decoration || gridView.defaultIcon)
+                ? ((delegateRoot._appKnown && delegateRoot._appData.iconName)
+                   || model.decoration
+                   || (delegateRoot._kvis && delegateRoot._kvis.decoration)
+                   || gridView.defaultIcon)
                 : (model.iconName || gridView.defaultIcon)
             displayIcon: delegateRoot._fromShared ? "" : gridView.getDisplayIcon(model.index)
             iconGeneration: gridView.appsModel ? gridView.appsModel.iconGeneration : 0
@@ -664,7 +788,7 @@ GridView {
                 }
                 gridView.clearSelection()
                 if (delegateRoot._fromShared) {
-                    gridView.launchFavorite(model.index, delegateRoot._sid)
+                    gridView.launchFavorite(delegateRoot._sid)
                 } else {
                     gridView.launched(model.index)
                 }

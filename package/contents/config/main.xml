@@ -90,6 +90,10 @@
       <label>Whether to hide app name labels on the favorites tab.</label>
       <default>false</default>
     </entry>
+    <entry name="favoriteFoldersEnabled" type="Bool">
+      <label>Whether favorites can be grouped into folders (issue #18).</label>
+      <default>true</default>
+    </entry>
     <entry name="favoritesPortedToKAstats" type="Bool">
       <label>Whether existing local favorites have been migrated into the KActivities-backed favorites model.</label>
       <default>false</default>

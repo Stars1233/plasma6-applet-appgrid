@@ -22,6 +22,7 @@ import "../js/constants.js" as Const
 KCM.SimpleKCM {
     id: page
 
+    property alias cfg_favoriteFoldersEnabled: buffer.favoriteFoldersEnabled
     property alias cfg_hideGridWhenEmpty: buffer.hideGridWhenEmpty
     property alias cfg_hideLabelsOnFavorites: buffer.hideLabelsOnFavorites
     property alias cfg_hoverAnimation: buffer.hoverAnimation
@@ -37,6 +38,7 @@ KCM.SimpleKCM {
 
     QtObject {
         id: buffer
+        property bool favoriteFoldersEnabled
         property bool hideGridWhenEmpty
         property bool hideLabelsOnFavorites
         property int hoverAnimation

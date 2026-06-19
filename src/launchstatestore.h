@@ -9,6 +9,7 @@
 #include <KSharedConfig>
 #include <QObject>
 #include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 
 class QTimer;
@@ -38,21 +39,30 @@ class LaunchStateStore : public QObject
     Q_PROPERTY(QStringList recentApps READ recentApps WRITE setRecentApps NOTIFY recentAppsChanged)
     Q_PROPERTY(QStringList knownApps READ knownApps WRITE setKnownApps NOTIFY knownAppsChanged)
     Q_PROPERTY(QVariantMap launchCounts READ launchCounts WRITE setLaunchCounts NOTIFY launchCountsChanged)
+    // Favourites folders (issue #18): an AppGrid-only grouping over the shared
+    // KAStats favourites. The favourites themselves stay in KAStats; only the
+    // folder definitions + top-level order live here, shared across variants.
+    Q_PROPERTY(QVariantList favoriteFolders READ favoriteFolders WRITE setFavoriteFolders NOTIFY favoriteFoldersChanged)
+    Q_PROPERTY(QStringList favoriteLayout READ favoriteLayout WRITE setFavoriteLayout NOTIFY favoriteLayoutChanged)
 
 public:
     /** @p config defaults to appgridrc; injectable so tests can point at a
      *  scratch file. */
-    explicit LaunchStateStore(KSharedConfig::Ptr config = {}, QObject *parent = nullptr);
+    explicit LaunchStateStore(const KSharedConfig::Ptr &config = {}, QObject *parent = nullptr);
 
     [[nodiscard]] QStringList hiddenApps() const;
     [[nodiscard]] QStringList recentApps() const;
     [[nodiscard]] QStringList knownApps() const;
     [[nodiscard]] QVariantMap launchCounts() const;
+    [[nodiscard]] QVariantList favoriteFolders() const;
+    [[nodiscard]] QStringList favoriteLayout() const;
 
     void setHiddenApps(const QStringList &list);
     void setRecentApps(const QStringList &list);
     void setKnownApps(const QStringList &list);
     void setLaunchCounts(const QVariantMap &counts);
+    void setFavoriteFolders(const QVariantList &folders);
+    void setFavoriteLayout(const QStringList &layout);
 
     /** Seed any empty key from a variant's old per-applet config (panel upgrade).
      *  @p counts is the on-disk "storageId=count" StringList. Writes only the
@@ -65,6 +75,8 @@ Q_SIGNALS:
     void recentAppsChanged();
     void knownAppsChanged();
     void launchCountsChanged();
+    void favoriteFoldersChanged();
+    void favoriteLayoutChanged();
 
 private:
     void load();
@@ -86,4 +98,6 @@ private:
     QStringList m_recent;
     QStringList m_known;
     QVariantMap m_launchCounts;
+    QVariantList m_favoriteFolders;
+    QStringList m_favoriteLayout;
 };

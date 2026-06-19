@@ -51,6 +51,80 @@ DropArea {
 
     readonly property DragSource _source: gridView.dragSource
 
+    // The grid is bound to the grouped (folders) model. Its order is the folder
+    // layout, not KAStats order, so reorder goes through moveTopLevel on drop
+    // rather than the live KAStats moveRow path below (issue #18).
+    readonly property bool _grouped: gridView.favoritesGroupedModel
+                                     && gridView.model === gridView.favoritesGroupedModel
+
+    // Drag-create (issue #18): while a single app favourite hovers the inner area
+    // of another cell, a "fold" arms — dropping then creates a folder (onto an
+    // app) or adds to it (onto a folder); the thin outer edges reorder instead.
+    // Only an app source folds; a folder source reorders only.
+    property int _foldCandidate: -1
+    // Both single and multi drags can fold onto a centre; a folder source can't.
+    readonly property bool _canFold: _grouped && _sourceId.length > 0 && _source.sourceFolderId.length === 0
+    // Half-extent of the central fold band, as a fraction of the cell: inside it
+    // a drop folds, past it (the far side) reorders.
+    readonly property real _foldZoneHalf: 0.35
+
+    // Classify the cursor over target cell @p targetIdx relative to the dragged
+    // source cell @p sourceIdx, along the direction of travel:
+    //   0 none   — still approaching the target's near side, do nothing
+    //   1 fold   — over the small central band, arm a fold
+    //   2 reorder — moved past the centre to the far side, reflow (swap) live
+    // A small fold band means you must land on the icon to fold; pushing past it
+    // reorders, matching "reflow only once you pass the icon".
+    function _foldZone(pos, targetIdx, sourceIdx) {
+        const t = gridView.itemAtIndex(targetIdx)
+        if (!t)
+            return 0
+        const tcx = t.x + t.width / 2
+        const tcy = t.y + t.height / 2
+        const s = gridView.itemAtIndex(sourceIdx)
+        let dx = 1, dy = 0
+        if (s) {
+            dx = tcx - (s.x + s.width / 2)
+            dy = tcy - (s.y + s.height / 2)
+        }
+        const len = Math.hypot(dx, dy) || 1
+        dx /= len
+        dy /= len
+        // Cursor offset from the target centre projected onto source→target.
+        const proj = (pos.x - tcx) * dx + (pos.y - tcy) * dy
+        const half = (Math.abs(dx) >= Math.abs(dy) ? t.width : t.height) / 2
+        if (proj > half * _foldZoneHalf)
+            return 2
+        if (proj < -half * _foldZoneHalf)
+            return 0
+        return 1
+    }
+
+    // Arm the fold highlight for the candidate row (or clear it when @p index < 0).
+    function _armFold(index) {
+        const gm = gridView.favoritesGroupedModel
+        if (!_source || index < 0 || !gm) {
+            if (_source) {
+                _source.foldTargetStorageId = ""
+                _source.foldTargetFolderId = ""
+            }
+            return
+        }
+        // 1 === AbstractGroupedModel.Folder
+        if (gm.entryTypeAt(index) === 1) {
+            _source.foldTargetFolderId = gm.folderIdAt(index)
+            _source.foldTargetStorageId = ""
+        } else {
+            _source.foldTargetStorageId = FavoriteId.stripPrefix(gm.favoriteIdAt(index))
+            _source.foldTargetFolderId = ""
+        }
+    }
+
+    function _clearFold() {
+        _foldCandidate = -1
+        _armFold(-1)
+    }
+
     // The bare storage id of the active drag's source, cached on DragSource
     // so it survives delegate recycling when the tab switches mid-drag.
     readonly property string _sourceId: _source ? _source.sourceStorageId : ""
@@ -80,24 +154,72 @@ DropArea {
     }
 
     onExited: {
-        // Undo every pending reorder when the cursor leaves without dropping.
+        // Undo every pending reorder when the cursor leaves without dropping,
+        // on whichever model is driving the order.
+        const reorderModel = _grouped ? gridView.favoritesGroupedModel : gridView.sharedFavoritesModel
         while (pendingMoves.length > 0) {
             const [from, to] = pendingMoves.pop()
-            gridView.sharedFavoritesModel.moveRow(to, from)
+            if (reorderModel) reorderModel.moveRow(to, from)
         }
         // Pull the live "add preview" back out if it was inserted.
         if (addPreviewActive && _sourceId && gridView.sharedFavoritesModel) {
             gridView.sharedFavoritesModel.removeFavorite(FavoriteId.toPrefixed(_sourceId))
         }
         addPreviewActive = false
+        _clearFold()
     }
 
     onPositionChanged: drag => {
         if (!_source || !_source.isOwnDrag(drag) || !gridView.sharedFavoritesModel)
             return
-        // Multi-drag: no internal reorder. Drag-out target receives the
-        // multi-URI mime data; falling through here would attempt to reorder
-        // only the originating delegate, splitting it from its selection.
+        // Grouped grid: a centre hover arms a fold (single or multi); a single
+        // drag also reorders live past the centre. A non-favourite
+        // (add-from-other-tab) is added on drop instead.
+        if (_grouped) {
+            if (_isAddFromOtherTab(drag)) {
+                drag.accept(Qt.CopyAction)
+                return
+            }
+            const gpos = mapToItem(gridView.contentItem, drag.x, drag.y)
+            const gtarget = gridView.indexAt(gpos.x, gpos.y)
+            const gsource = _source.sourceItem ? _source.sourceItem.gridRow : -1
+            if (gtarget < 0 || gtarget === gsource) {
+                _clearFold()
+                drag.accept(Qt.MoveAction)
+                return
+            }
+            const zone = _canFold ? _foldZone(gpos, gtarget, gsource) : 2
+            if (zone === 1) {
+                // Over the central band → arm a fold, no reflow.
+                if (_foldCandidate !== gtarget) {
+                    _foldCandidate = gtarget
+                    _armFold(gtarget)
+                }
+                drag.accept(Qt.MoveAction)
+                return
+            }
+            _clearFold()
+            // A multi-drag only folds (onto a centre); it never reorders — the
+            // gaps for an N-item move are ambiguous.
+            if (_isMultiDrag) {
+                drag.accept(Qt.MoveAction)
+                return
+            }
+            if (zone === 2) {
+                // Pushed past the centre → reflow (swap) live, unless animations
+                // are still settling.
+                if (gridView.move.running || gridView.moveDisplaced.running
+                        || gridView.flicking || gridView.moving || edgeScroller.active) {
+                    drag.accept(Qt.MoveAction)
+                    return
+                }
+                gridView.favoritesGroupedModel.moveRow(gsource, gtarget)
+                pendingMoves.push([gsource, gtarget])
+            }
+            drag.accept(Qt.MoveAction)
+            return
+        }
+        // Non-grouped grid: multi-drag stays put (drag-out only).
         if (_isMultiDrag) return
         // Hold off on reorder while existing animations or auto-scroll are
         // settling. Subsequent positionChanged events will retry.
@@ -152,8 +274,63 @@ DropArea {
         drag.accept(action)
     }
 
+    // Grouped grid drop. A reorder already happened live via moveRow, so just
+    // commit it; a new favourite (other tab / external) reconciles in as a loose
+    // app at the end.
+    function _handleGroupedDrop(drag) {
+        const gm = gridView.favoritesGroupedModel
+        if (!gm)
+            return
+        // Armed fold → add the dragged favourite(s) to the target folder, or make
+        // a new folder from the target app + the dragged one(s). Single or multi.
+        if (_canFold && (_source.foldTargetFolderId.length > 0 || _source.foldTargetStorageId.length > 0)) {
+            const dragged = _isMultiDrag ? _source.sourceStorageIds : [_sourceId]
+            if (_source.foldTargetFolderId.length > 0) {
+                for (var i = 0; i < dragged.length; ++i)
+                    gm.addToFolder(_source.foldTargetFolderId, dragged[i])
+            } else {
+                gm.createFolderFromMembers([_source.foldTargetStorageId].concat(dragged),
+                                           i18nd("dev.xarbit.appgrid", "New Folder"))
+            }
+            _clearFold()
+            drag.accept(Qt.MoveAction)
+            return
+        }
+        // Otherwise the reorder already happened live via the zone-2 reflow; just
+        // commit (clear the rollback log so a stray onExited doesn't undo it).
+        if (_source && _source.isOwnDrag(drag) && !_isMultiDrag && !_isAddFromOtherTab(drag)) {
+            pendingMoves = []
+            _clearFold()
+            drag.accept(Qt.MoveAction)
+            return
+        }
+        if (_source && _source.isOwnDrag(drag) && gridView.favoritesActive) {
+            const sids = _isMultiDrag ? _source.sourceStorageIds : [_sourceId]
+            for (var i = 0; i < sids.length; ++i) {
+                if (sids[i])
+                    gridView.sharedFavoritesModel.addFavorite(FavoriteId.toPrefixed(sids[i]))
+            }
+            drag.accept(Qt.CopyAction)
+            return
+        }
+        if (drag.hasUrls && gridView.favoritesActive) {
+            for (const url of drag.urls) {
+                let id = url.toString()
+                if (!id.endsWith(".desktop")) continue
+                const slash = id.lastIndexOf("/")
+                if (slash >= 0) id = id.substring(slash + 1)
+                gridView.sharedFavoritesModel.addFavorite(FavoriteId.toPrefixed(id))
+            }
+            drag.accept(Qt.CopyAction)
+        }
+    }
+
     onDropped: drag => {
         if (!gridView.sharedFavoritesModel) return
+        if (_grouped) {
+            _handleGroupedDrop(drag)
+            return
+        }
 
         // Add-from-other-tab: the live preview is already in the model at
         // the cursor position. Just commit by clearing the preview flag so

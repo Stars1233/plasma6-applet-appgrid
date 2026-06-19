@@ -56,6 +56,7 @@ private Q_SLOTS:
     void recordRecentLaunchAddsToKnownApps();
     void recordRecentLaunchIgnoresEmptyId();
     void iconChangedBumpsIconGeneration();
+    void databaseReloadPrunesUninstalledRecents();
 
 private:
     StubAppModel m_source;
@@ -468,6 +469,27 @@ void TestAppFilterModel::iconChangedBumpsIconGeneration()
 
     QCOMPARE(spy.count(), 1);
     QVERIFY(m_filter.iconGeneration() > before);
+}
+
+void TestAppFilterModel::databaseReloadPrunesUninstalledRecents()
+{
+    // Two apps installed, both recent. After one is uninstalled (the source
+    // model resets to just the survivor), the recents list must drop the gone
+    // app and emit recentAppsChanged so the persisted store follows (#).
+    m_source.setApps({
+        {QStringLiteral("Keep"), {}, QStringLiteral("/x/keep.desktop"), {}, {}, QStringLiteral("keep.desktop"), {}, {}, {}},
+        {QStringLiteral("Gone"), {}, QStringLiteral("/x/gone.desktop"), {}, {}, QStringLiteral("gone.desktop"), {}, {}, {}},
+    });
+    m_filter.setRecentApps({QStringLiteral("gone.desktop"), QStringLiteral("keep.desktop")});
+
+    QSignalSpy spy(&m_filter, &AppFilterModel::recentAppsChanged);
+    // Uninstall "gone": the source reloads with only the survivor.
+    m_source.setApps({
+        {QStringLiteral("Keep"), {}, QStringLiteral("/x/keep.desktop"), {}, {}, QStringLiteral("keep.desktop"), {}, {}, {}},
+    });
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(m_filter.recentApps(), QStringList{QStringLiteral("keep.desktop")});
 }
 
 QTEST_MAIN(TestAppFilterModel)
