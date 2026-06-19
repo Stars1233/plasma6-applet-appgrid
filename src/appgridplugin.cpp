@@ -336,8 +336,11 @@ void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringLi
         // from ours, so it lacks our D-Bus methods. Checked once and cached;
         // re-checked after a replace (so the fresh instance is re-validated).
         if (!m_daemonVersionChecked) {
-            const QDBusReply<QString> version =
-                bus.call(QDBusMessage::createMethodCall(AppGrid::Dbus::Service, AppGrid::Dbus::Path, AppGrid::Dbus::Interface, AppGrid::Dbus::MethodVersion));
+            // Short timeout: this runs in plasmashell, so a hung daemon must not
+            // freeze the panel. On timeout the reply is invalid → treated as not
+            // stale → we just toggle it rather than aggressively replacing it.
+            auto probe = QDBusMessage::createMethodCall(AppGrid::Dbus::Service, AppGrid::Dbus::Path, AppGrid::Dbus::Interface, AppGrid::Dbus::MethodVersion);
+            const QDBusReply<QString> version = bus.call(probe, QDBus::Block, AppGrid::Dbus::CallTimeoutMs);
             m_daemonStale = version.isValid() && version.value() != QLatin1String(APPGRID_VERSION);
             m_daemonVersionChecked = true;
         }

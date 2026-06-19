@@ -283,7 +283,8 @@ QScreen *AppGridController::activeScreen() const
     // QScreen by the name KWin reports — exactly how KRunner finds its screen.
     auto msg =
         QDBusMessage::createMethodCall(AppGrid::KWinDbus::Service, AppGrid::KWinDbus::Path, AppGrid::KWinDbus::Interface, AppGrid::KWinDbus::ActiveOutputName);
-    const QDBusReply<QString> reply = QDBusConnection::sessionBus().call(msg);
+    // Short timeout on the launcher-open path; fall back to the cursor's screen.
+    const QDBusReply<QString> reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, AppGrid::Dbus::CallTimeoutMs);
     QScreen *screen = reply.isValid() ? screenByName(reply.value()) : nullptr;
     return screen ? screen : screenForCursor();
 }
@@ -296,7 +297,7 @@ QScreen *AppGridController::panelScreen() const
                                               AppGrid::PlasmoidDbus::Path,
                                               AppGrid::PlasmoidDbus::Interface,
                                               AppGrid::PlasmoidDbus::PanelScreenName);
-    const QDBusReply<QString> reply = QDBusConnection::sessionBus().call(msg);
+    const QDBusReply<QString> reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, AppGrid::Dbus::CallTimeoutMs);
     return reply.isValid() ? screenByName(reply.value()) : nullptr;
 }
 
