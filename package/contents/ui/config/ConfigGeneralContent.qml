@@ -244,7 +244,7 @@ Kirigami.FormLayout {
         text: i18nd("dev.xarbit.appgrid", "Check the AppGrid website for new releases")
         checked: (root.revision, root.configuration.checkForUpdates)
         onToggled: root.configuration.checkForUpdates = checked
-        QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Anonymous request once per day to %1. Shows an indicator near the session buttons when a new version is available; no automatic install.").arg("https://appgrid.xarbit.dev/api/latest.json")
+        QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Anonymous request once per day to %1. Shows an indicator near the session buttons when a new version is available; no automatic install.", "https://appgrid.xarbit.dev/api/latest.json")
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
     }

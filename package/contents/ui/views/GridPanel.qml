@@ -833,10 +833,14 @@ Kirigami.ShadowedRectangle {
         sharedFavoritesModel: panel.sharedFavoritesModel
         appletInterface: panel.appletInterface
 
-        appActions: panel.plasmoidBridge.appActions
-        launchAppAction: panel.plasmoidBridge.launchAppAction
-        canManageInDiscover: panel.plasmoidBridge.canManageInDiscover
-        openInDiscover: panel.plasmoidBridge.openInDiscover
+        // Wrap the bridge's C++ methods in closures (not bare refs): called as
+        // contextMenu.<prop>() the bare ref would run with the menu as `this`, not
+        // the bridge — Qt6 warns about that (NativeMethodBehavior). The arrow binds
+        // the call back to plasmoidBridge.
+        appActions: sid => panel.plasmoidBridge.appActions(sid)
+        launchAppAction: (sid, idx) => panel.plasmoidBridge.launchAppAction(sid, idx)
+        canManageInDiscover: sid => panel.plasmoidBridge.canManageInDiscover(sid)
+        openInDiscover: sid => panel.plasmoidBridge.openInDiscover(sid)
         pinToTaskManager: launcherActions.pinToTaskManager
         addToDesktop: launcherActions.addToDesktop
         canPinToTaskManager: launcherActions.canPinToTaskManager
