@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=@APPGRID_APP_ID@
+Exec=@KDE_INSTALL_FULL_BINDIR@/appgrid --daemon
+SystemdService=appgrid.service

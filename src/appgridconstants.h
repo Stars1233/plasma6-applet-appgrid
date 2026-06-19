@@ -42,6 +42,11 @@ inline constexpr QLatin1String MethodQuit{"Quit"};
 namespace Standalone
 {
 inline constexpr QLatin1String Executable{"appgrid"};
+// The D-Bus/systemd activation entry point (see the installed .service units)
+// starts the binary with this flag. It means "you are the resident daemon" — do
+// not auto-show on start; wait for the activating method call (Toggle/Configure)
+// that D-Bus queues and delivers once the service name is up.
+inline constexpr QLatin1String FlagDaemon{"--daemon"};
 inline constexpr QLatin1String FlagConfigure{"--configure"};
 inline constexpr QLatin1String FlagCompact{"--compact"};
 // Replace a running (stale) daemon instead of forwarding to it — used by the

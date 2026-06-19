@@ -203,6 +203,10 @@ int main(int argc, char *argv[])
     app.installEventFilter(&quitGuard);
 
     const QStringList appArgs = app.arguments();
+    // --daemon: started by D-Bus/systemd activation, not an explicit user trigger.
+    // Stay hidden and let the activating method call (queued by D-Bus until the
+    // service name is up) drive the window — instead of auto-showing on start.
+    const bool daemonMode = appArgs.contains(AppGrid::Standalone::FlagDaemon);
     // --configure: open the settings window straight away and skip auto-showing
     // the launcher (the plasmoid's "Configure Launcher…" when we were not yet
     // running). The launcher window is still created, ready for a later toggle.
@@ -356,7 +360,7 @@ int main(int argc, char *argv[])
         {QStringLiteral("appGridController"), QVariant::fromValue(&controller)},
         {QStringLiteral("appGridConfig"), QVariant::fromValue(&config)},
         {QStringLiteral("appGridStandalone"), QVariant::fromValue(&standalone)},
-        {QStringLiteral("appGridAutoShow"), !openConfigOnStart},
+        {QStringLiteral("appGridAutoShow"), !daemonMode && !openConfigOnStart},
         {QStringLiteral("appGridStartCompact"), startCompact},
     };
     // Bundled at this qrc path by qt_add_resources (see CMakeLists). The root is

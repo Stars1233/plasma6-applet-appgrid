@@ -364,10 +364,23 @@ void AppGridPlugin::triggerStandalone(const QString &dbusMethod, const QStringLi
         return;
     }
 
-    // Not running — launch it with the matching flags (it registers the service
-    // and acts on the flags on start).
+    // Not running.
+#ifdef APPGRID_DBUS_ACTIVATION
+    // A method call to the activatable name starts the installed build via the
+    // D-Bus/systemd .service unit, then delivers the call — no explicit launch and
+    // no single-instance race. The unit starts it with --daemon (it stays hidden),
+    // and this queued method drives the window.
+    auto call = QDBusMessage::createMethodCall(AppGrid::Dbus::Service, AppGrid::Dbus::Path, AppGrid::Dbus::Interface, dbusMethod);
+    if (!dbusArgs.isEmpty()) {
+        call.setArguments(dbusArgs);
+    }
+    bus.send(call);
+#else
+    // No activation unit (e.g. the relocatable universal build): launch the binary
+    // with the matching flags; it registers the service and acts on them on start.
     auto *job = new KIO::CommandLauncherJob(AppGrid::Standalone::Executable, launchArgs, this);
     job->start();
+#endif
 }
 
 void AppGridPlugin::triggerStandaloneAsOwner(const QString &dbusMethod, const QStringList &extraFlags)

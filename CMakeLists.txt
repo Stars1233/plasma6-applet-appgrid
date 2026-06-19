@@ -33,6 +33,17 @@ option(ENABLE_X11 "Enable X11 session support" ON)
 # updates. The universal tarball CI job turns it ON.
 option(APPGRID_UNIVERSAL_BUILD "Compile in the in-app update checker for universal tarball releases" OFF)
 
+# Install D-Bus + systemd user units so the daemon is started on demand by an
+# activating method call (like KRunner's plasma-krunner.service), instead of an
+# explicit launch. The plasmoid keeps the explicit-launch path as the fallback
+# when this is off.
+option(APPGRID_DBUS_ACTIVATION "Install D-Bus/systemd activation units for the daemon" ON)
+# The relocatable universal tarball has no fixed install prefix, so the absolute
+# Exec paths baked into the activation units would be wrong — keep it explicit.
+if(APPGRID_UNIVERSAL_BUILD)
+    set(APPGRID_DBUS_ACTIVATION OFF)
+endif()
+
 # Compiler warnings. Off by default so distro/makepkg builds stay quiet and a
 # new compiler warning can never break a user's build. CI turns this ON to add
 # -Wall/-Wextra -Werror, so warnings fail the pipeline instead.
@@ -257,6 +268,9 @@ function(appgrid_add_compiled_applet)
         target_link_libraries(${A_TARGET} PRIVATE Qt6::Network)
         target_compile_definitions(${A_TARGET} PRIVATE APPGRID_UNIVERSAL_BUILD)
     endif()
+    if(APPGRID_DBUS_ACTIVATION)
+        target_compile_definitions(${A_TARGET} PRIVATE APPGRID_DBUS_ACTIVATION)
+    endif()
     if(APPGRID_STRICT_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         set(_w -Wall -Wextra -Wunused -Wshadow -Wnon-virtual-dtor -Werror)
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -405,6 +419,22 @@ qt_add_resources(appgrid "appgrid_standalone_qml" PREFIX ${_appgrid_qml_prefix} 
 
 install(TARGETS appgrid DESTINATION ${KDE_INSTALL_BINDIR})
 install(FILES dev.xarbit.appgrid.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+
+# On-demand activation: a D-Bus service file delegates to a Type=dbus systemd
+# user unit (KRunner's model). A method call to dev.xarbit.appgrid then starts
+# the installed build with --daemon and delivers the call. @KDE_INSTALL_FULL_BINDIR@
+# bakes the absolute Exec path, which is why this is off for the relocatable
+# universal build (the plasmoid falls back to launching the binary explicitly).
+if(APPGRID_DBUS_ACTIVATION)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev.xarbit.appgrid.service.in
+                   ${CMAKE_BINARY_DIR}/dev.xarbit.appgrid.service @ONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/appgrid.service.in
+                   ${CMAKE_BINARY_DIR}/appgrid.service @ONLY)
+    install(FILES ${CMAKE_BINARY_DIR}/dev.xarbit.appgrid.service
+            DESTINATION ${KDE_INSTALL_DBUSSERVICEDIR})
+    install(FILES ${CMAKE_BINARY_DIR}/appgrid.service
+            DESTINATION ${KDE_INSTALL_SYSTEMDUSERUNITDIR})
+endif()
 
 message(STATUS "AppGrid ENABLE_X11=${ENABLE_X11}")
 

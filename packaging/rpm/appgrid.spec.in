@@ -85,6 +85,8 @@ fi
 %{_qt6_plugindir}/plasma/applets/dev.xarbit.appgrid.so
 %{_qt6_plugindir}/plasma/applets/dev.xarbit.appgrid.panel.so
 %{_bindir}/appgrid
+%{_datadir}/dbus-1/services/dev.xarbit.appgrid.service
+%{_userunitdir}/appgrid.service
 %{_datadir}/applications/dev.xarbit.appgrid.desktop
 %{_metainfodir}/dev.xarbit.appgrid.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/dev.xarbit.appgrid.svg

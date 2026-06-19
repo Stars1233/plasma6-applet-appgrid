@@ -1,0 +1,16 @@
+# systemd user unit for the AppGrid launcher daemon. D-Bus-activated via
+# dev.xarbit.appgrid.service (SystemdService=), the same way KRunner's
+# plasma-krunner.service is wired. PartOf=graphical-session.target means the
+# session manager stops it cleanly on logout.
+[Unit]
+Description=AppGrid application launcher daemon
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=@KDE_INSTALL_FULL_BINDIR@/appgrid --daemon
+Type=dbus
+BusName=@APPGRID_APP_ID@
+Slice=background.slice
+TimeoutSec=5sec
+# D-Bus re-activates the daemon on demand, so restarting it on exit is pointless.
+Restart=no
