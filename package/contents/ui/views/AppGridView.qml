@@ -338,21 +338,33 @@ GridView {
             recentLaunched(appsModel.recentApps[idx])
     }
 
+    // Launch the favorites row @p row (whose bare storageId is @p sid). A plain
+    // app goes through our launch path so recents + activities are recorded; a
+    // System Settings module or other non-app favorite is launched by the KAStats
+    // model itself, which resolves the "applications:<id>" entry Kicker-style —
+    // our app launcher can't run a KCM (#64).
+    function launchFavorite(row, sid) {
+        const app = (sid && appsModel) ? appsModel.getByStorageId(sid) : null
+        if (app && app.desktopFile)
+            recentLaunched(sid)
+        else if (sharedFavoritesModel)
+            sharedFavoritesModel.trigger(row, "", null)
+    }
+
     function _launchCurrent() {
         if (recentIndex >= 0) {
             launchRecentByIndex(recentIndex)
             return
         }
         if (currentIndex < 0) return
-        // In favorites view the grid is bound to KAStats directly, so the
-        // current index is a favorites row, not a proxy row. Resolve to a
-        // storageId and launch via the shared launch path.
+        // In favorites view the grid is bound to KAStats directly, so the current
+        // index is a favorites row, not a proxy row. Resolve to a storageId and
+        // launch through launchFavorite (app → our path, else the KAStats model).
         if (favoritesActive && sharedFavoritesModel
                 && model === sharedFavoritesModel) {
             const v = sharedFavoritesModel.data(
                 sharedFavoritesModel.index(currentIndex, 0), favoriteIdRole)
-            const sid = FavoriteId.stripPrefix(v)
-            if (sid) recentLaunched(sid)
+            launchFavorite(currentIndex, FavoriteId.stripPrefix(v))
         } else {
             launched(currentIndex)
         }
@@ -652,7 +664,7 @@ GridView {
                 }
                 gridView.clearSelection()
                 if (delegateRoot._fromShared) {
-                    if (delegateRoot._sid) gridView.recentLaunched(delegateRoot._sid)
+                    gridView.launchFavorite(model.index, delegateRoot._sid)
                 } else {
                     gridView.launched(model.index)
                 }

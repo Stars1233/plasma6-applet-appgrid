@@ -228,6 +228,26 @@ QString AppGridController::runnerSubstitutionText(int index)
     return match.text();
 }
 
+QString AppGridController::runnerResultFavoriteId(int index) const
+{
+    const auto sourceIdx = runnerSourceIndex(index);
+    if (!sourceIdx.isValid()) {
+        return {};
+    }
+    const auto match = m_runnerModel->getQueryMatch(sourceIdx);
+    for (const QUrl &url : match.urls()) {
+        // Only "applications:<storageId>" (an app, or a System Settings module that
+        // ships a .desktop) is favoritable here. A query (?action=…) marks a
+        // jump-list action; KAStats normalizes that down to the bare storageId on
+        // this Plasma (a 6.7-only feature — Kickoff can't favorite it either), so it
+        // would collapse into the plain app. Skip it rather than store a dud.
+        if (url.scheme() == QLatin1String("applications") && url.query().isEmpty()) {
+            return url.toString();
+        }
+    }
+    return {};
+}
+
 // --- Window management ---
 
 // -- Screen helpers --

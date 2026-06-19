@@ -250,6 +250,11 @@ QString AppGridPlugin::runnerSubstitutionText(int index)
     return m_controller.runnerSubstitutionText(index);
 }
 
+QString AppGridPlugin::runnerResultFavoriteId(int index) const
+{
+    return m_controller.runnerResultFavoriteId(index);
+}
+
 QVariantList AppGridPlugin::appActions(const QString &storageId)
 {
     return m_controller.appActions(storageId);

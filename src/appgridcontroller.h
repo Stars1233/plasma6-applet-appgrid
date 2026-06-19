@@ -177,6 +177,14 @@ public:
     /** Substitution text for in-place runner results (calculator), else empty. */
     Q_INVOKABLE QString runnerSubstitutionText(int index);
 
+    /** The KAStats favorite id for a KRunner result that maps to an application
+     *  (its "applications:<storageId>" URL — apps and System Settings modules
+     *  that ship a .desktop), so app-backed search results can be favorited like
+     *  grid apps (#64). Empty when the result has no such URL (a calculator
+     *  answer) or only a jump-list-action URL, which KAStats normalizes down to
+     *  the bare storageId and so can't store distinctly. */
+    [[nodiscard]] Q_INVOKABLE QString runnerResultFavoriteId(int index) const;
+
     /** Returns application-defined actions (jumplist) for the given storageId. */
     Q_INVOKABLE QVariantList appActions(const QString &storageId);
 

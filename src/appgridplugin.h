@@ -127,6 +127,7 @@ public:
     Q_INVOKABLE bool runRunnerResult(int index);
     Q_INVOKABLE bool runRunnerAction(int index, int actionIndex);
     Q_INVOKABLE QString runnerSubstitutionText(int index);
+    [[nodiscard]] Q_INVOKABLE QString runnerResultFavoriteId(int index) const;
     Q_INVOKABLE QVariantList appActions(const QString &storageId);
     Q_INVOKABLE void launchAppAction(const QString &storageId, int actionIndex);
     [[nodiscard]] Q_INVOKABLE bool isDiscoverAvailable() const;

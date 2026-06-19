@@ -78,6 +78,11 @@ Item {
     // secondary actions the runnerMenu is showing, plus the list itself.
     property int popupRunnerSourceIndex: -1
     property var popupRunnerActions: []
+    // KAStats favorite id for an app-backed runner result ("applications:<id>"),
+    // empty if it can't be favorited (#64).
+    property string popupRunnerFavoriteId: ""
+    property bool popupRunnerIsFavorite: false
+    readonly property bool _canFavoriteRunner: popupRunnerFavoriteId.length > 0 && sharedFavoritesModel
 
     // Favorites-mutation rows lock out while a drag-reorder is in flight
     // to avoid clobbering KAStats state mid-move.
@@ -146,11 +151,14 @@ Item {
             singleMenu.popup()
     }
 
-    function showForRunner(runnerSourceIndex, actions) {
-        if (!actions || actions.length === 0)
+    function showForRunner(runnerSourceIndex, actions, favoriteId) {
+        const favId = favoriteId || ""
+        if ((!actions || actions.length === 0) && favId.length === 0)
             return
         popupRunnerSourceIndex = runnerSourceIndex
-        popupRunnerActions = actions
+        popupRunnerActions = actions || []
+        popupRunnerFavoriteId = favId
+        popupRunnerIsFavorite = _canFavoriteRunner && sharedFavoritesModel.isFavorite(favId)
         runnerMenu.popup()
     }
 
@@ -173,6 +181,16 @@ Item {
             const df = _desktopFileFor(sids[i])
             if (df) addFn(df)
         }
+    }
+
+    // Toggle a single already-prefixed KAStats favorite id on/off. Shared by the
+    // grid-app row and the app-backed runner-result row.
+    function _toggleFavorite(id) {
+        if (!sharedFavoritesModel || !id) return
+        if (sharedFavoritesModel.isFavorite(id))
+            sharedFavoritesModel.removeFavorite(id)
+        else
+            sharedFavoritesModel.addFavorite(id)
     }
 
     function _bulkSetFavorite(addNotRemove) {
@@ -233,14 +251,8 @@ Item {
                   : i18nd("dev.xarbit.appgrid", "Add to Favorites")
             enabled: !contextMenu._favsLocked
             onClicked: {
-                if (!contextMenu.sharedFavoritesModel) return
-                const sid = contextMenu.popupStorageId
-                if (!sid) return
-                const prefixed = FavoriteId.toPrefixed(sid)
-                if (contextMenu.sharedFavoritesModel.isFavorite(prefixed))
-                    contextMenu.sharedFavoritesModel.removeFavorite(prefixed)
-                else
-                    contextMenu.sharedFavoritesModel.addFavorite(prefixed)
+                if (contextMenu.popupStorageId)
+                    contextMenu._toggleFavorite(FavoriteId.toPrefixed(contextMenu.popupStorageId))
             }
         }
 
@@ -422,6 +434,24 @@ Item {
 
         onAboutToHide: contextMenu._trackClose()
         onAboutToShow: contextMenu._stopMenuBounce(runnerMenu)
+
+        // Favorite an app-backed search result (apps, System Settings modules)
+        // straight from the search list, the same as a grid app (#64). The id is
+        // already the prefixed "applications:<id>" KAStats form.
+        PlasmaComponents.MenuItem {
+            visible: contextMenu._canFavoriteRunner
+            icon.name: contextMenu.popupRunnerIsFavorite ? "bookmark-remove" : "bookmark-new"
+            text: contextMenu.popupRunnerIsFavorite
+                  ? i18nd("dev.xarbit.appgrid", "Remove from Favorites")
+                  : i18nd("dev.xarbit.appgrid", "Add to Favorites")
+            onClicked: {
+                contextMenu._toggleFavorite(contextMenu.popupRunnerFavoriteId)
+                runnerMenu.close()
+            }
+        }
+        PlasmaComponents.MenuSeparator {
+            visible: contextMenu._canFavoriteRunner && contextMenu.popupRunnerActions.length > 0
+        }
 
         Instantiator {
             model: contextMenu.popupRunnerActions

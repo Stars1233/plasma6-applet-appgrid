@@ -738,7 +738,8 @@ Kirigami.ShadowedRectangle {
                 var item = panel.searchModel.get(index)
                 if (!item) return
                 var actions = panel.searchModel.runnerActions(index)
-                contextMenu.showForRunner(item.sourceIndex, actions)
+                var favoriteId = panel.plasmoidBridge.runnerResultFavoriteId(index)
+                contextMenu.showForRunner(item.sourceIndex, actions, favoriteId)
             }
         }
 
