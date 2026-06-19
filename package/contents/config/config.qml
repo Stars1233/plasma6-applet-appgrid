@@ -13,7 +13,7 @@ ConfigModel {
         source: "config/ConfigGeneral.qml"
     }
     ConfigCategory {
-        name: i18nc("@title:group", "Appearance/Animations")
+        name: i18nc("@title:group", "Appearance")
         icon: "preferences-desktop-theme-applications"
         source: "config/ConfigAppearance.qml"
     }

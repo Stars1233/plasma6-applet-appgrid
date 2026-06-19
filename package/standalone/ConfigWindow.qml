@@ -216,6 +216,9 @@ Kirigami.ApplicationWindow {
 
     pageStack.initialPage: Kirigami.Page {
         padding: 0
+        // No page title/breadcrumb here — the sidebar already names the section,
+        // so suppress the otherwise-empty global header band (#191).
+        globalToolBarStyle: Kirigami.ApplicationHeaderStyle.None
 
         footer: QQC2.ToolBar {
             // System Settings / KRunner-style action row.
@@ -320,99 +323,120 @@ Kirigami.ApplicationWindow {
             Kirigami.Separator { Layout.fillHeight: true }
 
             // -- Content -----------------------------------------------------
-            StackLayout {
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: sidebar.currentIndex
+                spacing: 0
 
-                // ---- General ----
-                QQC2.ScrollView {
-                    contentWidth: availableWidth
-                    ColumnLayout {
-                        width: parent.width
-                        ConfigGeneralContent {
-                            Layout.fillWidth: true
-                            Layout.margins: Kirigami.Units.largeSpacing
+                // Section title + underline. System Settings renders the category
+                // name as a heading above each plasmoid config page; reproduce it
+                // so the standalone window and the plasmoid dialog align (#191).
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    Layout.margins: Kirigami.Units.largeSpacing
+                    Layout.bottomMargin: Kirigami.Units.smallSpacing
+                    level: 1
+                    text: sidebar.currentIndex >= 0
+                        ? i18nd("dev.xarbit.appgrid", sidebar.model.get(sidebar.currentIndex).label)
+                        : ""
+                    textFormat: Text.PlainText
+                }
+                Kirigami.Separator { Layout.fillWidth: true }
+
+                StackLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    currentIndex: sidebar.currentIndex
+
+                    // ---- General ----
+                    QQC2.ScrollView {
+                        contentWidth: availableWidth
+                        ColumnLayout {
+                            width: parent.width
+                            ConfigGeneralContent {
+                                Layout.fillWidth: true
+                                Layout.margins: Kirigami.Units.largeSpacing
+                                configuration: appGridConfigBuffer
+                                isPanel: false
+                                // The panel button's icon + text label belong to the
+                                // center plasmoid; show + edit them here only when one
+                                // is present, round-tripping over D-Bus via buttonBuffer.
+                                showButtonAppearance: win.canConfigureButton
+                                buttonConfiguration: buttonBuffer
+                                formFactor: 0
+                                location: 0
+                                availableShells: appGridController.availableShells()
+                                isUniversalBuild: appGridController.isUniversalBuild
+                                defaultIcon: "dev.xarbit.appgrid"
+                                revision: win.revision
+                            }
+                        }
+                    }
+
+                    // ---- Appearance ----
+                    QQC2.ScrollView {
+                        contentWidth: availableWidth
+                        ColumnLayout {
+                            width: parent.width
+                            ConfigAppearanceContent {
+                                Layout.fillWidth: true
+                                Layout.margins: Kirigami.Units.largeSpacing
+                                configuration: appGridConfigBuffer
+                                isPanel: false
+                                revision: win.revision
+                            }
+                        }
+                    }
+
+                    // ---- Search ----
+                    QQC2.ScrollView {
+                        contentWidth: availableWidth
+                        ColumnLayout {
+                            width: parent.width
+                            ConfigSearchContent {
+                                Layout.fillWidth: true
+                                Layout.margins: Kirigami.Units.largeSpacing
+                                configuration: appGridConfigBuffer
+                                revision: win.revision
+                            }
+                        }
+                    }
+
+                    // ---- Header Actions ----
+                    QQC2.ScrollView {
+                        contentWidth: availableWidth
+                        ColumnLayout {
+                            width: parent.width
+                            ConfigHeaderActionsContent {
+                                Layout.fillWidth: true
+                                Layout.margins: Kirigami.Units.largeSpacing
+                                configuration: appGridConfigBuffer
+                                isUniversalBuild: appGridController.isUniversalBuild
+                                revision: win.revision
+                            }
+                        }
+                    }
+
+                    // ---- Hidden Apps ----
+                    // Self-scrolling body, so it fills the stack page directly
+                    // (no outer ScrollView — it manages its own list view).
+                    Item {
+                        ConfigHiddenAppsContent {
+                            anchors.fill: parent
+                            anchors.margins: Kirigami.Units.largeSpacing
                             configuration: appGridConfigBuffer
-                            isPanel: false
-                            // The panel button's icon + text label belong to the
-                            // center plasmoid; show + edit them here only when one
-                            // is present, round-tripping over D-Bus via buttonBuffer.
-                            showButtonAppearance: win.canConfigureButton
-                            buttonConfiguration: buttonBuffer
-                            formFactor: 0
-                            location: 0
-                            availableShells: appGridController.availableShells()
-                            isUniversalBuild: appGridController.isUniversalBuild
-                            defaultIcon: "dev.xarbit.appgrid"
+                            appsModel: appGridController.appsModel
                             revision: win.revision
                         }
                     }
-                }
 
-                // ---- Appearance ----
-                QQC2.ScrollView {
-                    contentWidth: availableWidth
-                    ColumnLayout {
-                        width: parent.width
-                        ConfigAppearanceContent {
-                            Layout.fillWidth: true
-                            Layout.margins: Kirigami.Units.largeSpacing
-                            configuration: appGridConfigBuffer
-                            isPanel: false
-                            revision: win.revision
-                        }
+                    // ---- About ----
+                    // Standard KDE about page, fed the app's KAboutData (set up in
+                    // main.cpp). Manages its own scrolling, so it fills the stack
+                    // page directly.
+                    Kirigami.AboutPage {
+                        aboutData: win.aboutData
                     }
-                }
-
-                // ---- Search ----
-                QQC2.ScrollView {
-                    contentWidth: availableWidth
-                    ColumnLayout {
-                        width: parent.width
-                        ConfigSearchContent {
-                            Layout.fillWidth: true
-                            Layout.margins: Kirigami.Units.largeSpacing
-                            configuration: appGridConfigBuffer
-                            revision: win.revision
-                        }
-                    }
-                }
-
-                // ---- Header Actions ----
-                QQC2.ScrollView {
-                    contentWidth: availableWidth
-                    ColumnLayout {
-                        width: parent.width
-                        ConfigHeaderActionsContent {
-                            Layout.fillWidth: true
-                            Layout.margins: Kirigami.Units.largeSpacing
-                            configuration: appGridConfigBuffer
-                            isUniversalBuild: appGridController.isUniversalBuild
-                            revision: win.revision
-                        }
-                    }
-                }
-
-                // ---- Hidden Apps ----
-                // Self-scrolling body, so it fills the stack page directly
-                // (no outer ScrollView — it manages its own list view).
-                Item {
-                    ConfigHiddenAppsContent {
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.largeSpacing
-                        configuration: appGridConfigBuffer
-                        appsModel: appGridController.appsModel
-                        revision: win.revision
-                    }
-                }
-
-                // ---- About ----
-                // Standard KDE about page, fed the app's KAboutData (set up in
-                // main.cpp). Manages its own scrolling, so it fills the stack
-                // page directly.
-                Kirigami.AboutPage {
-                    aboutData: win.aboutData
                 }
             }
         }
