@@ -833,7 +833,10 @@ Kirigami.ShadowedRectangle {
                 var item = panel.searchModel.get(index)
                 if (!item) return
                 var actions = panel.searchModel.runnerActions(index)
-                var favoriteId = panel.plasmoidBridge.runnerResultFavoriteId(index)
+                // runnerResultFavoriteId maps via the runner submodel, so it takes
+                // the runner-row index (unified row minus the app count), the same
+                // sourceIndex showForRunner uses — not the raw unified index.
+                var favoriteId = panel.plasmoidBridge.runnerResultFavoriteId(item.sourceIndex)
                 contextMenu.showForRunner(item.sourceIndex, actions, favoriteId)
             }
         }

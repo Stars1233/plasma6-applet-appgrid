@@ -199,8 +199,14 @@ set(APPGRID_COMMON_LIBS
 # Everything except the per-variant plugin register (appgridplugin_register.cpp
 # for center, appgridpanelplugin.* for panel), which the calls add inline.
 set(APPGRID_COMMON_SOURCES
+    src/appactionid.cpp
+    src/appactionid.h
     src/appgridcontroller.cpp
     src/appgridcontroller.h
+    src/appgridfavoritesmodel.cpp
+    src/appgridfavoritesmodel.h
+    src/favoriteid.cpp
+    src/favoriteid.h
     src/appgridplugin.cpp
     src/appgridplugin.h
     src/appstreamresolver.cpp

@@ -14,8 +14,9 @@
         cursor position. We never auto-switch tabs during a drag — the user
         must hover the favorites tab button to switch intentionally first
         (see drag-hover handling in CategoryBar).
-      * External (.desktop file drag from Dolphin / elsewhere): same as
-        Add-from-other-tab but for arbitrary file URLs.
+      * External (file drag from Dolphin / elsewhere): a .desktop becomes an
+        app favourite; any other file (an image, a document) becomes a
+        file favourite, opened with its default app.
 */
 
 import QtQuick
@@ -144,6 +145,36 @@ DropArea {
     // same way: multi-select drag-within stays put, drag-out moves all.
     readonly property bool _isMultiDrag: _source && _source.sourceStorageIds
                                          && _source.sourceStorageIds.length > 1
+
+    // Favourite each dropped external URL: a .desktop becomes an app favourite
+    // (by storage id), any other local file an image/document favourite (by URL,
+    // opened with its default app). @p insertAt >= 0 places them from that row,
+    // -1 appends. Returns the count added.
+    function _addExternalUrls(drag, insertAt) {
+        if (!drag.hasUrls || !gridView.favoritesActive)
+            return 0
+        let added = 0
+        for (const url of drag.urls) {
+            const s = url.toString()
+            let id = ""
+            if (s.endsWith(".desktop")) {
+                const slash = s.lastIndexOf("/")
+                id = FavoriteId.toPrefixed(slash >= 0 ? s.substring(slash + 1) : s)
+            } else if (s.startsWith("file://")) {
+                id = s
+            } else {
+                continue
+            }
+            if (insertAt >= 0) {
+                gridView.sharedFavoritesModel.addFavorite(id, insertAt)
+                insertAt++
+            } else {
+                gridView.sharedFavoritesModel.addFavorite(id)
+            }
+            added++
+        }
+        return added
+    }
 
     onEntered: drag => {
         pendingMoves = []
@@ -313,16 +344,8 @@ DropArea {
             drag.accept(Qt.CopyAction)
             return
         }
-        if (drag.hasUrls && gridView.favoritesActive) {
-            for (const url of drag.urls) {
-                let id = url.toString()
-                if (!id.endsWith(".desktop")) continue
-                const slash = id.lastIndexOf("/")
-                if (slash >= 0) id = id.substring(slash + 1)
-                gridView.sharedFavoritesModel.addFavorite(FavoriteId.toPrefixed(id))
-            }
+        if (_addExternalUrls(drag, -1) > 0)
             drag.accept(Qt.CopyAction)
-        }
     }
 
     onDropped: drag => {
@@ -371,29 +394,11 @@ DropArea {
             return
         }
 
-        // External drag (e.g. .desktop file from Dolphin) — add as favorite,
-        // but only when the favorites tab is active. Dropping a .desktop on
-        // the All tab silently appearing in Favorites is confusing.
-        if (!drag.hasUrls || !gridView.favoritesActive) return
+        // External file drag (from Dolphin etc.) — add as favourite, but only
+        // when the favorites tab is active; a file silently appearing in
+        // Favorites from another tab is confusing.
         const pos = mapToItem(gridView.contentItem, drag.x, drag.y)
-        let insertAt = gridView.indexAt(pos.x, pos.y)
-        for (const url of drag.urls) {
-            let id = url.toString()
-            // Only accept .desktop drops. KAStats can ingest other URLs but
-            // launching a .desktop is the expected favorites use case.
-            if (!id.endsWith(".desktop")) continue
-            // Strip file:// or path prefix; KAStats's normaliser accepts
-            // bare storage IDs (basename) or the prefixed form.
-            const slash = id.lastIndexOf("/")
-            if (slash >= 0) id = id.substring(slash + 1)
-            const prefixed = FavoriteId.toPrefixed(id)
-            if (insertAt >= 0) {
-                gridView.sharedFavoritesModel.addFavorite(prefixed, insertAt)
-                insertAt++
-            } else {
-                gridView.sharedFavoritesModel.addFavorite(prefixed)
-            }
-        }
-        drag.accept(Qt.CopyAction)
+        if (_addExternalUrls(drag, gridView.indexAt(pos.x, pos.y)) > 0)
+            drag.accept(Qt.CopyAction)
     }
 }

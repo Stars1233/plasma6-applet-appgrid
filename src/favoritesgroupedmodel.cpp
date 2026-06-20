@@ -177,7 +177,7 @@ void FavoritesGroupedModel::rebuildRows()
         } else if (isAppToken(token)) {
             Row row;
             row.type = AbstractGroupedModel::App;
-            row.favoriteId = PluginHelpers::ApplicationsUrlPrefix + tokenPayload(token);
+            row.favoriteId = PluginHelpers::toFavoriteId(tokenPayload(token));
             rows.append(row);
         }
     }

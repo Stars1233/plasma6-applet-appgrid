@@ -24,6 +24,17 @@ namespace PluginHelpers
  *  consumer share one spelling. */
 inline constexpr QLatin1String ApplicationsUrlPrefix{"applications:"};
 
+/** The favourite URL for a stored token payload: a bare app storage id gets the
+ *  "applications:" scheme; an id that already carries a scheme (a preferred://
+ *  favourite) or is a local path (a file favourite, stored bare) is returned
+ *  unchanged. Mirrors favoriteid.js's toPrefixed() so the C++ grouped model and
+ *  the QML helpers agree. */
+[[nodiscard]] inline QString toFavoriteId(const QString &payload)
+{
+    const bool alreadyComplete = payload.contains(QLatin1Char(':')) || payload.startsWith(QLatin1Char('/'));
+    return alreadyComplete ? payload : ApplicationsUrlPrefix + payload;
+}
+
 /** Candidate shells from /etc/shells contents: trimmed, non-empty,
  *  non-comment lines. The caller verifies each path actually exists. */
 [[nodiscard]] QStringList parseShells(const QString &contents);

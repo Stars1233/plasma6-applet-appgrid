@@ -45,12 +45,10 @@ Item {
 
     // --- Outputs (panel re-exposes these via aliases) ---
 
-    // KAStatsFavoritesModel doesn't publish roleNames() to QML, so we
-    // hard-code the well-known Kicker::FavoriteIdRole value and probe
-    // it once on load. -1 means "not yet known"; consumers must guard
-    // on that before reading row data at the role.
+    // The shared model's favourite-id role, read from the model itself on load.
+    // -1 means "not yet known"; consumers must guard on that before reading row
+    // data at the role.
     property int favoriteIdRole: -1
-    readonly property int _kickerFavoriteIdRole: 259
     readonly property var sharedFavoritesModel: sharedFavoritesLoader.item
 
     // Drives whether the live model gets mirrored into AppFilterModel.
@@ -63,35 +61,23 @@ Item {
 
     // --- Provider ---
     //
-    // SharedFavoritesProvider isolates the org.kde.plasma.private.kicker
-    // import so a missing private launcher plugin is logged rather than
-    // crashing the rest of the plasmoid.
+    // SharedFavoritesProvider instantiates AppGrid's own favourites model
+    // (src/appgridfavoritesmodel). Kept behind a Loader so a registration
+    // failure is logged rather than crashing the rest of the plasmoid.
     Loader {
         id: sharedFavoritesLoader
         active: true
         source: "../models/SharedFavoritesProvider.qml"
         onStatusChanged: {
             if (status === Loader.Error) {
-                console.warn("AppGrid: org.kde.plasma.private.kicker plugin missing — favorites disabled")
+                console.warn("AppGrid: favourites model failed to load — favorites disabled")
                 return
             }
             if (status === Loader.Ready && item) {
                 item.initForClient(manager.clientInstance)
-                if (item.count > 0) {
-                    const probe = item.data(item.index(0, 0), manager._kickerFavoriteIdRole)
-                    if (typeof probe === "string") {
-                        manager.favoriteIdRole = manager._kickerFavoriteIdRole
-                    } else {
-                        console.warn("AppGrid: FavoriteIdRole probe failed (got " + typeof probe
-                                     + "); favorites reorder will be inert. Kicker enum may have shifted.")
-                    }
-                } else {
-                    // No entries yet — accept the well-known value; the probe
-                    // re-runs once entries land via the source-watcher below.
-                    manager.favoriteIdRole = manager._kickerFavoriteIdRole
-                }
-                // KAStats only honours portOldFavorites once
-                // kactivitymanagerd has finished initialising; the
+                // The model publishes its own favourite-id role; no probing.
+                manager.favoriteIdRole = item.favoriteIdRole
+                // Favourites only migrate once kactivitymanagerd is up; the
                 // enabled-watcher below catches the later flip.
                 if (item.enabled) {
                     manager._maybeMigrateAndMirror()

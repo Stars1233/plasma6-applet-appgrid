@@ -13,11 +13,14 @@
 
 const SCHEME = "applications:"
 
-// Returns `id` with the scheme prepended if it doesn't already have one.
-// `null` / `undefined` / empty become the bare scheme.
+// Returns `id` with the scheme prepended if it isn't already a complete id.
+// An id that carries a scheme (preferred://) or is a local path (a file
+// favourite, stored bare) is returned unchanged. `null` / `undefined` / empty
+// become the bare scheme. Mirror of C++ PluginHelpers::toFavoriteId — keep the
+// "already complete" rule identical in both.
 function toPrefixed(id) {
     if (!id) return SCHEME
-    return id.indexOf(":") >= 0 ? id : SCHEME + id
+    return (id.indexOf(":") >= 0 || id.charAt(0) === "/") ? id : SCHEME + id
 }
 
 // Returns `id` with the scheme stripped if present, otherwise unchanged.

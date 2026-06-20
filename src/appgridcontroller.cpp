@@ -6,6 +6,7 @@
 #include "appgridcontroller.h"
 
 #include "appgridconstants.h"
+#include "appgridfavoritesmodel.h"
 #include "appstreamresolver.h"
 #include "discoverbackends.h"
 #include "pluginhelpers.h"
@@ -53,9 +54,16 @@
 #include <kcoreaddons_version.h>
 #include <plasma_version.h>
 
+#include <mutex>
+
 AppGridController::AppGridController(QObject *parent)
     : QObject(parent)
 {
+    // Make the favourites model importable from QML (SharedFavoritesProvider).
+    // Once per process — every variant and the daemon construct a controller.
+    static std::once_flag favoritesTypeOnce;
+    std::call_once(favoritesTypeOnce, &AppGridFavoritesModel::registerQmlType);
+
     m_filterModel.setSourceModel(&m_appModel);
     m_runnerModel = new KRunner::ResultsModel(this);
     m_runnerFilterModel.setSourceModel(m_runnerModel);
@@ -263,12 +271,16 @@ QString AppGridController::runnerResultFavoriteId(int index) const
     }
     const auto match = m_runnerModel->getQueryMatch(sourceIdx);
     for (const QUrl &url : match.urls()) {
-        // Only "applications:<storageId>" (an app, or a System Settings module that
-        // ships a .desktop) is favoritable here. A query (?action=…) marks a
-        // jump-list action; KAStats normalizes that down to the bare storageId on
-        // this Plasma (a 6.7-only feature — Kickoff can't favorite it either), so it
-        // would collapse into the plain app. Skip it rather than store a dud.
+        // A plain app ("applications:<storageId>") or a local file/image result
+        // is favouritable; our model stores each under the right favourites
+        // agent. Jump-list action matches carry "applications:<id>?action=<name>"
+        // — not re-enabled here yet (that's the action-favourites step); skip them.
+        // Remote URLs (smb://, https://) are skipped too — favouriting those isn't
+        // wired through the UI.
         if (url.scheme() == QLatin1String("applications") && url.query().isEmpty()) {
+            return url.toString();
+        }
+        if (url.isLocalFile()) {
             return url.toString();
         }
     }

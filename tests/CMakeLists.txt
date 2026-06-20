@@ -4,6 +4,7 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 set(TEST_COMMON_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/appactionid.cpp
     ${CMAKE_SOURCE_DIR}/src/appmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/appmodelassembly.cpp
     ${CMAKE_SOURCE_DIR}/src/appfiltermodel.cpp
@@ -50,6 +51,13 @@ appgrid_add_test(test_unified_search ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h
 appgrid_add_test(test_appmodel_helpers)
 appgrid_add_test(test_category_mapping
     ${CMAKE_SOURCE_DIR}/src/categorymapping.h)
+# Jump-list action favourite id parsing (#64). appactionid.cpp is in
+# TEST_COMMON_SOURCES, so no extra source needed here.
+appgrid_add_test(test_appactionid)
+# FavoriteId::normalized — the store-id rule that keeps jump-list action ids
+# verbatim while canonicalising plain apps (#64). Pure: a fake menu-id resolver,
+# no KActivities.
+appgrid_add_test(test_favoriteid ${CMAKE_SOURCE_DIR}/src/favoriteid.cpp)
 # Regression test for issues #86 (icon file change on disk) and #103
 # (system theme switch). Both flow through KIconLoader::iconChanged.
 appgrid_add_test(test_appmodel)

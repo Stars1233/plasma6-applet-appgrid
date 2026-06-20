@@ -5,11 +5,14 @@
 
 #include "appfiltermodel.h"
 
+#include "appactionid.h"
 #include "defaultappsresolver.h"
 #include "searchranking.h"
 
 #include <KConfigGroup>
+#include <KIO/ApplicationLauncherJob>
 #include <KIconLoader>
+#include <KService>
 #include <KSharedConfig>
 #include <KSycoca>
 
@@ -854,8 +857,32 @@ QString AppFilterModel::categoryIcon(const QString &category) const
 QVariantMap AppFilterModel::getByStorageId(const QString &storageId) const
 {
     QVariantMap map;
+    if (storageId.isEmpty()) {
+        return map;
+    }
+
+    // Jump-list action favourite (applications:<id>?action=<name>, #64): resolve the
+    // action from KService so the tile shows the action's own name/icon on every
+    // Plasma, not only where Kicker's AppEntry understands the url. The parent app's
+    // desktop file rides along so the launch path treats it as launchable.
+    if (AppActionId::hasAction(storageId)) {
+        const auto parsed = AppActionId::parse(storageId);
+        const auto service = KService::serviceByStorageId(parsed.storageId);
+        const auto action = AppActionId::resolveAction(service, parsed.actionName);
+        if (service && action) {
+            map[QStringLiteral("name")] = action->text();
+            map[QStringLiteral("iconName")] = action->icon().isEmpty() ? service->icon() : action->icon();
+            map[QStringLiteral("desktopFile")] = service->entryPath();
+            map[QStringLiteral("storageId")] = storageId;
+            map[QStringLiteral("genericName")] = service->genericName();
+            map[QStringLiteral("comment")] = service->comment();
+            map[QStringLiteral("installSource")] = QString();
+        }
+        return map;
+    }
+
     auto *src = sourceModel();
-    if (!src || storageId.isEmpty()) {
+    if (!src) {
         return map;
     }
     ensureStorageIdCache();
@@ -945,6 +972,21 @@ void AppFilterModel::launchByStorageId(const QString &storageId)
     if (storageId.isEmpty()) {
         return;
     }
+
+    // Jump-list action favourite (#64): launch the named KServiceAction directly,
+    // rather than the bare app, mirroring KIO's ApplicationLauncherJob(action).
+    if (AppActionId::hasAction(storageId)) {
+        const auto parsed = AppActionId::parse(storageId);
+        const auto service = KService::serviceByStorageId(parsed.storageId);
+        const auto action = AppActionId::resolveAction(service, parsed.actionName);
+        if (action) {
+            recordRecentLaunch(storageId);
+            auto *job = new KIO::ApplicationLauncherJob(*action);
+            job->start();
+        }
+        return;
+    }
+
     ensureStorageIdCache();
     const int row = m_storageIdToSourceRow.value(storageId, -1);
     if (row < 0) {
