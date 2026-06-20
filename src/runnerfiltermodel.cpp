@@ -5,8 +5,12 @@
 
 #include "runnerfiltermodel.h"
 
+#include "appactionid.h"
 #include "appmodel.h"
 #include "pluginhelpers.h"
+
+#include <KRunner/QueryMatch>
+#include <KRunner/ResultsModel>
 
 #include <QFileInfo>
 #include <QList>
@@ -43,6 +47,16 @@ void RunnerFilterModel::setSourceModel(QAbstractItemModel *model)
 {
     QSortFilterProxyModel::setSourceModel(model);
     captureSourceRoles();
+}
+
+bool RunnerFilterModel::rowIsAction(int row) const
+{
+    auto *results = qobject_cast<KRunner::ResultsModel *>(sourceModel());
+    if (!results || row < 0 || row >= rowCount()) {
+        return false;
+    }
+    const QModelIndex sourceIdx = mapToSource(index(row, 0));
+    return AppActionId::hasAction(results->getQueryMatch(sourceIdx).data().toUrl().toString());
 }
 
 void RunnerFilterModel::captureSourceRoles()

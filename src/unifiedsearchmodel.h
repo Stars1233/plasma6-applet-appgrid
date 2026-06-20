@@ -39,6 +39,7 @@ public:
         SourceIndexRole,
         InstallSourceRole,
         RunnerActionsCountRole,
+        IsRunnerActionRole,
     };
     Q_ENUM(Roles)
 

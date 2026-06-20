@@ -27,6 +27,12 @@ public:
     void setAppModel(AppFilterModel *model);
     void setSourceModel(QAbstractItemModel *model) override;
 
+    /** True if the result at proxy @p row is a jump-list action — its match data
+     *  carries "?action=" — rather than a plain app or file. The unified view
+     *  routes these to the runner context menu so the ACTION (not the parent app)
+     *  is favourited, even though the row resolves the app's storage id. */
+    [[nodiscard]] bool rowIsAction(int row) const;
+
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 

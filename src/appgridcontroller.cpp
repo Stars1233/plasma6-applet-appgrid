@@ -270,17 +270,21 @@ QString AppGridController::runnerResultFavoriteId(int index) const
         return {};
     }
     const auto match = m_runnerModel->getQueryMatch(sourceIdx);
+
+    // The services runner puts the canonical id in data(): "applications:<id>" for
+    // an app, "applications:<id>?action=<name>" for a jump-list action. Favourite
+    // it directly — for an action the query rides along, and the model stores it
+    // verbatim instead of collapsing it to the bare app the way Kicker does (#64).
+    const QUrl dataUrl = match.data().toUrl();
+    if (dataUrl.scheme() == QLatin1String("applications")) {
+        return dataUrl.toString();
+    }
+
+    // Other runners: a local file/image result (baloo, places). A .desktop URL is
+    // an app (the data() path above, or the app model), not a document; remote
+    // URLs aren't wired through the UI.
     for (const QUrl &url : match.urls()) {
-        // A plain app ("applications:<storageId>") or a local file/image result
-        // is favouritable; our model stores each under the right favourites
-        // agent. Jump-list action matches carry "applications:<id>?action=<name>"
-        // — not re-enabled here yet (that's the action-favourites step); skip them.
-        // Remote URLs (smb://, https://) are skipped too — favouriting those isn't
-        // wired through the UI.
-        if (url.scheme() == QLatin1String("applications") && url.query().isEmpty()) {
-            return url.toString();
-        }
-        if (url.isLocalFile()) {
+        if (url.isLocalFile() && !url.path().endsWith(QLatin1String(".desktop"))) {
             return url.toString();
         }
     }

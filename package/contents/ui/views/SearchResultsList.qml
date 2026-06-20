@@ -236,8 +236,11 @@ ListView {
         // runner returns installed apps as runner rows) get the same
         // App context menu as native app rows — they ARE apps, just
         // surfaced through a different model lane.
-        readonly property bool actsLikeApp: model.resultType === "app"
-                                            || (model.storageId || "").length > 0
+        // A jump-list action row resolves the parent app's storage id, but it must
+        // route to the runner menu so the ACTION (not the plain app) is favourited.
+        readonly property bool actsLikeApp: (model.resultType === "app"
+                                             || (model.storageId || "").length > 0)
+                                            && model.isRunnerAction !== true
 
         // Hidden apps surface in results only with "show hidden in search" on;
         // flag them so the row dims and shows the hidden indicator below.
@@ -342,6 +345,7 @@ ListView {
                 // most other runners no — empty menu otherwise).
                 visible: resultDelegate.highlighted
                          && (resultDelegate.actsLikeApp
+                             || model.isRunnerAction === true
                              || (model.runnerActionsCount || 0) > 0)
                 Layout.alignment: Qt.AlignVCenter
                 icon.name: "overflow-menu"
