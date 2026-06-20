@@ -63,9 +63,8 @@ Kirigami.ShadowedRectangle {
     // KAStats favorites client id, built from the plasmoid id at the root.
     required property string favoritesClientInstance
 
-    // System-info snapshot supplied by the plasmoid root, forwarded to
-    // the prefix views (i.e. `i:`).
-    // A function returning the system-info map, not the map itself, so the
+    // Supplied by the plasmoid root, forwarded to the prefix views (`i:`). A
+    // function returning the system-info map, not the map itself, so the
     // /proc + os-release reads only run when the i: info view opens (#200).
     required property var sysInfoProvider
 
