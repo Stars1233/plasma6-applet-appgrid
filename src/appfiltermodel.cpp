@@ -19,9 +19,12 @@
 #include <cstdlib>
 #include <limits>
 
+namespace
+{
 // Off by default; enable with QT_LOGGING_RULES="appgrid.perf.debug=true" to time
 // the per-refresh cost of resolving the role defaults (#200).
 Q_LOGGING_CATEGORY(lcPerf, "appgrid.perf", QtWarningMsg)
+}
 
 // Re-run only the filter (not the sort). Qt 6.13 replaced invalidateFilter()
 // with begin/endFilterChange(); bridge both without leaking a deprecation

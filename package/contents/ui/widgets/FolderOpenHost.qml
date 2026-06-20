@@ -50,12 +50,14 @@ Item {
     focus: true
     Keys.onEscapePressed: closeRequested()
 
-    // Transparent click-catcher behind the card: tap outside to close, no dim.
-    Item {
+    // Transparent catcher behind the card: tap outside to close, no dim. Uses a
+    // hover-enabled MouseArea (not a bare TapHandler) so it also swallows hover
+    // events — otherwise the grid underneath keeps showing its highlight through
+    // the open folder (#200).
+    MouseArea {
         anchors.fill: parent
-        TapHandler {
-            onTapped: host.closeRequested()
-        }
+        hoverEnabled: true
+        onClicked: host.closeRequested()
     }
 
     // Drop a member onto the area outside the card → remove it from the folder.
