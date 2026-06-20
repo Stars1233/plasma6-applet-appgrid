@@ -463,6 +463,14 @@ install(FILES dev.xarbit.appgrid.kglobalaccel.desktop
         DESTINATION ${KDE_INSTALL_DATAROOTDIR}/kglobalaccel
         RENAME dev.xarbit.appgrid.launcher.desktop)
 
+# Pre-warm the launcher daemon at login (KRunner's "warm at login" behaviour):
+# `appgrid --daemon` starts resident without a window, so the first open is
+# instant instead of a cold start. Shipped enabled; users toggle it in System
+# Settings → Autostart. An XDG autostart entry (not a systemd target hook) so it
+# also covers the universal build, where D-Bus activation is compiled out.
+install(FILES dev.xarbit.appgrid.autostart.desktop
+        DESTINATION ${KDE_INSTALL_SYSCONFDIR}/xdg/autostart)
+
 # --- Tests ---
 
 if(BUILD_TESTING)

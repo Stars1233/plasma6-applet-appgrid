@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=AppGrid Launcher
+GenericName=Application Launcher
+Comment=Keeps the AppGrid launcher resident so it opens instantly
+# --daemon starts the launcher process resident WITHOUT showing a window; it
+# then answers the global shortcut / panel button instantly instead of paying a
+# cold start on the first open. Like KRunner being warm at login. Users can turn
+# this off in System Settings -> Autostart.
+Exec=appgrid --daemon
+Icon=dev.xarbit.appgrid
+Terminal=false
+OnlyShowIn=KDE;
+# Start once the Plasma session is up, not during early login.
+X-KDE-autostart-phase=2
+X-GNOME-Autostart-enabled=true
