@@ -71,6 +71,8 @@ public:
     [[nodiscard]] int count() const;
     /** True once kactivitymanagerd is running and the store is readable. */
     [[nodiscard]] bool enabled() const;
+    // A Q_PROPERTY READ accessor: must stay a non-static member for moc/QML.
+    // cppcheck-suppress functionStatic
     [[nodiscard]] int favoriteIdRole() const
     {
         return FavoriteIdRole;
