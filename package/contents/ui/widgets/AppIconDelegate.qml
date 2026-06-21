@@ -114,11 +114,13 @@ Item {
         }
     }
 
-    // Clear transient transforms a hover/open animation may have left on the icon,
-    // so a recycled delegate (GridView reuseItems) doesn't appear scaled/rotated.
-    function resetTransientState() {
+    // Ready this delegate for a new app after recycling (GridView reuseItems):
+    // clear transient transforms a hover/open animation left behind, and force the
+    // icon to re-resolve so a recycled cell never shows the old or a blank icon.
+    function prepareForReuse() {
         delegateIcon.scale = 1
         delegateIcon.rotation = 0
+        delegateIcon.refresh()
     }
 
     // Highlight background shown while this delegate is being dragged.

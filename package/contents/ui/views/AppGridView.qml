@@ -656,9 +656,9 @@ GridView {
         width: gridView.cellWidth
         height: gridView.cellHeight
 
-        // Recycled for a new index (reuseItems): drop any transient transform an
-        // animation left on the old icon. Bindings re-evaluate for the new index.
-        GridView.onReused: iconDelegate.resetTransientState()
+        // Recycled for a new index (reuseItems): re-resolve the icon and drop any
+        // transient transform. Bindings re-evaluate for the new index on their own.
+        GridView.onReused: iconDelegate.prepareForReuse()
 
         // When favoritesActive, the grid is driven directly by
         // sharedFavoritesModel (KAStats), which exposes different role names

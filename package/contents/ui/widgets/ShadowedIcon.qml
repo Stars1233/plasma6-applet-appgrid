@@ -31,7 +31,13 @@ Item {
     // and rebind the source to make it (and the shadow's MultiEffect texture)
     // re-render with the new theme. See AppFilterModel.iconGeneration.
     property int reloadToken: 0
-    onReloadTokenChanged: {
+    onReloadTokenChanged: refresh()
+
+    // Force the icon (and the shadow's MultiEffect texture) to re-resolve: clear
+    // then rebind the source. Needed on a system theme change (reloadToken) and
+    // when a delegate is recycled (GridView reuseItems) onto a new app — the plain
+    // source binding can leave the recycled cell blank.
+    function refresh() {
         icon.source = ""
         icon.source = Qt.binding(() => root.source)
     }
