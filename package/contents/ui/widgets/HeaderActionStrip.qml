@@ -212,7 +212,7 @@ RowLayout {
 
             Instantiator {
                 model: actions.menuItems
-                delegate: PlasmaComponents.MenuItem {
+                delegate: AppGridMenuItem {
                     required property string modelData
                     icon.name: actions._meta[modelData].icon
                     text: actions._meta[modelData].label
@@ -225,7 +225,7 @@ RowLayout {
             // Custom user actions placed in the overflow menu, after built-ins.
             Instantiator {
                 model: actions.customMenuItems
-                delegate: PlasmaComponents.MenuItem {
+                delegate: AppGridMenuItem {
                     required property var modelData
                     icon.name: modelData.icon
                     text: CustomHeaderActions.displayLabel(modelData)

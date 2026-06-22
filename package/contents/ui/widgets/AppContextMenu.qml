@@ -5,7 +5,7 @@
     Right-click context menu. Splits into two PlasmaComponents.Menu
     instances so each only holds items relevant to its mode — gating
     items inside one shared Menu via `visible: false` left ghost layout
-    rows because PlasmaComponents.MenuItem's internal padding/insets
+    rows because AppGridMenuItem's internal padding/insets
     don't fully collapse with implicitHeight=0. Truly-conditional items
     (jumplist, bulk Add/Remove favorites, Remove from Folder) use
     Instantiator so non-applicable rows don't exist at all.
@@ -346,7 +346,7 @@ Item {
 
         Instantiator {
             model: contextMenu.popupActions
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 required property var modelData
                 required property int index
                 icon.name: modelData.icon || ""
@@ -360,7 +360,7 @@ Item {
             onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
             text: contextMenu.popupIsFavorite
                   ? i18nd("dev.xarbit.appgrid", "Remove from Favorites")
@@ -378,7 +378,7 @@ Item {
         Instantiator {
             active: contextMenu._canFolder && contextMenu.favoritesGroupedModel
                     && contextMenu.favoritesGroupedModel.folderOfMember(contextMenu.popupStorageId).length > 0
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 icon.name: "folder-remove"
                 text: i18nd("dev.xarbit.appgrid", "Remove from Folder")
                 onClicked: contextMenu._removeFromAnyFolder(contextMenu.popupStorageId)
@@ -393,7 +393,7 @@ Item {
         // (search-results, prefix view) has no multi-select.
         Instantiator {
             active: contextMenu.popupCanSelect
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
                 text: contextMenu.popupIsSelected
                       ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
@@ -411,21 +411,21 @@ Item {
             onObjectRemoved: (idx, obj) => singleMenu.removeItem(obj)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "pin"
             text: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
             visible: contextMenu.popupCanPin
             onClicked: contextMenu.pinToTaskManager(contextMenu.popupDesktopFile)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "desktop"
             text: i18nd("dev.xarbit.appgrid", "Add to Desktop")
             visible: contextMenu.popupCanAddToDesktop
             onClicked: contextMenu.addToDesktop(contextMenu.popupDesktopFile)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "document-edit"
             text: i18nd("dev.xarbit.appgrid", "Edit Application")
             onClicked: contextMenu.editApplication(contextMenu.popupStorageId)
@@ -435,7 +435,7 @@ Item {
         // of visible:false, which leaves a blank row in PlasmaComponents.Menu.
         Instantiator {
             active: contextMenu.canManageInDiscover(contextMenu.popupStorageId)
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 icon.name: "plasmadiscover"
                 text: i18nd("dev.xarbit.appgrid", "Manage in Discover…")
                 onClicked: contextMenu.openInDiscover(contextMenu.popupStorageId)
@@ -446,7 +446,7 @@ Item {
 
         PlasmaComponents.MenuSeparator {}
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: contextMenu.popupIsHidden ? "view-visible" : "view-hidden"
             text: contextMenu.popupIsHidden
                   ? i18nd("dev.xarbit.appgrid", "Unhide Application")
@@ -471,7 +471,7 @@ Item {
         // whether Add N is already present — both at top, Add N above.
         Instantiator {
             active: contextMenu.popupNonFavCount > 0
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 icon.name: "bookmark-new"
                 text: i18ndp("dev.xarbit.appgrid",
                              "Add %1 to Favorites", "Add %1 to Favorites",
@@ -485,7 +485,7 @@ Item {
 
         Instantiator {
             active: contextMenu.popupFavCount > 0
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 icon.name: "bookmark-remove"
                 text: i18ndp("dev.xarbit.appgrid",
                              "Remove %1 from Favorites", "Remove %1 from Favorites",
@@ -499,7 +499,7 @@ Item {
         }
 
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "pin"
             text: i18ndp("dev.xarbit.appgrid",
                          "Pin %1 to Task Manager", "Pin %1 to Task Manager",
@@ -508,7 +508,7 @@ Item {
             onClicked: contextMenu._bulkAdd(contextMenu.pinToTaskManager)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "desktop"
             text: i18ndp("dev.xarbit.appgrid",
                          "Add %1 to Desktop", "Add %1 to Desktop",
@@ -517,7 +517,7 @@ Item {
             onClicked: contextMenu._bulkAdd(contextMenu.addToDesktop)
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "system-run"
             text: i18ndp("dev.xarbit.appgrid",
                          "Launch %1 application", "Launch %1 applications",
@@ -527,7 +527,7 @@ Item {
 
         PlasmaComponents.MenuSeparator {}
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "edit-copy"
             text: i18ndp("dev.xarbit.appgrid",
                          "Copy %1 path", "Copy %1 paths",
@@ -535,7 +535,7 @@ Item {
             onClicked: contextMenu._copySelectedPaths()
         }
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "view-hidden"
             text: i18ndp("dev.xarbit.appgrid",
                          "Hide %1 application", "Hide %1 applications",
@@ -545,7 +545,7 @@ Item {
 
         PlasmaComponents.MenuSeparator {}
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "edit-select-none"
             text: i18nd("dev.xarbit.appgrid", "Remove from Selection")
             onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
@@ -557,7 +557,7 @@ Item {
     AppGridMenu {
         id: folderMenu
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "folder-open"
             text: i18nd("dev.xarbit.appgrid", "Open Folder")
             onClicked: {
@@ -567,7 +567,7 @@ Item {
         }
         // Launch every app in the folder, through the same bulk-launch path (so
         // the "open many at once?" confirm threshold still applies).
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "system-run"
             text: i18nd("dev.xarbit.appgrid", "Launch All")
             enabled: contextMenu.favoritesGroupedModel
@@ -577,7 +577,7 @@ Item {
                 folderMenu.close()
             }
         }
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "edit-rename"
             text: i18nd("dev.xarbit.appgrid", "Rename Folder…")
             onClicked: {
@@ -586,7 +586,7 @@ Item {
             }
         }
         // Per-activity opt-in only (#18): otherwise every folder is global anyway.
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             visible: contextMenu.enableActivities
             checkable: true
             checked: contextMenu.popupFolderGlobal
@@ -598,7 +598,7 @@ Item {
             }
         }
         PlasmaComponents.MenuSeparator {}
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "folder-remove"
             text: i18nd("dev.xarbit.appgrid", "Ungroup Folder")
             enabled: contextMenu.favoritesGroupedModel
@@ -667,7 +667,7 @@ Item {
     // Right-click on empty favourites space: create a new (empty) folder (#18).
     AppGridMenu {
         id: emptyAreaMenu
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "folder-new"
             text: i18nd("dev.xarbit.appgrid", "Create Folder…")
             enabled: contextMenu.favoritesGroupedModel
@@ -687,7 +687,7 @@ Item {
         // Favorite an app-backed search result (apps, System Settings modules)
         // straight from the search list, the same as a grid app (#64). The id is
         // already the prefixed "applications:<id>" KAStats form.
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             visible: contextMenu._canFavoriteRunner
             icon.name: contextMenu.popupRunnerIsFavorite ? "bookmark-remove" : "bookmark-new"
             text: contextMenu.popupRunnerIsFavorite
@@ -704,7 +704,7 @@ Item {
 
         Instantiator {
             model: contextMenu.popupRunnerActions
-            delegate: PlasmaComponents.MenuItem {
+            delegate: AppGridMenuItem {
                 required property var modelData
                 required property int index
                 icon.name: modelData.icon || ""

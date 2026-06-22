@@ -28,7 +28,7 @@ AppGridMenu {
 
     Instantiator {
         model: root.foldersModel ? root.foldersModel.favoriteFolders : []
-        delegate: PlasmaComponents.MenuItem {
+        delegate: AppGridMenuItem {
             required property int index
             property string folderId: ""
             icon.name: "folder"
@@ -51,7 +51,7 @@ AppGridMenu {
 
     PlasmaComponents.MenuSeparator {}
 
-    PlasmaComponents.MenuItem {
+    AppGridMenuItem {
         icon.name: "folder-new"
         text: i18nd("dev.xarbit.appgrid", "New Folder…")
         onClicked: root.newFolderRequested()

@@ -763,13 +763,13 @@ RowLayout {
         id: catContextMenu
         property string categoryName: ""
 
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "kmenuedit"
             text: i18nd("dev.xarbit.appgrid", "Edit \"%1\" in Menu Editor…", catContextMenu.categoryName)
             onClicked: categoryBar.editCategoryInMenu(
                 categoryBar.appsModel.categoryMenuPath(catContextMenu.categoryName))
         }
-        PlasmaComponents.MenuItem {
+        AppGridMenuItem {
             icon.name: "kmenuedit"
             text: i18nd("dev.xarbit.appgrid", "Open Menu Editor…")
             onClicked: categoryBar.editCategoryInMenu("")

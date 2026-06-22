@@ -34,7 +34,7 @@ AppGridMenu {
     // The new desired activity-id set; an empty list means "all activities".
     signal chosen(var activityIds)
 
-    PlasmaComponents.MenuItem {
+    AppGridMenuItem {
         text: i18nd("dev.xarbit.appgrid", "On All Activities")
         checkable: true
         checked: root._isGlobal
@@ -45,7 +45,7 @@ AppGridMenu {
 
     Instantiator {
         model: root.activities
-        delegate: PlasmaComponents.MenuItem {
+        delegate: AppGridMenuItem {
             required property int index
             property string activityId: ""
             checkable: true
