@@ -13,7 +13,6 @@
 #include <QStringList>
 #include <QVariantMap>
 
-#include "appmodel.h"
 #include "launchbookkeeping.h"
 #include "searchranking.h"
 

@@ -302,6 +302,15 @@ void LaunchStateStore::save()
 
 void LaunchStateStore::reloadFromExternalChange()
 {
+    // Flush our own pending edits first: load() below overwrites every member
+    // from disk, so without this an external change landing mid-debounce would
+    // drop a local hide/reorder that hadn't been written yet. save()'s sync()
+    // re-reads and merges the other process's groups, so we keep theirs too.
+    if (m_saveTimer->isActive()) {
+        m_saveTimer->stop();
+        save();
+    }
+
     const QStringList hidden = m_hidden;
     const QStringList recent = m_recent;
     const QVariantMap counts = m_launchCounts;

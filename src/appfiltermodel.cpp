@@ -6,6 +6,7 @@
 #include "appfiltermodel.h"
 
 #include "appactionid.h"
+#include "appmodel.h"
 #include "defaultappsresolver.h"
 #include "searchranking.h"
 
