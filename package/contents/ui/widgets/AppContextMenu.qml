@@ -33,6 +33,8 @@ Item {
     // Favourites folders (issue #18): the editable grouped model + whether the
     // favourites tab is active, gating the folder menu rows.
     property var favoritesGroupedModel: null
+    // Single source of truth for favourite mutations (controllers/FavoritesManager).
+    property var favoritesManager: null
     property bool favoritesActive: false
     property string popupFolderId: ""
     // Folders available at all (model present + editable). The favourites-tab
@@ -241,33 +243,18 @@ Item {
     // Toggle a single already-prefixed KAStats favorite id on/off. Shared by the
     // grid-app row and the app-backed runner-result row.
     function _toggleFavorite(id) {
-        if (!sharedFavoritesModel || !id) return
-        if (sharedFavoritesModel.isFavorite(id)) {
-            sharedFavoritesModel.removeFavorite(id)
-            _removeFromAnyFolder(FavoriteId.stripPrefix(id))
-        } else {
-            sharedFavoritesModel.addFavorite(id)
-        }
+        if (favoritesManager && id)
+            favoritesManager.toggleFavorite(FavoriteId.stripPrefix(id))
     }
 
-    // Take @p sid out of whatever folder it's in (no-op if it's in none). Folder
-    // removal is always a deliberate user action — reconcile keeps members through
-    // favourite churn — so both "Remove from Folder" and unfavouriting route here. #18
     function _removeFromAnyFolder(sid) {
-        if (!favoritesGroupedModel || !sid) return
-        const fid = favoritesGroupedModel.folderOfMember(sid)
-        if (fid.length > 0)
-            favoritesGroupedModel.removeFromFolder(fid, sid)
+        if (favoritesManager)
+            favoritesManager.removeFromAnyFolder(sid)
     }
 
-    // Favourite @p sid if it isn't already — so adding any app to a folder
-    // (folders hold favourites) just works, auto-favouriting in one step (#18).
     function _ensureFavorite(sid) {
-        if (!sharedFavoritesModel || !sid)
-            return
-        const prefixed = FavoriteId.toPrefixed(sid)
-        if (!sharedFavoritesModel.isFavorite(prefixed))
-            sharedFavoritesModel.addFavorite(prefixed)
+        if (favoritesManager)
+            favoritesManager.ensureFavorite(sid)
     }
 
     // Add the whole selection to @p folderId, favouriting any that aren't (#18).
@@ -281,16 +268,13 @@ Item {
     }
 
     function _bulkSetFavorite(addNotRemove) {
-        if (!sharedFavoritesModel) return
+        if (!favoritesManager) return
         const sids = popupSelectedSids
         for (var i = 0; i < sids.length; ++i) {
-            const prefixed = FavoriteId.toPrefixed(sids[i])
-            const isFav = sharedFavoritesModel.isFavorite(prefixed)
-            if (addNotRemove && !isFav) {
-                sharedFavoritesModel.addFavorite(prefixed)
-            } else if (!addNotRemove && isFav) {
-                sharedFavoritesModel.removeFavorite(prefixed)
-                _removeFromAnyFolder(sids[i])
+            if (addNotRemove) {
+                favoritesManager.ensureFavorite(sids[i])
+            } else {
+                favoritesManager.removeFavorite(sids[i])
             }
         }
     }

@@ -882,6 +882,7 @@ Kirigami.ShadowedRectangle {
                 appsModel: panel.appsModel
                 sharedFavoritesModel: panel.sharedFavoritesModel
                 favoritesGroupedModel: panel.favoritesGroupedModel
+                favoritesManager: favorites
                 onOpenFolderRequested: folderId => panel.openFolderId = folderId
                 onFolderContextMenuRequested: folderId => contextMenu.showForFolder(folderId)
                 onEmptyAreaContextMenuRequested: contextMenu.showForEmptyArea()
@@ -1013,6 +1014,7 @@ Kirigami.ShadowedRectangle {
         // Always available so "Add to Folder" works for a favourite right-clicked
         // anywhere (grid, search) — not only on the favourites tab.
         favoritesGroupedModel: panel.favoritesGroupedModel
+        favoritesManager: favorites
         favoritesActive: panel.isFavoritesActive
         appletInterface: panel.appletInterface
         onOpenFolderRequested: folderId => panel.openFolderId = folderId

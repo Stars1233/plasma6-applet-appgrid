@@ -13,6 +13,7 @@
 import QtQuick
 
 import "../js/favoritesmigration.js" as FavoritesMigration
+import "../js/favoriteid.js" as FavoriteId
 
 Item {
     id: manager
@@ -97,6 +98,54 @@ Item {
         if (favoriteIdRole < 0) return
         favoritesGroupedModel.setFlatFavorites(
             FavoritesMigration.collectMirrorIds(sharedFavoritesModel, favoriteIdRole))
+    }
+
+    // --- Mutations ---
+    //
+    // Single source of truth for favourite add/remove/toggle, so views don't
+    // each reimplement the prefixing and the folder-cleanup-on-unfavourite
+    // dance. All take a bare storageId; prefixing is internal.
+
+    function isFavorite(sid) {
+        return !!sharedFavoritesModel && !!sid
+            && sharedFavoritesModel.isFavorite(FavoriteId.toPrefixed(sid))
+    }
+
+    function addFavorite(sid) {
+        if (sharedFavoritesModel && sid)
+            sharedFavoritesModel.addFavorite(FavoriteId.toPrefixed(sid))
+    }
+
+    // Unfavourite @p sid and pull it out of any folder it was in — folders hold
+    // favourites, so a stale member left behind would resurface (#18).
+    function removeFavorite(sid) {
+        if (!sharedFavoritesModel || !sid) return
+        sharedFavoritesModel.removeFavorite(FavoriteId.toPrefixed(sid))
+        removeFromAnyFolder(sid)
+    }
+
+    // Folder removal without unfavouriting — the "Remove from Folder" action and
+    // the unfavourite path above both route here (#18).
+    function removeFromAnyFolder(sid) {
+        if (!favoritesGroupedModel || !sid) return
+        const fid = favoritesGroupedModel.folderOfMember(sid)
+        if (fid && fid.length > 0)
+            favoritesGroupedModel.removeFromFolder(fid, sid)
+    }
+
+    function toggleFavorite(sid) {
+        if (isFavorite(sid)) {
+            removeFavorite(sid)
+        } else {
+            addFavorite(sid)
+        }
+    }
+
+    // Favourite @p sid only if it isn't already — adding any app to a folder
+    // auto-favourites it in one step (#18).
+    function ensureFavorite(sid) {
+        if (!isFavorite(sid))
+            addFavorite(sid)
     }
 
     // --- Watchers ---

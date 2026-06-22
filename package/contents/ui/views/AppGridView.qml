@@ -212,6 +212,9 @@ GridView {
     // rows still resolve via favoriteId (like KAStats), and folder rows render a
     // FolderCell that opens on click.
     property var favoritesGroupedModel: null
+    // Single source of truth for favourite mutations (add/remove/toggle with
+    // folder cleanup). Injected by the boundary; see controllers/FavoritesManager.
+    property var favoritesManager: null
     // Shared DragSource from the plasmoid root; set by GridPanel.
     property DragSource dragSource: null
 
@@ -367,24 +370,11 @@ GridView {
     function selectedDesktopFileUrls() { return selection.desktopFileUrls(appsModel) }
     function selectedIconNames() { return selection.iconNames(appsModel) }
 
-    // Unfavourite @p sid and pull it out of any folder it was in — folders hold
-    // favourites, so a stale member left behind would resurface. Mirrors the
-    // context menu's unfavourite path (#18, #193).
-    function _removeFavoriteWithFolder(sid) {
-        if (!sharedFavoritesModel || !sid) return
-        sharedFavoritesModel.removeFavorite(FavoriteId.toPrefixed(sid))
-        if (favoritesGroupedModel) {
-            const fid = favoritesGroupedModel.folderOfMember(sid)
-            if (fid && fid.length > 0)
-                favoritesGroupedModel.removeFromFolder(fid, sid)
-        }
-    }
-
     function removeSelectedFromFavorites() {
-        if (!_favoritesSelect || selectionCount === 0) return
+        if (!_favoritesSelect || selectionCount === 0 || !favoritesManager) return
         const sids = selectedSidList()
         for (var i = 0; i < sids.length; ++i)
-            _removeFavoriteWithFolder(sids[i])
+            favoritesManager.removeFavorite(sids[i])
         clearSelection()
     }
 
@@ -394,18 +384,15 @@ GridView {
     // storageId, returning "" for folders so they're skipped. Add-all-if-any-
     // missing, else remove-all, so a mixed selection has one predictable result.
     function toggleFavoritesForSelectionOrCurrent() {
-        if (!sharedFavoritesModel) return
+        if (!favoritesManager) return
         const sids = selectionCount > 0 ? selectedSidList()
                                         : [_unifiedSidAt(virtualIndex)]
-        const entries = sids.map(s => ({
-            sid: s,
-            isFavorite: !!s && sharedFavoritesModel.isFavorite(FavoriteId.toPrefixed(s))
-        }))
+        const entries = sids.map(s => ({ sid: s, isFavorite: favoritesManager.isFavorite(s) }))
         const plan = FavoriteToggle.plan(entries)
         for (const s of plan.add)
-            sharedFavoritesModel.addFavorite(FavoriteId.toPrefixed(s))
+            favoritesManager.addFavorite(s)
         for (const s of plan.remove)
-            _removeFavoriteWithFolder(s)
+            favoritesManager.removeFavorite(s)
         _bounceSids(plan.add.concat(plan.remove))
         clearSelection()
     }

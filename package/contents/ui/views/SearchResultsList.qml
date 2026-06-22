@@ -147,14 +147,16 @@ ListView {
         positionViewAtIndex(idx, ListView.Beginning)
     }
 
-    // Our app results (the "applications" sentinel) under "Applications"; every
-    // KRunner section is a "plasma:<category>" value, labelled by its source,
-    // e.g. "Plasma Plugins (Files)" — or just "Plasma Plugins" when the runner
-    // gives no category.
+    // Section-key sentinels, shared with UnifiedSearchModel::data (CategoryRole):
+    // our app rows carry _appSection, KRunner rows are _plasmaPrefix + their
+    // category. Labels: "Applications" for ours; "Plasma Plugins (Files)" per
+    // runner, or just "Plasma Plugins" when the runner gives no category.
+    readonly property string _appSection: "applications"
+    readonly property string _plasmaPrefix: "plasma:"
     function _sectionLabel(section) {
-        if (section === "applications")
+        if (section === _appSection)
             return i18nd("dev.xarbit.appgrid", "Applications")
-        const cat = section.substring(7) // drop "plasma:"
+        const cat = section.substring(_plasmaPrefix.length)
         return cat.length > 0
             ? i18nd("dev.xarbit.appgrid", "Plasma Plugins (%1)", cat)
             : i18nd("dev.xarbit.appgrid", "Plasma Plugins")
