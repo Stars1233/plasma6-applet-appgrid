@@ -38,13 +38,16 @@ Item {
     // Per-activity favourites/folders opt-in; off keeps everything global and
     // hides the activity menus.
     property bool enableActivities: false
+    // "Group favorites into folders" setting; off hides every folder action
+    // (Add to Folder, New Folder, Remove from Folder).
+    property bool foldersEnabled: false
     property bool favoritesActive: false
     property string popupFolderId: ""
     // Whether the right-clicked folder is shown in every activity (#18).
     property bool popupFolderGlobal: false
-    // Folders available at all (model present + editable). The favourites-tab
-    // gate is applied per-action where it matters (bulk/empty/folder menus).
-    readonly property bool _canFolder: favoritesGroupedModel && favoritesGroupedModel.editable
+    // Folders available at all (feature enabled + model present + editable). The
+    // favourites-tab gate is applied per-action where it matters (bulk/empty/folder menus).
+    readonly property bool _canFolder: foldersEnabled && favoritesGroupedModel && favoritesGroupedModel.editable
     property bool _folderSubAdded: false
     property bool _bulkFolderSubAdded: false
     property bool _activitiesSubAdded: false
