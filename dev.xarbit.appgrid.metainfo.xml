@@ -5,29 +5,28 @@
 -->
 <component type="addon">
     <!--
-        One component covers both shipped plasmoids: the centered desktop
-        overlay (dev.xarbit.appgrid) and the panel popup
-        (dev.xarbit.appgrid.panel). They are the same product in two form
-        factors, so they share a single AppStream listing.
+        One AppStream listing for the whole launcher: the panel button that opens
+        the launcher window (dev.xarbit.appgrid) and the native panel popup
+        (dev.xarbit.appgrid.panel). Same launcher, two front-ends.
     -->
     <id>dev.xarbit.appgrid</id>
     <extends>org.kde.plasmashell</extends>
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-2.0-or-later</project_license>
 
-    <name>Application Launcher (modern)</name>
-    <summary>A modern centered application grid launcher for KDE Plasma</summary>
+    <name>AppGrid</name>
+    <summary>A modern app grid launcher for KDE Plasma</summary>
     <description>
         <p>
-            AppGrid is a modern centered application grid launcher for
-            KDE Plasma. It provides a clean, visual way to browse and
-            launch your applications.
+            AppGrid shows your applications in a grid you can search and launch
+            from. Open it from a panel button as a full launcher window, or as a
+            popup on the panel.
         </p>
         <p>Features include:</p>
         <ul>
-            <li>Two form factors: centered desktop overlay or native panel popup</li>
-            <li>Centered grid overlay with Wayland layer-shell support</li>
-            <li>Category-based filtering and KRunner search integration</li>
+            <li>A full launcher window, or a native panel popup</li>
+            <li>Opens on the screen you are using, multi-monitor aware</li>
+            <li>Category filtering and KRunner search built in</li>
             <li>Quick commands: terminal, shell, file browser (type ? for help)</li>
             <li>Configurable icon size, grid dimensions, and sort order</li>
             <li>Pin to Task Manager, Add to Desktop, Favorites, Hide apps</li>
@@ -66,6 +65,26 @@
     </screenshots>
 
     <releases>
+        <release version="2.0.0" date="2026-06-22" type="development">
+            <description>
+                <p>The launcher now runs as its own window, opened from the panel button. Favorites support jump-list actions and files. See CHANGELOG.md for the full list of changes.</p>
+            </description>
+        </release>
+        <release version="1.9.2" date="2026-06-20" type="stable">
+            <description>
+                <p>See CHANGELOG.md for the full list of changes.</p>
+            </description>
+        </release>
+        <release version="1.9.1" date="2026-06-15" type="stable">
+            <description>
+                <p>See CHANGELOG.md for the full list of changes.</p>
+            </description>
+        </release>
+        <release version="1.9.0" date="2026-06-14" type="stable">
+            <description>
+                <p>See CHANGELOG.md for the full list of changes.</p>
+            </description>
+        </release>
         <release version="1.8.5" date="2026-05-29" type="stable">
             <description>
                 <p>See CHANGELOG.md for the full list of changes.</p>
