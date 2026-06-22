@@ -440,10 +440,47 @@ Kirigami.ShadowedRectangle {
     // the compact-mode starting state are invisible behind the fade-out
     // instead of flashing on the next open.
     function resetOnClose() {
+        contextMenu.close()
+        categoryBar.closeCategoryMenu()
+        headerActions.closeMenus()
         categoryBar.resetScroll()
         _resetSearchSession()
         // Don't reopen the last folder on the next launch (#18).
         openFolderId = ""
+        // The visible state reset happens HERE, while the popup is hidden behind
+        // the fade-out, so the next open shows a clean grid instead of flashing
+        // the refresh as it appears.
+        _applyStartState()
+        _resetGridUiState()
+    }
+
+    // Start tab + cleared live filter. Idempotent — the model setters no-op when
+    // the value is unchanged — so it's safe to run on open too: it reflects a
+    // config change made while closed without refreshing when nothing changed.
+    function _applyStartState() {
+        const startFav = cfgShowCategoryBar && cfgStartWithFavorites
+        categoryBar.favoritesActive = startFav
+        if (appsModel) {
+            appsModel.searchText = ""
+            appsModel.filterCategory = ""
+            appsModel.showFavoritesOnly = startFav
+        }
+    }
+
+    // Pure UI-state reset (scroll, selection, category view). Close-only: running
+    // it on open would visibly jump the grid as the popup appears.
+    function _resetGridUiState() {
+        categoryBar.altHeld = false
+        categoryBar.scrollOnlySelected = ""
+        appGrid.clearShuffles()
+        appGrid.clearSelection()
+        appGrid.contentY = appGrid.originY
+        appGrid.currentIndex = -1
+        appGrid.recentIndex = -1
+        searchResultsList.contentY = searchResultsList.originY
+        searchResultsList.currentIndex = 0
+        categoryGridView.resetView()
+        _needsScrollToTop = true
     }
 
     // Perf instrumentation for the open path (#200). console.debug is silent
@@ -458,37 +495,14 @@ Kirigami.ShadowedRectangle {
         headerActions.closeMenus()
         _resetSearchSession()
 
-        // Clear any stale Alt-held state: the panel popup item is reused
-        // across open/close, so a missed Alt key-release (focus left the
-        // window, or it was closed mid-Alt) would otherwise leave the
-        // category mnemonics underlined on the next open (#168).
-        categoryBar.altHeld = false
-
-        // Restore starting tab
-        var startFav = cfgShowCategoryBar && cfgStartWithFavorites
-        categoryBar.favoritesActive = startFav
-        categoryBar.scrollOnlySelected = ""
-
-        // Sync model from config and reset filter state. Default apps are no
-        // longer re-resolved here (#200): AppFilterModel refreshes them on
-        // KSycoca / kdeglobals change, so the open path stays cheap.
+        // The heavy grid UI reset (scroll/selection/category view) already ran on
+        // the previous close, while hidden. Here we only pick up config that may
+        // have changed while closed (sort, columns, default-tab) and re-apply the
+        // start tab/filter — both idempotent, so an unchanged-config open does no
+        // visible refresh. Default apps refresh on KSycoca/kdeglobals, not here (#200).
         syncModelFromConfig()
-        if (appsModel) {
-            appsModel.searchText = ""
-            appsModel.filterCategory = ""
-            appsModel.showFavoritesOnly = startFav
-        }
+        _applyStartState()
 
-        // Reset grid state
-        appGrid.clearShuffles()
-        appGrid.clearSelection()
-        appGrid.contentY = appGrid.originY
-        appGrid.currentIndex = -1
-        appGrid.recentIndex = -1
-        searchResultsList.contentY = searchResultsList.originY
-        searchResultsList.currentIndex = 0
-        categoryGridView.resetView()
-        _needsScrollToTop = true
         searchBar.field.forceActiveFocus()
         _perfMark("resetState", _t0)
     }
