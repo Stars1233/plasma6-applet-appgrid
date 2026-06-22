@@ -139,11 +139,39 @@ Kirigami.ShadowedRectangle {
     readonly property string searchCompletion: {
         if (!cfg.searchInlineCompletion || !showSearchResults || panel.isPrefixMode || !panel.appsModel)
             return ""
+        // Use the live field text (not the coalesced searchText): the ghost's
+        // position tracks the caret every frame, so its content must update the
+        // same frame or it visibly shakes. completionFor() only scans the top 25
+        // rows, so it's cheap enough to run synchronously — the heavy filter pass
+        // is what's deferred via Qt.callLater, not this.
         const q = searchBar.text
         if (q.length === 0)
             return ""
         const word = panel.appsModel.completionFor(q)
         return word.length > q.length ? word.substring(q.length) : ""
+    }
+
+    // The grid filter + ranking is the heavy per-keystroke work. Coalesce it
+    // through Qt.callLater so a burst of fast keystrokes triggers a single
+    // filter pass after input settles, never blocking the text field itself.
+    property string _pendingSearchText: ""
+    function _applySearchText() {
+        searchSession.update(panel._pendingSearchText)
+    }
+
+    // Trailing-debounce window for continued typing into KRunner. Short enough to
+    // feel live, long enough to collapse a fast-typed query into a single runner
+    // query (ResultsModel runs every enabled runner in-process per query).
+    readonly property int _runnerDebounceMs: 50
+
+    // Push the current field text to KRunner (or clear it). Shared by the
+    // leading-edge fire and the trailing debounce.
+    function _applyRunnerQuery() {
+        if (!panel.runnerSourceModel)
+            return
+        const q = searchBar.text
+        const searching = q.length > 0 && !panel.isPrefixMode && panel.cfgUseExtraRunners
+        panel.runnerSourceModel.queryString = searching ? q : ""
     }
 
     // Whichever grid view currently owns a SelectionState — used to route
@@ -569,30 +597,39 @@ Kirigami.ShadowedRectangle {
                 fontScale: panel.densityScale
                 completion: panel.searchCompletion
 
-                // Debounce KRunner queries — fires after typing pauses
+                // Trailing debounce for continued typing: collapses a fast-typed
+                // query's keystrokes into one runner query.
                 Timer {
                     id: runnerDebounce
-                    interval: 100
-                    onTriggered: {
-                        if (panel.runnerSourceModel) {
-                            var q = searchBar.text
-                            var searching = q.length > 0 && !panel.isPrefixMode
-                                            && panel.cfgUseExtraRunners
-                            panel.runnerSourceModel.queryString = searching ? q : ""
-                        }
-                    }
+                    interval: panel._runnerDebounceMs
+                    onTriggered: panel._applyRunnerQuery()
                 }
 
                 onTextChanged: {
-                    searchSession.update(text)
+                    // Defer the grid filter/ranking so the field never blocks on
+                    // it; rapid keystrokes coalesce into one pass (Qt.callLater
+                    // collapses repeat calls within an event-loop iteration).
+                    panel._pendingSearchText = text
+                    Qt.callLater(panel._applySearchText)
+
                     var searching = text.length > 0 && !panel.isPrefixMode
 
-                    // KRunner query is debounced (expensive D-Bus calls), and
-                    // only runs when the user opted into extra runners.
-                    if (searching && panel.cfgUseExtraRunners)
-                        runnerDebounce.restart()
-                    else if (panel.runnerSourceModel)
+                    // KRunner query (expensive: runs every enabled runner
+                    // in-process) only runs with extra runners on.
+                    if (searching && panel.cfgUseExtraRunners) {
+                        // Leading edge: the first char of a fresh query (KRunner
+                        // still idle) fires immediately so results start landing at
+                        // once; subsequent keystrokes ride the trailing debounce.
+                        if (panel.runnerSourceModel && panel.runnerSourceModel.queryString.length === 0) {
+                            runnerDebounce.stop()
+                            panel._applyRunnerQuery()
+                        } else {
+                            runnerDebounce.restart()
+                        }
+                    } else if (panel.runnerSourceModel) {
+                        runnerDebounce.stop()
                         panel.runnerSourceModel.queryString = ""
+                    }
                 }
                 onAltLetterPressed: function(key) {
                     if (categoryBar.visible)

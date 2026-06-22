@@ -102,7 +102,10 @@ RowLayout {
         Text {
             id: ghostCompletion
             anchors.verticalCenter: parent.verticalCenter
-            x: textField.leftPadding + typedMetrics.advanceWidth
+            // Round to whole pixels: advanceWidth grows by fractional amounts per
+            // character, and an unrounded x makes the ghost shimmer/shake as the
+            // text renderer snaps it differently each frame.
+            x: Math.round(textField.leftPadding + typedMetrics.advanceWidth)
             width: Math.max(0, textField.width - textField.rightPadding - x)
             visible: searchBar.completion.length > 0
                      && textField.cursorPosition === textField.text.length

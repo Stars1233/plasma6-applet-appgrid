@@ -29,6 +29,11 @@ namespace
 // Off by default; enable with QT_LOGGING_RULES="appgrid.perf.debug=true" to time
 // the per-refresh cost of resolving the role defaults (#200).
 Q_LOGGING_CATEGORY(lcPerf, "appgrid.perf", QtWarningMsg)
+
+// completionFor() scans only the top-ranked rows for an inline-completion word,
+// so it stays cheap enough to run synchronously on every keystroke (the heavy
+// filter pass is what's deferred in QML).
+constexpr int kCompletionScanLimit = 25;
 }
 
 // Re-run only the filter (not the sort). Qt 6.13 replaced invalidateFilter()
@@ -493,7 +498,7 @@ QString AppFilterModel::completionFor(const QString &query) const
         return {};
     }
     const QString folded = query.toCaseFolded();
-    const int limit = qMin(rowCount(), 25);
+    const int limit = qMin(rowCount(), kCompletionScanLimit);
 
     // Pass 1: an app whose *name* starts with the query — complete the whole
     // name (e.g. "vi" → "Visual Studio Code"), highest-ranked first.
