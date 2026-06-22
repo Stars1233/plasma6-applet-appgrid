@@ -9,7 +9,7 @@
     QObject stub without touching the consumers.
 
     Writes still go directly through Plasmoid.configuration — they
-    happen in a handful of spots (recents, launchCounts, knownApps,
+    happen in a handful of spots (recents, launchCounts,
     the migration flags) and centralising them belongs in a separate
     pass.
 */
@@ -65,7 +65,7 @@ QtObject {
     readonly property bool favoriteFoldersEnabled: source.favoriteFoldersEnabled
     readonly property bool enableActivities: source.enableActivities
 
-    // Hidden / recent / known apps and launch counts are no longer here: that
+    // Hidden / recent apps and launch counts are no longer here: that
     // per-user launch state lives in the shared LaunchStateStore (appgridrc),
     // synced straight into the model by AppGridController, so every variant and
     // the daemon share one list. See src/launchstatestore.h.

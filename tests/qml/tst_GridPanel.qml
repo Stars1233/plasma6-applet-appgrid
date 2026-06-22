@@ -52,7 +52,6 @@ TestCase {
         property bool hideLabelsOnFavorites: false
         property var hiddenApps: []
         property var recentApps: []
-        property var knownApps: []
         property var launchCounts: []
         property bool searchAll: false
         property bool useExtraRunners: false
@@ -75,7 +74,6 @@ TestCase {
         property var groupedByCategory: []
         property var favoriteApps: []
         property var hiddenApps: []
-        property var knownApps: []
         property var launchCounts: []
         property int maxRecentApps: 6
         property int iconGeneration: 0
@@ -103,7 +101,6 @@ TestCase {
         function hideApp(i) {}
         function hideByStorageId(sid) {}
         function unhideApp(sid) {}
-        function markAllKnown() {}
         function launch(i) {}
         function launchByStorageId(sid) { appsModelStub.launchedSids.push(sid) }
     }

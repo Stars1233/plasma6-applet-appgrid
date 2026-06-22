@@ -596,13 +596,12 @@ GridView {
         sortFavoritesAlphabetically: gridView.sortFavoritesAlphabetically
     }
 
-    // Bumped on knownAppsChanged so each cell's isNew binding re-evaluates
-    // (markAllKnown / a launch clears the new-app badge) without a Connections
-    // object per delegate.
-    property int _knownAppsRevision: 0
+    // Bumped on newAppsChanged so each cell's isNew binding re-evaluates (a
+    // launch clears the new-app badge) without a Connections object per delegate.
+    property int _newAppsRevision: 0
     Connections {
         target: gridView.appsModel
-        function onKnownAppsChanged() { gridView._knownAppsRevision++ }
+        function onNewAppsChanged() { gridView._newAppsRevision++ }
     }
 
     Keys.onPressed: function(event) {
@@ -794,7 +793,7 @@ GridView {
             shadowEnabled: gridView.shadowEnabled
             hoverHighlight: gridView.hoverHighlight
             isNew: {
-                gridView._knownAppsRevision // re-eval when knownApps changes
+                gridView._newAppsRevision // re-eval when used apps change
                 return !delegateRoot._fromShared && gridView.showNewAppBadge && gridView.appsModel
                     ? gridView.appsModel.isNewApp(delegateRoot._sid) : false
             }

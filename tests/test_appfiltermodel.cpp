@@ -27,8 +27,6 @@ private Q_SLOTS:
     void hiddenAppsRoundtrip();
     void launchCountsMapRoundtrip();
     void maxRecentAppsSetterEmitsSignal();
-    void isNewAppReturnsFalseWhenKnownEmpty();
-    void isNewAppReturnsTrueForUnknown();
     void getByStorageIdReturnsMatchingMap();
     void getByStorageIdReturnsEmptyWhenMissing();
     void getByStorageIdReturnsEmptyForEmptyId();
@@ -43,7 +41,6 @@ private Q_SLOTS:
     void nonEmptyCategoriesSkipsHiddenApps();
     void appsByCategoryGroupsMultiCategoryApp();
     void countSignalEmitsOnSourceChange();
-    void markAllKnownPopulatesFromSource();
     void hideAppByProxyIndexAddsToList();
     void hideAppDoesNothingForInvalidIndex();
     void unhideAppRemovesFromList();
@@ -53,7 +50,6 @@ private Q_SLOTS:
     void recordRecentLaunchPrependsAndBumpsCount();
     void recordRecentLaunchCapsAtMaxRecentApps();
     void recordRecentLaunchDeduplicatesPriorEntry();
-    void recordRecentLaunchAddsToKnownApps();
     void recordRecentLaunchIgnoresEmptyId();
     void iconChangedBumpsIconGeneration();
     void databaseReloadPrunesUninstalledRecents();
@@ -79,7 +75,6 @@ void TestAppFilterModel::init()
     m_filter.setShowFavoritesOnly(false);
     m_filter.setSortMode(AppFilterModel::Alphabetical);
     m_filter.setLaunchCountsMap({});
-    m_filter.setKnownApps({});
 }
 
 void TestAppFilterModel::searchTextEmitsSignalOnceOnChange()
@@ -141,19 +136,6 @@ void TestAppFilterModel::maxRecentAppsSetterEmitsSignal()
     QCOMPARE(m_filter.maxRecentApps(), 10);
     m_filter.setMaxRecentApps(10);
     QCOMPARE(spy.count(), 1); // no signal when unchanged
-}
-
-void TestAppFilterModel::isNewAppReturnsFalseWhenKnownEmpty()
-{
-    QVERIFY(m_filter.knownApps().isEmpty());
-    QVERIFY(!m_filter.isNewApp(QStringLiteral("anything")));
-}
-
-void TestAppFilterModel::isNewAppReturnsTrueForUnknown()
-{
-    m_filter.setKnownApps({QStringLiteral("a"), QStringLiteral("b")});
-    QVERIFY(!m_filter.isNewApp(QStringLiteral("a")));
-    QVERIFY(m_filter.isNewApp(QStringLiteral("c")));
 }
 
 void TestAppFilterModel::getByStorageIdReturnsMatchingMap()
@@ -318,20 +300,6 @@ void TestAppFilterModel::countSignalEmitsOnSourceChange()
     QCOMPARE(m_filter.count(), 1);
 }
 
-void TestAppFilterModel::markAllKnownPopulatesFromSource()
-{
-    m_source.setApps({
-        {QStringLiteral("A"), {}, {}, {}, {}, QStringLiteral("a"), {}, {}, {}},
-        {QStringLiteral("B"), {}, {}, {}, {}, QStringLiteral("b"), {}, {}, {}},
-        {QStringLiteral("C"), {}, {}, {}, {}, QStringLiteral("c"), {}, {}, {}},
-    });
-    QVERIFY(m_filter.knownApps().isEmpty());
-    m_filter.markAllKnown();
-    QStringList known = m_filter.knownApps();
-    known.sort();
-    QCOMPARE(known, (QStringList{QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")}));
-}
-
 void TestAppFilterModel::hideAppByProxyIndexAddsToList()
 {
     m_source.setApps({
@@ -438,13 +406,6 @@ void TestAppFilterModel::recordRecentLaunchDeduplicatesPriorEntry()
     m_filter.recordRecentLaunch(QStringLiteral("b"));
     m_filter.recordRecentLaunch(QStringLiteral("a")); // bump to front
     QCOMPARE(m_filter.recentApps(), (QStringList{QStringLiteral("a"), QStringLiteral("b")}));
-}
-
-void TestAppFilterModel::recordRecentLaunchAddsToKnownApps()
-{
-    QVERIFY(m_filter.knownApps().isEmpty());
-    m_filter.recordRecentLaunch(QStringLiteral("newapp"));
-    QVERIFY(m_filter.knownApps().contains(QStringLiteral("newapp")));
 }
 
 void TestAppFilterModel::recordRecentLaunchIgnoresEmptyId()

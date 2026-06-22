@@ -3,7 +3,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 
     Unit tests for LaunchStateStore: the shared per-user launch state (hidden /
-    recent / known apps + launch counts) persisted to appgridrc, the single
+    recent apps + launch counts) persisted to appgridrc, the single
     source of truth both plasmoid variants and the daemon read.
 */
 
@@ -98,13 +98,11 @@ void TestLaunchStateStore::persists_acrossInstances()
         LaunchStateStore store(cfg);
         store.setHiddenApps({QStringLiteral("x.desktop")});
         store.setRecentApps({QStringLiteral("y.desktop")});
-        store.setKnownApps({QStringLiteral("z.desktop")});
         QTest::qWait(700);
     }
     LaunchStateStore reopened(cfg);
     QCOMPARE(reopened.hiddenApps(), QStringList{QStringLiteral("x.desktop")});
     QCOMPARE(reopened.recentApps(), QStringList{QStringLiteral("y.desktop")});
-    QCOMPARE(reopened.knownApps(), QStringList{QStringLiteral("z.desktop")});
 }
 
 void TestLaunchStateStore::migrateFrom_seedsOnlyAbsentKeys()
@@ -115,17 +113,15 @@ void TestLaunchStateStore::migrateFrom_seedsOnlyAbsentKeys()
     QTest::qWait(700); // the hidden list is now on disk
 
     // Migrate a different set: hidden is present, so it must NOT be clobbered;
-    // recents/known/counts are absent, so they seed.
-    const bool migrated =
-        store.migrateFrom({QStringLiteral("old.desktop")}, {QStringLiteral("r.desktop")}, {QStringLiteral("k.desktop")}, {QStringLiteral("c.desktop=5")});
+    // recents/counts are absent, so they seed.
+    const bool migrated = store.migrateFrom({QStringLiteral("old.desktop")}, {QStringLiteral("r.desktop")}, {QStringLiteral("c.desktop=5")});
     QVERIFY(migrated);
     QCOMPARE(store.hiddenApps(), QStringList{QStringLiteral("already.desktop")});
     QCOMPARE(store.recentApps(), QStringList{QStringLiteral("r.desktop")});
-    QCOMPARE(store.knownApps(), QStringList{QStringLiteral("k.desktop")});
     QCOMPARE(store.launchCounts().value(QStringLiteral("c.desktop")).toInt(), 5);
 
     // A second migrate finds every key present → no-op.
-    QVERIFY(!store.migrateFrom({QStringLiteral("p.desktop")}, {}, {}, {}));
+    QVERIFY(!store.migrateFrom({QStringLiteral("p.desktop")}, {}, {}));
 }
 
 void TestLaunchStateStore::favoriteFolders_roundtripThroughFile()

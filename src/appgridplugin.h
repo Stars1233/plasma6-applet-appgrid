@@ -153,7 +153,7 @@ public:
     Q_INVOKABLE void migrateConfigToStandalone();
 
     /** One-shot: seed the shared launch-state store (appgridrc) from this applet's
-     *  old per-applet hidden/recent/known/launch-count lists, so a panel applet
+     *  old per-applet hidden/recent/launch-count lists, so a panel applet
      *  upgrading to the shared store keeps them. Only fills lists the store does
      *  not already have, so it never clobbers the daemon's or another applet's.
      *  Idempotent. */

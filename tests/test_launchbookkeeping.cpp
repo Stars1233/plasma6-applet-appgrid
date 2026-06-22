@@ -2,7 +2,7 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Unit tests for LaunchBookkeeping: the hidden/favorite/recent/known state
+    Unit tests for LaunchBookkeeping: the hidden/favorite/recent state
     and launch counts extracted from AppFilterModel.
 */
 
@@ -19,7 +19,6 @@ private Q_SLOTS:
     void setHidden_detectsNoChange();
     void favorites_trackPositions();
     void recent_prependsCapsDedups();
-    void known_addAndIsNew();
     void launchCounts_mapRoundtripAndBump();
 };
 
@@ -75,18 +74,6 @@ void TestLaunchBookkeeping::recent_prependsCapsDedups()
     QCOMPARE(b.recent(), QStringList({QStringLiteral("b.desktop"), QStringLiteral("d.desktop"), QStringLiteral("c.desktop")}));
     QVERIFY(b.isRecent(QStringLiteral("b.desktop")));
     QVERIFY(b.hasRecent());
-}
-
-void TestLaunchBookkeeping::known_addAndIsNew()
-{
-    LaunchBookkeeping b;
-    QVERIFY(!b.isNew(QStringLiteral("x.desktop"))); // empty known set → nothing is "new"
-    b.setKnown({QStringLiteral("a.desktop")});
-    QVERIFY(b.isNew(QStringLiteral("x.desktop"))); // not known → new
-    QVERIFY(!b.isNew(QStringLiteral("a.desktop"))); // known → not new
-    QVERIFY(b.addKnown(QStringLiteral("x.desktop")));
-    QVERIFY(!b.addKnown(QStringLiteral("x.desktop"))); // duplicate
-    QVERIFY(!b.isNew(QStringLiteral("x.desktop")));
 }
 
 void TestLaunchBookkeeping::launchCounts_mapRoundtripAndBump()

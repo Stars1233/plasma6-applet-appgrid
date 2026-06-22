@@ -48,7 +48,7 @@ Kirigami.ShadowedRectangle {
 
     // Read-write handle to Plasmoid.configuration. Reads route through
     // ConfigCache (`cfg`) below; writes still target this handle directly
-    // for the launch-bookkeeping flush (recents / launchCounts / knownApps /
+    // for the launch-bookkeeping flush (recents / launchCounts /
     // hiddenApps).
     required property var configuration
 
@@ -267,7 +267,7 @@ Kirigami.ShadowedRectangle {
 
     // Pushes the persisted settings into the model. syncModelFromConfig stays as
     // the public entry point — the daemon calls it when the settings window edits
-    // config. (Launch state — hidden/recent/known/counts — is synced separately
+    // config. (Launch state — hidden/recent/counts — is synced separately
     // by AppGridController via the shared LaunchStateStore.)
     ModelConfigSync {
         id: modelSync

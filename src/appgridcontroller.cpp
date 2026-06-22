@@ -114,7 +114,6 @@ void AppGridController::wireLaunchState()
     const auto pull = [this]() {
         m_filterModel.setHiddenApps(m_launchState.hiddenApps());
         m_filterModel.setRecentApps(m_launchState.recentApps());
-        m_filterModel.setKnownApps(m_launchState.knownApps());
         m_filterModel.setLaunchCountsMap(m_launchState.launchCounts());
     };
     pull();
@@ -124,11 +123,15 @@ void AppGridController::wireLaunchState()
     connect(&m_launchState, &LaunchStateStore::recentAppsChanged, &m_filterModel, [this]() {
         m_filterModel.setRecentApps(m_launchState.recentApps());
     });
-    connect(&m_launchState, &LaunchStateStore::knownAppsChanged, &m_filterModel, [this]() {
-        m_filterModel.setKnownApps(m_launchState.knownApps());
-    });
     connect(&m_launchState, &LaunchStateStore::launchCountsChanged, &m_filterModel, [this]() {
         m_filterModel.setLaunchCountsMap(m_launchState.launchCounts());
+    });
+
+    // New-app badge: the set of KActivities-used apps drives isNewApp (an unused,
+    // recently-installed app is "new"). Always on; feeds the filter model live.
+    m_filterModel.setUsedApps(m_usedApps.usedApps());
+    connect(&m_usedApps, &UsedAppsProvider::usedAppsChanged, &m_filterModel, [this]() {
+        m_filterModel.setUsedApps(m_usedApps.usedApps());
     });
 
     connect(&m_filterModel, &AppFilterModel::hiddenAppsChanged, &m_launchState, [this]() {
@@ -136,9 +139,6 @@ void AppGridController::wireLaunchState()
     });
     connect(&m_filterModel, &AppFilterModel::recentAppsChanged, &m_launchState, [this]() {
         m_launchState.setRecentApps(m_filterModel.recentApps());
-    });
-    connect(&m_filterModel, &AppFilterModel::knownAppsChanged, &m_launchState, [this]() {
-        m_launchState.setKnownApps(m_filterModel.knownApps());
     });
     connect(&m_filterModel, &AppFilterModel::launchCountsChanged, &m_launchState, [this]() {
         m_launchState.setLaunchCounts(m_filterModel.launchCountsMap());

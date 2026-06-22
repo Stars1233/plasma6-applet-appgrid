@@ -18,7 +18,6 @@ const QString kConfigName = QStringLiteral("appgridrc");
 const QString kGroup = QStringLiteral("General");
 const QString kHiddenKey = QStringLiteral("hiddenApps");
 const QString kRecentKey = QStringLiteral("recentApps");
-const QString kKnownKey = QStringLiteral("knownApps");
 const QString kLaunchCountsKey = QStringLiteral("launchCounts");
 const QString kFoldersKey = QStringLiteral("favoriteFolders");
 const QString kLayoutKey = QStringLiteral("favoriteLayout");
@@ -91,11 +90,6 @@ QStringList LaunchStateStore::recentApps() const
     return m_recent;
 }
 
-QStringList LaunchStateStore::knownApps() const
-{
-    return m_known;
-}
-
 QVariantMap LaunchStateStore::launchCounts() const
 {
     return m_launchCounts;
@@ -119,16 +113,6 @@ void LaunchStateStore::setRecentApps(const QStringList &list)
     m_recent = list;
     scheduleSave();
     Q_EMIT recentAppsChanged();
-}
-
-void LaunchStateStore::setKnownApps(const QStringList &list)
-{
-    if (m_known == list) {
-        return;
-    }
-    m_known = list;
-    scheduleSave();
-    Q_EMIT knownAppsChanged();
 }
 
 void LaunchStateStore::setLaunchCounts(const QVariantMap &counts)
@@ -171,7 +155,7 @@ void LaunchStateStore::setFavoriteLayout(const QStringList &layout)
     Q_EMIT favoriteLayoutChanged();
 }
 
-bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList &recent, const QStringList &known, const QStringList &counts)
+bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList &recent, const QStringList &counts)
 {
     KConfigGroup group = m_config->group(kGroup);
     bool migrated = false;
@@ -188,7 +172,6 @@ bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList 
     };
     seed(kHiddenKey, m_hidden, hidden);
     seed(kRecentKey, m_recent, recent);
-    seed(kKnownKey, m_known, known);
     if (!counts.isEmpty() && m_launchCounts.isEmpty()) {
         group.writeEntry(kLaunchCountsKey, counts, flags);
         m_launchCounts = countsFromList(counts);
@@ -199,7 +182,6 @@ bool LaunchStateStore::migrateFrom(const QStringList &hidden, const QStringList 
         group.sync();
         Q_EMIT hiddenAppsChanged();
         Q_EMIT recentAppsChanged();
-        Q_EMIT knownAppsChanged();
         Q_EMIT launchCountsChanged();
     }
     return migrated;
@@ -210,7 +192,6 @@ void LaunchStateStore::load()
     const KConfigGroup group = m_config->group(kGroup);
     m_hidden = group.readEntry(kHiddenKey, QStringList());
     m_recent = group.readEntry(kRecentKey, QStringList());
-    m_known = group.readEntry(kKnownKey, QStringList());
     m_launchCounts = countsFromList(group.readEntry(kLaunchCountsKey, QStringList()));
     loadFolders();
 }
@@ -314,7 +295,6 @@ void LaunchStateStore::save()
     KConfigGroup group = m_config->group(kGroup);
     group.writeEntry(kHiddenKey, m_hidden, flags);
     group.writeEntry(kRecentKey, m_recent, flags);
-    group.writeEntry(kKnownKey, m_known, flags);
     group.writeEntry(kLaunchCountsKey, countsToList(m_launchCounts), flags);
     saveFolders();
     group.sync();
@@ -324,7 +304,6 @@ void LaunchStateStore::reloadFromExternalChange()
 {
     const QStringList hidden = m_hidden;
     const QStringList recent = m_recent;
-    const QStringList known = m_known;
     const QVariantMap counts = m_launchCounts;
     const QVariantList folders = m_favoriteFolders;
     const QStringList layout = m_favoriteLayout;
@@ -339,9 +318,6 @@ void LaunchStateStore::reloadFromExternalChange()
     }
     if (m_recent != recent) {
         Q_EMIT recentAppsChanged();
-    }
-    if (m_known != known) {
-        Q_EMIT knownAppsChanged();
     }
     if (m_launchCounts != counts) {
         Q_EMIT launchCountsChanged();

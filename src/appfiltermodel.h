@@ -36,7 +36,6 @@ class AppFilterModel : public QSortFilterProxyModel
     Q_PROPERTY(int maxRecentApps READ maxRecentApps WRITE setMaxRecentApps NOTIFY maxRecentAppsChanged)
     Q_PROPERTY(int sortMode READ sortMode WRITE setSortMode NOTIFY sortModeChanged)
     Q_PROPERTY(QVariantMap launchCounts READ launchCountsMap WRITE setLaunchCountsMap NOTIFY launchCountsChanged)
-    Q_PROPERTY(QStringList knownApps READ knownApps WRITE setKnownApps NOTIFY knownAppsChanged)
     Q_PROPERTY(bool showFavoritesOnly READ showFavoritesOnly WRITE setShowFavoritesOnly NOTIFY showFavoritesOnlyChanged)
     Q_PROPERTY(bool sortFavoritesAlphabetically READ sortFavoritesAlphabetically WRITE setSortFavoritesAlphabetically NOTIFY sortFavoritesAlphabeticallyChanged)
     Q_PROPERTY(bool useSystemCategories READ useSystemCategories WRITE setUseSystemCategories NOTIFY useSystemCategoriesChanged)
@@ -93,8 +92,9 @@ public:
     [[nodiscard]] QVariantMap launchCountsMap() const;
     void setLaunchCountsMap(const QVariantMap &map);
 
-    [[nodiscard]] QStringList knownApps() const;
-    void setKnownApps(const QStringList &list);
+    /** Storage ids with recorded KActivities usage (UsedAppsProvider); an app
+     *  absent here and recently installed shows the "new" badge. */
+    void setUsedApps(const QSet<QString> &used);
 
     [[nodiscard]] bool showFavoritesOnly() const;
     void setShowFavoritesOnly(bool enabled);
@@ -104,8 +104,8 @@ public:
 
     Q_INVOKABLE void launch(int proxyIndex);
     Q_INVOKABLE void launchByStorageId(const QString &storageId);
-    // Bookkeeping side of launch: prepend to recents (capped), bump
-    // launch count, add to known. Public so tests can exercise it
+    // Bookkeeping side of launch: prepend to recents (capped) and bump
+    // launch count. Public so tests can exercise it
     // without triggering KIO::ApplicationLauncherJob.
     Q_INVOKABLE void recordRecentLaunch(const QString &storageId);
 
@@ -147,7 +147,6 @@ public:
     [[nodiscard]] Q_INVOKABLE bool isNewApp(const QString &storageId) const;
     [[nodiscard]] Q_INVOKABLE QVariantList appsByCategory() const;
     [[nodiscard]] Q_INVOKABLE QStringList nonEmptyCategories() const;
-    Q_INVOKABLE void markAllKnown();
     [[nodiscard]] Q_INVOKABLE int getLaunchCount(const QString &storageId) const;
 
     // Inline-completion word for the search field: scans the ranked, filtered
@@ -168,7 +167,7 @@ Q_SIGNALS:
     void maxRecentAppsChanged();
     void sortModeChanged();
     void launchCountsChanged();
-    void knownAppsChanged();
+    void newAppsChanged();
     void searchShowsHiddenChanged();
     void showFavoritesOnlyChanged();
     void sortFavoritesAlphabeticallyChanged();
@@ -222,6 +221,7 @@ private:
     int m_sortMode = Alphabetical;
     int m_iconGeneration = 0;
     QHash<QString, int> m_frecencyScores;
+    QSet<QString> m_usedApps; // KActivities-used storage ids, for the new-app badge
     bool m_searchUsesFrecency = false;
     bool m_searchShowsHidden = false;
     bool m_showFavoritesOnly = false;
@@ -237,7 +237,7 @@ private:
     // never has to re-resolve them (#200).
     KConfigWatcher::Ptr m_kdeglobalsWatcher;
 
-    // Hidden / favorite / recent / known lists, launch counts, and the
+    // Hidden / favorite / recent lists, launch counts, and the
     // derived membership sets + favorite-position index consulted by
     // filterAcceptsRow / lessThan.
     LaunchBookkeeping m_book;

@@ -42,7 +42,7 @@ PlasmoidItem {
     TaskManagerPinner { applet: appgrid }
 
     Component.onCompleted: {
-        // Move this applet's old per-applet hidden/recent/known/launch-count
+        // Move this applet's old per-applet hidden/recent/launch-count
         // lists into the shared store, so the panel and center share one list.
         Plasmoid.migrateLaunchState()
     }

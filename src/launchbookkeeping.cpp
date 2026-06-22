@@ -25,11 +25,6 @@ void LaunchBookkeeping::rebuildRecentSet()
     m_recentSet = QSet<QString>(m_recent.cbegin(), m_recent.cend());
 }
 
-void LaunchBookkeeping::rebuildKnownSet()
-{
-    m_knownSet = QSet<QString>(m_known.cbegin(), m_known.cend());
-}
-
 bool LaunchBookkeeping::setHidden(const QStringList &list)
 {
     if (m_hidden == list) {
@@ -90,26 +85,6 @@ bool LaunchBookkeeping::recordRecent(const QString &sid, int maxRecent)
         m_recent.removeLast();
     }
     rebuildRecentSet();
-    return true;
-}
-
-bool LaunchBookkeeping::setKnown(const QStringList &list)
-{
-    if (m_known == list) {
-        return false;
-    }
-    m_known = list;
-    rebuildKnownSet();
-    return true;
-}
-
-bool LaunchBookkeeping::addKnown(const QString &sid)
-{
-    if (m_knownSet.contains(sid)) {
-        return false;
-    }
-    m_known.append(sid);
-    m_knownSet.insert(sid);
     return true;
 }
 

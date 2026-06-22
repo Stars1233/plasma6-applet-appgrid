@@ -243,6 +243,8 @@ set(APPGRID_COMMON_SOURCES
     src/unifiedsearchmodel.h
     src/frecencyprovider.cpp
     src/frecencyprovider.h
+    src/usedappsprovider.cpp
+    src/usedappsprovider.h
     src/frecencyscoring.cpp
     src/frecencyscoring.h
 )

@@ -17,7 +17,7 @@ class QTimer;
 /**
  * @brief The single, shared persistence for per-user launch state.
  *
- * Hidden apps, the recents list, the known-apps set (new-app badge) and the
+ * Hidden apps, the recents list and the
  * per-app launch counts are user-global data — "which apps I've hidden", not a
  * property of one panel icon. Historically each surface persisted them in its
  * own config (every panel applet in its own desktop-appletsrc entry, the daemon
@@ -37,7 +37,6 @@ class LaunchStateStore : public QObject
     Q_OBJECT
     Q_PROPERTY(QStringList hiddenApps READ hiddenApps WRITE setHiddenApps NOTIFY hiddenAppsChanged)
     Q_PROPERTY(QStringList recentApps READ recentApps WRITE setRecentApps NOTIFY recentAppsChanged)
-    Q_PROPERTY(QStringList knownApps READ knownApps WRITE setKnownApps NOTIFY knownAppsChanged)
     Q_PROPERTY(QVariantMap launchCounts READ launchCounts WRITE setLaunchCounts NOTIFY launchCountsChanged)
     // Favourites folders (issue #18): an AppGrid-only grouping over the shared
     // KAStats favourites. The favourites themselves stay in KAStats; only the
@@ -52,14 +51,12 @@ public:
 
     [[nodiscard]] QStringList hiddenApps() const;
     [[nodiscard]] QStringList recentApps() const;
-    [[nodiscard]] QStringList knownApps() const;
     [[nodiscard]] QVariantMap launchCounts() const;
     [[nodiscard]] QVariantList favoriteFolders() const;
     [[nodiscard]] QStringList favoriteLayout() const;
 
     void setHiddenApps(const QStringList &list);
     void setRecentApps(const QStringList &list);
-    void setKnownApps(const QStringList &list);
     void setLaunchCounts(const QVariantMap &counts);
     void setFavoriteFolders(const QVariantList &folders);
     void setFavoriteLayout(const QStringList &layout);
@@ -80,12 +77,11 @@ public:
      *  @p counts is the on-disk "storageId=count" StringList. Writes only the
      *  keys still absent from the file, so the first launcher to migrate wins and
      *  later ones don't clobber the shared list. Returns true if anything moved. */
-    bool migrateFrom(const QStringList &hidden, const QStringList &recent, const QStringList &known, const QStringList &counts);
+    bool migrateFrom(const QStringList &hidden, const QStringList &recent, const QStringList &counts);
 
 Q_SIGNALS:
     void hiddenAppsChanged();
     void recentAppsChanged();
-    void knownAppsChanged();
     void launchCountsChanged();
     void favoriteFoldersChanged();
     void favoriteLayoutChanged();
@@ -116,7 +112,6 @@ private:
 
     QStringList m_hidden;
     QStringList m_recent;
-    QStringList m_known;
     QVariantMap m_launchCounts;
     QVariantList m_favoriteFolders;
     QStringList m_favoriteLayout;

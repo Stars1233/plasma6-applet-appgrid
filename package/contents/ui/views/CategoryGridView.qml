@@ -158,12 +158,12 @@ Flickable {
     }
     Component.onCompleted: _rebuildFlatApps()
 
-    // Bumped on knownAppsChanged so each cell's isNew binding re-evaluates
+    // Bumped on newAppsChanged so each cell's isNew binding re-evaluates
     // without a Connections object per delegate.
-    property int _knownAppsRevision: 0
+    property int _newAppsRevision: 0
     Connections {
         target: categoryGrid.appsModel
-        function onKnownAppsChanged() { categoryGrid._knownAppsRevision++ }
+        function onNewAppsChanged() { categoryGrid._newAppsRevision++ }
     }
 
     function _arrowMoveWithSelection(event, moveFn) {
@@ -448,7 +448,7 @@ Flickable {
                                 hoverHighlight: categoryGrid.hoverHighlight
                                 isCurrentItem: categoryGrid.currentIndex === parent.flatIndex && categoryGrid.activeFocus
                                 isNew: {
-                                    categoryGrid._knownAppsRevision // re-eval when knownApps changes
+                                    categoryGrid._newAppsRevision // re-eval when used apps change
                                     return categoryGrid.showNewAppBadge && categoryGrid.appsModel
                                         ? categoryGrid.appsModel.isNewApp(modelData.storageId || "") : false
                                 }

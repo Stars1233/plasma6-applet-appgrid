@@ -5,7 +5,7 @@
     Pushes the persisted *settings* (sort, categories, recents cap, search
     toggles) into the AppFilterModel on open and on every reset.
 
-    The per-user launch state — hidden apps, recents, known apps, launch counts —
+    The per-user launch state — hidden apps, recents, launch counts —
     is NOT bridged here anymore: it lives in the shared LaunchStateStore
     (appgridrc) and AppGridController syncs it into the model directly in C++, so
     every variant and the daemon share one list. See src/launchstatestore.h.
@@ -33,10 +33,6 @@ QtObject {
         appsModel.useSystemCategories = cfg.useSystemCategories
         appsModel.sortFavoritesAlphabetically = cfg.sortFavoritesAlphabetically
         appsModel.searchShowsHidden = cfg.searchShowsHidden
-        // First run on a machine with no stored known-apps set: treat every app
-        // present now as known so the new-app badge only fires for later additions.
-        if (appsModel.knownApps.length === 0)
-            appsModel.markAllKnown()
     }
 
     // Keep the recents cap in step with the column count as it changes.

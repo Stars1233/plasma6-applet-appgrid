@@ -383,7 +383,6 @@ void AppGridPlugin::migrateLaunchState()
     const KConfigGroup src = config().group(QStringLiteral("General"));
     m_controller.launchState()->migrateFrom(src.readEntry("hiddenApps", QStringList()),
                                             src.readEntry("recentApps", QStringList()),
-                                            src.readEntry("knownApps", QStringList()),
                                             src.readEntry("launchCounts", QStringList()));
 }
 

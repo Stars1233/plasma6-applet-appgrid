@@ -12,8 +12,8 @@
 #include <QVariantMap>
 
 /**
- * Per-user launch state for AppFilterModel: the hidden / favorite / recent /
- * known app lists plus their launch counts, and the derived membership sets
+ * Per-user launch state for AppFilterModel: the hidden / favorite / recent
+ * app lists plus their launch counts, and the derived membership sets
  * and favorite-position index that the filter and sort hot paths consult.
  * Owns the rebuild-on-write of those caches.
  *
@@ -68,18 +68,6 @@ public:
     }
     bool recordRecent(const QString &sid, int maxRecent); // prepend + cap
 
-    // -- Known (drives the new-app badge) --
-    [[nodiscard]] const QStringList &known() const
-    {
-        return m_known;
-    }
-    bool setKnown(const QStringList &list);
-    [[nodiscard]] bool isNew(const QString &sid) const
-    {
-        return !m_knownSet.isEmpty() && !m_knownSet.contains(sid);
-    }
-    bool addKnown(const QString &sid); // false if already known
-
     // -- Launch counts --
     [[nodiscard]] QVariantMap launchCountsMap() const;
     bool setLaunchCountsFromMap(const QVariantMap &map); // true if changed
@@ -100,12 +88,10 @@ private:
     void rebuildHiddenSet();
     void rebuildFavoriteSet();
     void rebuildRecentSet();
-    void rebuildKnownSet();
 
     QStringList m_hidden;
     QStringList m_favorites;
     QStringList m_recent;
-    QStringList m_known;
     QHash<QString, int> m_launchCounts;
 
     // Parallel-set lookups for the membership tests that hit every
@@ -113,7 +99,6 @@ private:
     QSet<QString> m_hiddenSet;
     QSet<QString> m_favoriteSet;
     QSet<QString> m_recentSet;
-    QSet<QString> m_knownSet;
     // Position lookup for favorites sort — O(1) replacement for QStringList
     // indexOf that made lessThan O(N²) per comparison.
     QHash<QString, int> m_favoritePositions;

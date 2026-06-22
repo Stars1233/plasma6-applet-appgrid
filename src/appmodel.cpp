@@ -15,7 +15,26 @@
 #include <KServiceGroup>
 #include <KSycoca>
 
+#include <QDateTime>
+#include <QFileInfo>
 #include <QTimer>
+
+namespace
+{
+// How long after its .desktop file was written an app stays a "new app"
+// candidate. Mirrors kicker's recency window; the badge also needs the app to
+// be unused (see UsedAppsProvider).
+constexpr int kNewAppDays = 14;
+
+bool desktopIsRecent(const QString &desktopFile)
+{
+    if (desktopFile.isEmpty()) {
+        return false;
+    }
+    const QDateTime mtime = QFileInfo(desktopFile).lastModified();
+    return mtime.isValid() && mtime.daysTo(QDateTime::currentDateTime()) < kNewAppDays;
+}
+}
 
 AppModel::AppModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -238,6 +257,7 @@ void AppModel::loadApplications()
             appEntry.name = service->name();
             appEntry.icon = service->icon();
             appEntry.desktopFile = service->entryPath();
+            appEntry.recentlyInstalled = desktopIsRecent(appEntry.desktopFile);
             appEntry.genericName = service->genericName();
             appEntry.storageId = storageId;
             appEntry.keywords = service->keywords();
@@ -264,6 +284,12 @@ void AppModel::loadApplications()
     auto assembled = AppModelAssembly::assemble(occurrences, systemMode);
     m_apps = std::move(assembled.apps);
     m_categories = std::move(assembled.categories);
+
+    m_recentlyInstalled.clear();
+    m_recentlyInstalled.reserve(m_apps.size());
+    for (const AppEntry &app : m_apps) {
+        m_recentlyInstalled.insert(app.storageId, app.recentlyInstalled);
+    }
 
     // Simple mode: the bar shows translated bucket names, so key the icon
     // lookup by the same translated label. (System mode already captured each
@@ -315,8 +341,14 @@ void AppModel::reload()
     m_categories.clear();
     m_categoryMenuPaths.clear();
     m_categoryIcons.clear();
+    m_recentlyInstalled.clear();
     loadApplications();
     endResetModel();
+}
+
+bool AppModel::recentlyInstalled(const QString &storageId) const
+{
+    return m_recentlyInstalled.value(storageId, false);
 }
 
 QString AppModel::categoryMenuPath(const QString &category) const

@@ -424,36 +424,21 @@ bool AppFilterModel::isHidden(const QString &storageId) const
     return m_book.isHidden(storageId);
 }
 
-QStringList AppFilterModel::knownApps() const
+void AppFilterModel::setUsedApps(const QSet<QString> &used)
 {
-    return m_book.known();
-}
-
-void AppFilterModel::setKnownApps(const QStringList &list)
-{
-    if (!m_book.setKnown(list)) {
+    if (m_usedApps == used) {
         return;
     }
-    Q_EMIT knownAppsChanged();
+    m_usedApps = used;
+    Q_EMIT newAppsChanged(); // delegates re-read isNewApp
 }
 
 bool AppFilterModel::isNewApp(const QString &storageId) const
 {
-    return m_book.isNew(storageId);
-}
-
-void AppFilterModel::markAllKnown()
-{
-    auto *src = sourceModel();
-    if (!src) {
-        return;
-    }
-    QStringList all;
-    all.reserve(src->rowCount());
-    for (int i = 0; i < src->rowCount(); ++i) {
-        all.append(src->index(i, 0).data(AppModel::StorageIdRole).toString());
-    }
-    setKnownApps(all);
+    // Newly installed = its .desktop is recent and it has no recorded usage
+    // (the same model kicker uses, owned via UsedAppsProvider).
+    auto *src = qobject_cast<AppModel *>(sourceModel());
+    return src && src->recentlyInstalled(storageId) && !m_usedApps.contains(storageId);
 }
 
 bool AppFilterModel::showFavoritesOnly() const
@@ -590,10 +575,8 @@ void AppFilterModel::recordLaunch(const QString &storageId)
     m_book.bumpLaunch(storageId);
     invalidateRowScoreCache(); // cached launchCount changed
     Q_EMIT launchCountsChanged();
-
-    if (m_book.addKnown(storageId)) {
-        Q_EMIT knownAppsChanged();
-    }
+    // The launch also reached KActivities (notifyAccessed); UsedAppsProvider
+    // picks it up and clears the new-app badge.
 }
 
 // --- Filtering ---

@@ -22,6 +22,7 @@ class ResultsModel;
 #include "launchstatestore.h"
 #include "runnerfiltermodel.h"
 #include "unifiedsearchmodel.h"
+#include "usedappsprovider.h"
 
 #ifdef APPGRID_UNIVERSAL_BUILD
 #include "updatechecker.h"
@@ -258,6 +259,7 @@ private:
     RunnerFilterModel m_runnerFilterModel;
     UnifiedSearchModel m_searchModel;
     FrecencyProvider m_frecencyProvider;
+    UsedAppsProvider m_usedApps;
     KSharedConfig::Ptr m_krunnerConfig;
     KConfigWatcher::Ptr m_krunnerWatcher;
     // Always set by setLayerScope() before configurePanelWayland() reads it; the
