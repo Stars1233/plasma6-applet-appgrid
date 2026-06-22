@@ -157,12 +157,28 @@ void AppGridController::wireLaunchState()
     // activity's layout (or the shared one until it diverges) and emits the
     // folders/layout-changed signals the grouped-model wiring below already handles.
     m_activities = new KActivities::Consumer(this);
-    m_launchState.setActivity(m_activityScoping ? m_activities->currentActivity() : QString());
+    // A just-constructed Consumer has NOT synced with the activity manager yet:
+    // activities()/currentActivity() return bootstrap values (empty or the null
+    // UUID), not the real state. Acting on those would prune the current
+    // activity's [Folders] group (wiping its favourites order) and scope to the
+    // wrong activity. So apply the initial state only once the service is Running;
+    // the *Changed signals then carry real data on every later switch.
+    const auto applyActivityState = [this]() {
+        m_launchState.setActivity(m_activityScoping ? m_activities->currentActivity() : QString());
+        // Drop per-activity folder layouts for activities removed in Plasma.
+        m_launchState.pruneActivities(m_activities->activities());
+    };
+    if (m_activities->serviceStatus() == KActivities::Consumer::Running) {
+        applyActivityState();
+    }
+    connect(m_activities, &KActivities::Consumer::serviceStatusChanged, &m_launchState, [applyActivityState](KActivities::Consumer::ServiceStatus status) {
+        if (status == KActivities::Consumer::Running) {
+            applyActivityState();
+        }
+    });
     connect(m_activities, &KActivities::Consumer::currentActivityChanged, &m_launchState, [this](const QString &id) {
         m_launchState.setActivity(m_activityScoping ? id : QString());
     });
-    // Drop per-activity folder layouts for activities removed in Plasma.
-    m_launchState.pruneActivities(m_activities->activities());
     connect(m_activities, &KActivities::Consumer::activitiesChanged, &m_launchState, [this](const QStringList &activities) {
         m_launchState.pruneActivities(activities);
     });
