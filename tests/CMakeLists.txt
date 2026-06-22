@@ -10,6 +10,7 @@ set(TEST_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/appfiltermodel.cpp
     ${CMAKE_SOURCE_DIR}/src/defaultappsresolver.cpp
     ${CMAKE_SOURCE_DIR}/src/categorymapping.cpp
+    ${CMAKE_SOURCE_DIR}/src/categoryqueries.cpp
     ${CMAKE_SOURCE_DIR}/src/runnerfiltermodel.cpp
     ${CMAKE_SOURCE_DIR}/src/unifiedsearchmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/pluginhelpers.cpp
@@ -51,6 +52,8 @@ appgrid_add_test(test_unified_search ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h
 appgrid_add_test(test_appmodel_helpers)
 appgrid_add_test(test_category_mapping
     ${CMAKE_SOURCE_DIR}/src/categorymapping.h)
+# CategoryQueries — pure category grouping over a stub source model.
+appgrid_add_test(test_categoryqueries ${CMAKE_CURRENT_SOURCE_DIR}/stubappmodel.h)
 # Jump-list action favourite id parsing (#64). appactionid.cpp is in
 # TEST_COMMON_SOURCES, so no extra source needed here.
 appgrid_add_test(test_appactionid)

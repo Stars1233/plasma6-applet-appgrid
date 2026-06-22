@@ -50,7 +50,7 @@ bool LaunchBookkeeping::unhide(const QString &sid)
     if (!m_hiddenSet.remove(sid)) {
         return false;
     }
-    m_hidden.removeAll(sid);
+    m_hidden.removeOne(sid); // the set keeps m_hidden unique, so one is enough
     return true;
 }
 
@@ -79,7 +79,7 @@ bool LaunchBookkeeping::recordRecent(const QString &sid, int maxRecent)
     if (sid.isEmpty()) {
         return false;
     }
-    m_recent.removeAll(sid);
+    m_recent.removeOne(sid); // recents stay unique, so one removal suffices
     m_recent.prepend(sid);
     while (m_recent.size() > maxRecent) {
         m_recent.removeLast();

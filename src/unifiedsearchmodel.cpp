@@ -44,23 +44,11 @@ void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
     connectSourceSignals(model);
 
     const auto roles = model->roleNames();
-    for (auto it = roles.begin(); it != roles.end(); ++it) {
-        if (it.value() == QByteArrayLiteral("subtext")) {
-            m_runnerSubtextRole = it.key();
-        }
-        if (it.value() == QByteArrayLiteral("category")) {
-            m_runnerCategoryRole = it.key();
-        }
-        if (it.value() == QByteArrayLiteral("urls")) {
-            m_runnerUrlsRole = it.key();
-        }
-        if (it.value() == QByteArrayLiteral("actions")) {
-            m_runnerActionsRole = it.key();
-        }
-        if (it.value() == QByteArrayLiteral("multiLine")) {
-            m_runnerMultiLineRole = it.key();
-        }
-    }
+    m_runnerSubtextRole = roles.key(QByteArrayLiteral("subtext"), -1);
+    m_runnerCategoryRole = roles.key(QByteArrayLiteral("category"), -1);
+    m_runnerUrlsRole = roles.key(QByteArrayLiteral("urls"), -1);
+    m_runnerActionsRole = roles.key(QByteArrayLiteral("actions"), -1);
+    m_runnerMultiLineRole = roles.key(QByteArrayLiteral("multiLine"), -1);
 }
 
 void UnifiedSearchModel::onSourceChanged()

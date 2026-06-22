@@ -24,12 +24,12 @@ class ResultsModel;
 #include "runnerfiltermodel.h"
 #include "unifiedsearchmodel.h"
 #include "usedappsprovider.h"
+#include "windowconfigurator.h"
 
 #ifdef APPGRID_UNIVERSAL_BUILD
 #include "updatechecker.h"
 #endif
 
-class QScreen;
 class QWindow;
 
 namespace KActivities
@@ -228,20 +228,6 @@ private:
      *  pin-to-taskmanager and button-edit features). */
     [[nodiscard]] bool plasmoidServicePresent() const;
 
-    [[nodiscard]] QScreen *screenForCursor() const;
-    // QScreen with the given output name (null if none / empty).
-    [[nodiscard]] QScreen *screenByName(const QString &name) const;
-    // KWin's active output (authoritative on Wayland, unlike QCursor::pos).
-    [[nodiscard]] QScreen *activeScreen() const;
-    // The screen the panel icon is on — asked of the plasmoid's D-Bus helper
-    // (the daemon has no containment of its own). Null if no plasmoid answers.
-    [[nodiscard]] QScreen *panelScreen() const;
-
-    void configurePanelWayland(QWindow *window);
-#ifdef APPGRID_X11_SUPPORT
-    void configureX11(QWindow *window);
-#endif
-
     // Push the store's lists into the model on load + external change, and the
     // model's own mutations (hide, launch, recents) back into the store. The
     // equality guards on both sides stop the round-trip from looping.
@@ -265,9 +251,9 @@ private:
     NewAppsTracker m_newAppsTracker;
     KSharedConfig::Ptr m_krunnerConfig;
     KConfigWatcher::Ptr m_krunnerWatcher;
-    // Always set by setLayerScope() before configurePanelWayland() reads it; the
-    // standalone is the only caller and uses "appgrid-standalone".
-    QString m_layerScope = QStringLiteral("appgrid-standalone");
+    // Owns the standalone launcher window's layer-shell setup + positioning; the
+    // Q_INVOKABLE configure/position methods forward here.
+    WindowConfigurator m_window;
     // D-Bus object path of the plasmoid whose panel button the settings window
     // edits; set in the constructor to the shared path, retargeted per instance
     // by setButtonTargetId().

@@ -60,17 +60,11 @@ bool RunnerFilterModel::rowIsAction(int row) const
 
 void RunnerFilterModel::captureSourceRoles()
 {
-    m_urlsRole = -1;
     if (!sourceModel()) {
+        m_urlsRole = -1;
         return;
     }
-    const auto roles = sourceModel()->roleNames();
-    for (auto it = roles.begin(); it != roles.end(); ++it) {
-        if (it.value() == QByteArrayLiteral("urls")) {
-            m_urlsRole = it.key();
-            return;
-        }
-    }
+    m_urlsRole = sourceModel()->roleNames().key(QByteArrayLiteral("urls"), -1);
 }
 
 void RunnerFilterModel::ensureAppNameCache() const

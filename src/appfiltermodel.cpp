@@ -7,6 +7,7 @@
 
 #include "appactionid.h"
 #include "appmodel.h"
+#include "categoryqueries.h"
 #include "defaultappsresolver.h"
 #include "searchranking.h"
 
@@ -28,20 +29,6 @@ namespace
 // Off by default; enable with QT_LOGGING_RULES="appgrid.perf.debug=true" to time
 // the per-refresh cost of resolving the role defaults (#200).
 Q_LOGGING_CATEGORY(lcPerf, "appgrid.perf", QtWarningMsg)
-
-// The app fields shared by getByStorageId() and appsByCategory(); each caller
-// adds its own extra key (genericName resp. proxyIndex) on top.
-QVariantMap baseAppMap(const QModelIndex &idx)
-{
-    QVariantMap map;
-    map[QStringLiteral("name")] = idx.data(AppModel::NameRole);
-    map[QStringLiteral("iconName")] = idx.data(AppModel::IconRole);
-    map[QStringLiteral("desktopFile")] = idx.data(AppModel::DesktopFileRole);
-    map[QStringLiteral("storageId")] = idx.data(AppModel::StorageIdRole);
-    map[QStringLiteral("comment")] = idx.data(AppModel::CommentRole);
-    map[QStringLiteral("installSource")] = idx.data(AppModel::InstallSourceRole);
-    return map;
-}
 }
 
 // Re-run only the filter (not the sort). Qt 6.13 replaced invalidateFilter()
@@ -776,32 +763,10 @@ bool AppFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right)
 
 QVariantList AppFilterModel::appsByCategory() const
 {
-    if (!m_groupedByCategoryDirty) {
-        return m_groupedByCategoryCache;
+    if (m_groupedByCategoryDirty) {
+        m_groupedByCategoryCache = CategoryQueries::groupByCategory(this);
+        m_groupedByCategoryDirty = false;
     }
-
-    QMap<QString, QVariantList> catMap;
-    for (int i = 0; i < rowCount(); ++i) {
-        const auto idx = index(i, 0);
-        const auto cats = idx.data(AppModel::CategoriesRole).toStringList();
-
-        QVariantMap app = baseAppMap(idx);
-        app[QStringLiteral("proxyIndex")] = i;
-
-        for (const auto &cat : cats) {
-            catMap[cat].append(app);
-        }
-    }
-
-    QVariantList result;
-    for (auto it = catMap.constBegin(); it != catMap.constEnd(); ++it) {
-        QVariantMap section;
-        section[QStringLiteral("category")] = it.key();
-        section[QStringLiteral("apps")] = it.value();
-        result.append(section);
-    }
-    m_groupedByCategoryCache = result;
-    m_groupedByCategoryDirty = false;
     return m_groupedByCategoryCache;
 }
 
@@ -882,7 +847,7 @@ QVariantMap AppFilterModel::getByStorageId(const QString &storageId) const
         return map;
     }
     const auto idx = src->index(row, 0);
-    map = baseAppMap(idx);
+    map = CategoryQueries::appDataMap(idx);
     map[QStringLiteral("genericName")] = idx.data(AppModel::GenericNameRole);
     return map;
 }

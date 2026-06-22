@@ -221,6 +221,8 @@ set(APPGRID_COMMON_SOURCES
     src/appfiltermodel.h
     src/categorymapping.cpp
     src/categorymapping.h
+    src/categoryqueries.cpp
+    src/categoryqueries.h
     src/discoverbackends.cpp
     src/discoverbackends.h
     src/pluginhelpers.cpp
@@ -247,6 +249,8 @@ set(APPGRID_COMMON_SOURCES
     src/usedappsprovider.h
     src/newappstracker.cpp
     src/newappstracker.h
+    src/windowconfigurator.cpp
+    src/windowconfigurator.h
     src/frecencyscoring.cpp
     src/frecencyscoring.h
 )
