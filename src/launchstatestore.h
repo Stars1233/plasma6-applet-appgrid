@@ -87,9 +87,12 @@ Q_SIGNALS:
 
 private:
     void load();
-    // Read folders + layout for the current activity, with copy-on-write fallback
-    // to the shared legacy layout. Split out so setActivity() reuses it.
+    // Read folders + layout for the current activity: global defs from [General]
+    // plus this activity's local defs/order. Split out so setActivity() reuses it.
     void loadFolders();
+    // Persist folders: global defs to [General], local defs + order to the
+    // activity group (or everything to [General] when scoping is off).
+    void saveFolders();
     void scheduleSave();
     void save();
     // Re-read after an external change and emit only the keys that moved.

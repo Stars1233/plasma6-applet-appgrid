@@ -54,6 +54,7 @@ private Q_SLOTS:
     void createFolderDedupsMembers();
     void moveTopLevelInvalidIndicesNoop();
     void jsonRoundTrip();
+    void globalFlagToggleReconcileAndRoundTrip();
 };
 
 void TestFavoritesFolderLogic::reconcileAppendsNewFavourites()
@@ -75,8 +76,7 @@ void TestFavoritesFolderLogic::reconcileKeepsFolderMemberNotInFavourites()
     in.tokens = {fold(QStringLiteral("f1"))};
     const Layout out = reconcile({QStringLiteral("a.desktop"), QStringLiteral("b.desktop")}, in);
     QCOMPARE(out.folders.size(), 1);
-    QCOMPARE(out.folders.first().members,
-             QStringList({QStringLiteral("a.desktop"), QStringLiteral("b.desktop"), QStringLiteral("c.desktop")}));
+    QCOMPARE(out.folders.first().members, QStringList({QStringLiteral("a.desktop"), QStringLiteral("b.desktop"), QStringLiteral("c.desktop")}));
     // c is held by the folder, so it is not also emitted as a loose app token.
     QCOMPARE(out.tokens, QStringList{fold(QStringLiteral("f1"))});
 }
@@ -260,6 +260,26 @@ void TestFavoritesFolderLogic::jsonRoundTrip()
     QCOMPARE(back.first().id, QStringLiteral("f1"));
     QCOMPARE(back.first().name, QStringLiteral("Games"));
     QCOMPARE(back.first().members, QStringList({QStringLiteral("a.desktop"), QStringLiteral("b.desktop")}));
+}
+
+void TestFavoritesFolderLogic::globalFlagToggleReconcileAndRoundTrip()
+{
+    Layout in;
+    in.folders = {folder(QStringLiteral("f1"), {QStringLiteral("a.desktop")}, QStringLiteral("Work"))};
+    in.tokens = {fold(QStringLiteral("f1"))};
+    QVERIFY(!in.folders.first().global); // local by default
+
+    // setFolderGlobal flips it, reconcile preserves it.
+    const Layout out = setFolderGlobal(in, QStringLiteral("f1"), true);
+    QVERIFY(out.folders.first().global);
+    const Layout rec = reconcile({QStringLiteral("a.desktop")}, out);
+    QVERIFY(rec.folders.first().global);
+
+    // JSON round-trip carries the flag (and absence reads back as local).
+    const QList<Folder> global = foldersFromVariant(foldersFromJsonList(foldersToJsonList(foldersToVariant(out.folders))));
+    QVERIFY(global.first().global);
+    const QList<Folder> local = foldersFromVariant(foldersFromJsonList(foldersToJsonList(foldersToVariant(in.folders))));
+    QVERIFY(!local.first().global);
 }
 
 QTEST_GUILESS_MAIN(TestFavoritesFolderLogic)

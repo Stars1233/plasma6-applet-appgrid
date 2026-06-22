@@ -23,17 +23,31 @@ const QString kLaunchCountsKey = QStringLiteral("launchCounts");
 const QString kFoldersKey = QStringLiteral("favoriteFolders");
 const QString kLayoutKey = QStringLiteral("favoriteLayout");
 
-// Per-activity folders live under [Folders][<activityId>]; the shared default is
-// the legacy [General] layout, which an activity reads until it's edited there
-// (copy-on-write). No activity set → the shared [General] layout directly.
+// Folder storage. Global folder definitions live in [General] (shown in every
+// activity); an activity's local folders + its top-level order live under
+// [Folders][<activityId>]. With no activity set (scoping off) everything is in
+// [General] — the previous global behaviour.
 const QString kFoldersGroup = QStringLiteral("Folders");
 
 // Coalesce bursts of live writes (hide, launch, recents) into one save.
 constexpr int kSaveDebounceMs = 500;
 
-KConfigGroup activityFolders(const KSharedConfig::Ptr &config, const QString &activity)
+using FavoritesFolderLogic::Folder;
+
+// A group's folders, with their global flag forced — the group they load from is
+// the authority (the on-disk flag is only a carrier).
+QList<Folder> readFolders(const KConfigGroup &group, bool global)
 {
-    return activity.isEmpty() ? config->group(kGroup) : config->group(kFoldersGroup).group(activity);
+    QList<Folder> folders = FavoritesFolderLogic::foldersFromVariant(FavoritesFolderLogic::foldersFromJsonList(group.readEntry(kFoldersKey, QStringList())));
+    for (Folder &f : folders) {
+        f.global = global;
+    }
+    return folders;
+}
+
+QStringList foldersToJson(const QList<Folder> &folders)
+{
+    return FavoritesFolderLogic::foldersToJsonList(FavoritesFolderLogic::foldersToVariant(folders));
 }
 }
 
@@ -196,12 +210,42 @@ void LaunchStateStore::load()
 
 void LaunchStateStore::loadFolders()
 {
-    const KConfigGroup activity = activityFolders(m_config, m_activity);
-    // Once this activity has its own layout, read that; until then every activity
-    // shows the shared legacy [General] folders (copy-on-write on first edit).
-    const KConfigGroup src = activity.hasKey(kFoldersKey) ? activity : m_config->group(kGroup);
-    m_favoriteFolders = FavoritesFolderLogic::foldersFromJsonList(src.readEntry(kFoldersKey, QStringList()));
-    m_favoriteLayout = src.readEntry(kLayoutKey, QStringList());
+    const KConfigGroup globalGroup = m_config->group(kGroup);
+    if (m_activity.isEmpty()) {
+        // Scoping off: everything is global, in [General].
+        m_favoriteFolders = FavoritesFolderLogic::foldersToVariant(readFolders(globalGroup, false));
+        m_favoriteLayout = globalGroup.readEntry(kLayoutKey, QStringList());
+        return;
+    }
+    // Per-activity: global folders ([General]) plus this activity's local folders;
+    // the activity owns the top-level order (empty until first edit — reconcile
+    // then appends the global folders).
+    const KConfigGroup localGroup = m_config->group(kFoldersGroup).group(m_activity);
+    m_favoriteFolders = FavoritesFolderLogic::foldersToVariant(readFolders(globalGroup, true) + readFolders(localGroup, false));
+    m_favoriteLayout = localGroup.readEntry(kLayoutKey, QStringList());
+}
+
+void LaunchStateStore::saveFolders()
+{
+    const auto flags = KConfigBase::Persistent | KConfigBase::Notify;
+    KConfigGroup globalGroup = m_config->group(kGroup);
+    const QList<Folder> all = FavoritesFolderLogic::foldersFromVariant(m_favoriteFolders);
+    if (m_activity.isEmpty()) {
+        globalGroup.writeEntry(kFoldersKey, foldersToJson(all), flags);
+        globalGroup.writeEntry(kLayoutKey, m_favoriteLayout, flags);
+        return;
+    }
+    // Split by the global flag: global defs to [General], local defs + the
+    // activity's order to [Folders][<activity>].
+    QList<Folder> globalDefs;
+    QList<Folder> localDefs;
+    for (const Folder &f : all) {
+        (f.global ? globalDefs : localDefs).append(f);
+    }
+    globalGroup.writeEntry(kFoldersKey, foldersToJson(globalDefs), flags);
+    KConfigGroup localGroup = m_config->group(kFoldersGroup).group(m_activity);
+    localGroup.writeEntry(kFoldersKey, foldersToJson(localDefs), flags);
+    localGroup.writeEntry(kLayoutKey, m_favoriteLayout, flags);
 }
 
 void LaunchStateStore::setActivity(const QString &activityId)
@@ -243,11 +287,7 @@ void LaunchStateStore::save()
     group.writeEntry(kRecentKey, m_recent, flags);
     group.writeEntry(kKnownKey, m_known, flags);
     group.writeEntry(kLaunchCountsKey, countsToList(m_launchCounts), flags);
-    // Folders/layout are per-activity (copy-on-write): they go under
-    // [Folders][<activityId>], not the shared [General] group.
-    KConfigGroup folders = activityFolders(m_config, m_activity);
-    folders.writeEntry(kFoldersKey, FavoritesFolderLogic::foldersToJsonList(m_favoriteFolders), flags);
-    folders.writeEntry(kLayoutKey, m_favoriteLayout, flags);
+    saveFolders();
     group.sync();
 }
 

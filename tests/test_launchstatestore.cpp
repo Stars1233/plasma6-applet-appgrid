@@ -26,7 +26,7 @@ private Q_SLOTS:
     void persists_acrossInstances();
     void migrateFrom_seedsOnlyAbsentKeys();
     void favoriteFolders_roundtripThroughFile();
-    void perActivityFolders_scopeAndFallback();
+    void perActivityFolders_globalAndLocal();
     void favoriteLayout_roundtripThroughFile();
 
 private:
@@ -152,45 +152,53 @@ void TestLaunchStateStore::favoriteFolders_roundtripThroughFile()
     QCOMPARE(reopened.favoriteFolders().first().toMap().value(QStringLiteral("members")).toStringList().size(), 2);
 }
 
-void TestLaunchStateStore::perActivityFolders_scopeAndFallback()
+void TestLaunchStateStore::perActivityFolders_globalAndLocal()
 {
     auto cfg = freshConfig();
-    const auto folder = [](const QString &id, const QString &name) {
-        return QVariantMap{{QStringLiteral("id"), id}, {QStringLiteral("name"), name}, {QStringLiteral("members"), QStringList{QStringLiteral("a.desktop")}}};
+    const auto folder = [](const QString &id, const QString &name, bool global) {
+        QVariantMap m{{QStringLiteral("id"), id}, {QStringLiteral("name"), name}, {QStringLiteral("members"), QStringList{QStringLiteral("a.desktop")}}};
+        if (global) {
+            m[QStringLiteral("global")] = true;
+        }
+        return m;
     };
-    const auto nameOf = [](const LaunchStateStore &s) {
-        return s.favoriteFolders().isEmpty() ? QString() : s.favoriteFolders().first().toMap().value(QStringLiteral("name")).toString();
+    const auto names = [](const LaunchStateStore &s) {
+        QStringList out;
+        for (const QVariant &v : s.favoriteFolders()) {
+            out << v.toMap().value(QStringLiteral("name")).toString();
+        }
+        out.sort();
+        return out;
     };
 
-    // Seed a shared (no-activity) layout.
+    // A global folder, created with scoping off (→ [General]).
     {
         LaunchStateStore store(cfg);
-        store.setFavoriteFolders({folder(QStringLiteral("g"), QStringLiteral("Shared"))});
+        store.setFavoriteFolders({folder(QStringLiteral("g"), QStringLiteral("Global"), true)});
         QTest::qWait(700);
     }
-    // An activity with no layout of its own falls back to the shared one, then
-    // editing copies-on-write into that activity's own group.
+    // Activity A sees the global folder; add a local one.
     {
         LaunchStateStore store(cfg);
         store.setActivity(QStringLiteral("activity-A"));
-        QCOMPARE(nameOf(store), QStringLiteral("Shared"));
-        store.setFavoriteFolders({folder(QStringLiteral("a"), QStringLiteral("WorkOnly"))});
+        QCOMPARE(names(store), QStringList{QStringLiteral("Global")});
+        store.setFavoriteFolders({folder(QStringLiteral("g"), QStringLiteral("Global"), true), folder(QStringLiteral("a"), QStringLiteral("WorkOnly"), false)});
         QTest::qWait(700);
     }
-    // Activity A now has its own; the shared layout and other activities don't.
+    // A sees both; B and the off/global view see only the global one.
     {
         LaunchStateStore store(cfg);
         store.setActivity(QStringLiteral("activity-A"));
-        QCOMPARE(nameOf(store), QStringLiteral("WorkOnly"));
-    }
-    {
-        LaunchStateStore store(cfg); // no activity → shared
-        QCOMPARE(nameOf(store), QStringLiteral("Shared"));
+        QCOMPARE(names(store), (QStringList{QStringLiteral("Global"), QStringLiteral("WorkOnly")}));
     }
     {
         LaunchStateStore store(cfg);
-        store.setActivity(QStringLiteral("activity-B")); // never edited → shared
-        QCOMPARE(nameOf(store), QStringLiteral("Shared"));
+        store.setActivity(QStringLiteral("activity-B"));
+        QCOMPARE(names(store), QStringList{QStringLiteral("Global")});
+    }
+    {
+        LaunchStateStore store(cfg); // scoping off
+        QCOMPARE(names(store), QStringList{QStringLiteral("Global")});
     }
 }
 

@@ -110,6 +110,27 @@ void FavoritesGroupedModel::renameFolder(const QString &folderId, const QString 
     apply(reconcile(m_flatFavorites, FavoritesFolderLogic::renameFolder(m_state, folderId, name)), true);
 }
 
+void FavoritesGroupedModel::setFolderGlobal(const QString &folderId, bool global)
+{
+    apply(reconcile(m_flatFavorites, FavoritesFolderLogic::setFolderGlobal(m_state, folderId, global)), true);
+}
+
+int FavoritesGroupedModel::folderIndex(const QString &folderId) const
+{
+    for (int i = 0; i < m_state.folders.size(); ++i) {
+        if (m_state.folders.at(i).id == folderId) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool FavoritesGroupedModel::isFolderGlobal(const QString &folderId) const
+{
+    const int idx = folderIndex(folderId);
+    return idx >= 0 && m_state.folders.at(idx).global;
+}
+
 void FavoritesGroupedModel::ungroupFolder(const QString &folderId)
 {
     apply(reconcile(m_flatFavorites, FavoritesFolderLogic::dissolveFolder(m_state, folderId)), true);
@@ -167,12 +188,10 @@ void FavoritesGroupedModel::rebuildRows()
     rows.reserve(m_state.tokens.size());
     for (const QString &token : m_state.tokens) {
         if (isFolderToken(token)) {
-            const QString id = tokenPayload(token);
-            for (const FavoritesFolderLogic::Folder &f : m_state.folders) {
-                if (f.id == id) {
-                    rows.append({AbstractGroupedModel::Folder, {}, f.id, f.name, f.members});
-                    break;
-                }
+            const int idx = folderIndex(tokenPayload(token));
+            if (idx >= 0) {
+                const FavoritesFolderLogic::Folder &f = m_state.folders.at(idx);
+                rows.append({AbstractGroupedModel::Folder, {}, f.id, f.name, f.members});
             }
         } else if (isAppToken(token)) {
             Row row;

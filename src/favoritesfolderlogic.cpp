@@ -101,7 +101,7 @@ Layout reconcile(const QStringList &flatFavorites, const Layout &in)
     QSet<QString> folderIds;
     for (const Folder &f : in.folders) {
         const QStringList members = dedupMembers(f.members);
-        folders.append({f.id, f.name, members});
+        folders.append({f.id, f.name, members, f.global});
         folderIds.insert(f.id);
         for (const QString &m : members) {
             inFolder.insert(m);
@@ -266,6 +266,17 @@ Layout renameFolder(const Layout &in, const QString &folderId, const QString &na
     return out;
 }
 
+Layout setFolderGlobal(const Layout &in, const QString &folderId, bool global)
+{
+    const int target = folderIndex(in.folders, folderId);
+    if (target < 0) {
+        return in;
+    }
+    Layout out = in;
+    out.folders[target].global = global;
+    return out;
+}
+
 Layout moveTopLevel(const Layout &in, int fromRow, int toRow)
 {
     if (fromRow < 0 || fromRow >= in.tokens.size() || toRow < 0 || toRow >= in.tokens.size() || fromRow == toRow) {
@@ -315,6 +326,10 @@ QVariantList foldersToVariant(const QList<Folder> &folders)
         map[QStringLiteral("id")] = f.id;
         map[QStringLiteral("name")] = f.name;
         map[QStringLiteral("members")] = f.members;
+        // Only emit when set — old entries without the key read back as local.
+        if (f.global) {
+            map[QStringLiteral("global")] = true;
+        }
         list.append(map);
     }
     return list;
@@ -330,7 +345,10 @@ QList<Folder> foldersFromVariant(const QVariantList &list)
         if (id.isEmpty()) {
             continue;
         }
-        folders.append({id, map.value(QStringLiteral("name")).toString(), map.value(QStringLiteral("members")).toStringList()});
+        folders.append({id,
+                        map.value(QStringLiteral("name")).toString(),
+                        map.value(QStringLiteral("members")).toStringList(),
+                        map.value(QStringLiteral("global")).toBool()});
     }
     return folders;
 }

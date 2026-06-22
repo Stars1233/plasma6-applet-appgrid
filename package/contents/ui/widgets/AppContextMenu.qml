@@ -40,6 +40,8 @@ Item {
     property bool enableActivities: false
     property bool favoritesActive: false
     property string popupFolderId: ""
+    // Whether the right-clicked folder is shown in every activity (#18).
+    property bool popupFolderGlobal: false
     // Folders available at all (model present + editable). The favourites-tab
     // gate is applied per-action where it matters (bulk/empty/folder menus).
     readonly property bool _canFolder: favoritesGroupedModel && favoritesGroupedModel.editable
@@ -245,6 +247,7 @@ Item {
         if (!_canFolder || !folderId)
             return
         popupFolderId = folderId
+        popupFolderGlobal = favoritesGroupedModel.isFolderGlobal(folderId)
         folderMenu.popup()
     }
 
@@ -576,6 +579,18 @@ Item {
             text: i18nd("dev.xarbit.appgrid", "Rename Folder…")
             onClicked: {
                 contextMenu.renameFolderRequested(contextMenu.popupFolderId)
+                folderMenu.close()
+            }
+        }
+        // Per-activity opt-in only (#18): otherwise every folder is global anyway.
+        PlasmaComponents.MenuItem {
+            visible: contextMenu.enableActivities
+            checkable: true
+            checked: contextMenu.popupFolderGlobal
+            text: i18nd("dev.xarbit.appgrid", "Show in all activities")
+            onClicked: {
+                if (contextMenu.favoritesGroupedModel)
+                    contextMenu.favoritesGroupedModel.setFolderGlobal(contextMenu.popupFolderId, !contextMenu.popupFolderGlobal)
                 folderMenu.close()
             }
         }

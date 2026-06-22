@@ -26,10 +26,11 @@ struct Folder {
     QString id;
     QString name;
     QStringList members; // ordered bare storageIds
+    bool global = false; // shown in every activity, not just the current one
 
     bool operator==(const Folder &o) const
     {
-        return id == o.id && name == o.name && members == o.members;
+        return id == o.id && name == o.name && members == o.members && global == o.global;
     }
 };
 
@@ -70,6 +71,8 @@ struct Layout {
 [[nodiscard]] Layout addToFolder(const Layout &in, const QString &folderId, const QString &sid);
 [[nodiscard]] Layout removeFromFolder(const Layout &in, const QString &folderId, const QString &sid);
 [[nodiscard]] Layout renameFolder(const Layout &in, const QString &folderId, const QString &name);
+// Mark a folder shown in every activity (global) or only the current one.
+[[nodiscard]] Layout setFolderGlobal(const Layout &in, const QString &folderId, bool global);
 // Dissolve a folder: remove it and drop its members back in its place as loose
 // top-level apps (they stay favourites).
 [[nodiscard]] Layout dissolveFolder(const Layout &in, const QString &folderId);

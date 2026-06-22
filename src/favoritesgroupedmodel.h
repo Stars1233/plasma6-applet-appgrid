@@ -52,6 +52,9 @@ public:
     Q_INVOKABLE void addToFolder(const QString &folderId, const QString &sid);
     Q_INVOKABLE void removeFromFolder(const QString &folderId, const QString &sid);
     Q_INVOKABLE void renameFolder(const QString &folderId, const QString &name);
+    // Show a folder in every activity (global) or only the current one.
+    Q_INVOKABLE void setFolderGlobal(const QString &folderId, bool global);
+    [[nodiscard]] Q_INVOKABLE bool isFolderGlobal(const QString &folderId) const;
     // Dissolve a folder: its members return to the top level as loose favourites.
     Q_INVOKABLE void ungroupFolder(const QString &folderId);
     Q_INVOKABLE void moveTopLevel(int fromRow, int toRow);
@@ -84,6 +87,8 @@ private:
     // favouriting them in KAStats in the same step) so grouping survives reconcile.
     void _adoptFavorites(const QStringList &sids);
     void rebuildRows();
+    // Index of the folder with @p folderId in m_state, or -1.
+    [[nodiscard]] int folderIndex(const QString &folderId) const;
 
     FavoritesFolderLogic::Layout m_state;
     QStringList m_flatFavorites;
