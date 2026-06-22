@@ -86,16 +86,16 @@ DropArea {
         const fy = t.y + fr.y
         if (pos.x >= fx && pos.x <= fx + fr.width && pos.y >= fy && pos.y <= fy + fr.height)
             return 1
-        // Direction of travel, source → target. Falls back to a horizontal
-        // default when the source item is recycled mid-drag (off-screen).
-        const tcx = t.x + t.width / 2
-        const tcy = t.y + t.height / 2
-        const s = gridView.itemAtIndex(sourceIdx)
-        let dx = 1, dy = 0
-        if (s) {
-            dx = tcx - (s.x + s.width / 2)
-            dy = tcy - (s.y + s.height / 2)
-        }
+        if (sourceIdx < 0)
+            return 0
+        // Direction of travel, source → target, taken from the grid indices, not
+        // the source delegate's pixel centre: itemAtIndex(sourceIdx) can be null
+        // right after open (or once the source recycles mid-drag), and the old
+        // horizontal fallback then misread a vertical approach as a reorder —
+        // swapping instead of folding on the first drag (#200).
+        const cols = gridView.effectiveColumns || 1
+        let dx = (targetIdx % cols) - (sourceIdx % cols)
+        let dy = Math.floor(targetIdx / cols) - Math.floor(sourceIdx / cols)
         const len = Math.hypot(dx, dy) || 1
         dx /= len
         dy /= len
