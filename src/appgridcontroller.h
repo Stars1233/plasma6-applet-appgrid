@@ -114,19 +114,25 @@ public:
     /** Broadcast an app launch to the system-wide KActivities database. */
     Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
 
-    /** Pin @p desktopFile (an absolute .desktop path) to the panel's Task
-     *  Manager. Adds "applications:<storageId>" to every icontasks/taskmanager
-     *  applet's launcher list via plasmashell scripting (Kicker does this
-     *  in-process; a separate process must go through evaluateScript). */
+    /** Pin @p desktopFile (an absolute .desktop path) to the Task Manager. When
+     *  hosted by a live applet (setInProcessTaskManagerPin(true)) this just emits
+     *  addToTaskManagerRequested for the applet's QML to run Kicker's in-process
+     *  pin; the standalone daemon (no corona) delegates to the center plasmoid's
+     *  D-Bus helper instead. */
     Q_INVOKABLE void addToTaskManager(const QString &desktopFile);
+
+    /** Mark this controller as hosted by a live applet, so the Task Manager pin
+     *  runs in-process (via addToTaskManagerRequested) rather than over D-Bus.
+     *  Off by default — the standalone daemon delegates. */
+    void setInProcessTaskManagerPin(bool inProcess);
 
     /** Add @p desktopFile (an absolute .desktop path) to the desktop by dropping
      *  it into the XDG Desktop directory (shown by Folder View). */
     Q_INVOKABLE void addToDesktop(const QString &desktopFile);
 
-    /** True if the daemon can pin to the Task Manager — the center plasmoid's
-     *  D-Bus helper is up to run the in-process Kicker pin (absent when the
-     *  launcher runs without a plasmoid). The menu hides the action otherwise. */
+    /** True if pinning is possible — in-process when an applet hosts us, else the
+     *  center plasmoid's D-Bus helper must be up. The menu hides the action when
+     *  neither holds. */
     [[nodiscard]] Q_INVOKABLE bool canPinToTaskManager() const;
 
     /** True if a Folder View desktop exists to actually show a dropped .desktop
@@ -215,6 +221,10 @@ public:
     Q_INVOKABLE QVariantMap systemInfo(const QString &variant = QStringLiteral("Center"));
 
 Q_SIGNALS:
+    /** Pin @p desktopFile to the Task Manager in-process. Emitted only when an
+     *  applet hosts us (setInProcessTaskManagerPin); the applet's QML runs the
+     *  real Kicker ContainmentInterface pin, which needs a live corona. */
+    void addToTaskManagerRequested(const QString &desktopFile);
     /** The button-edit target changed (settings opened from a different center
      *  plasmoid while open); the settings window re-reads that instance's button. */
     void buttonTargetChanged();
@@ -259,6 +269,8 @@ private:
     // by setButtonTargetId().
     QString m_buttonTargetPath;
     QVariantMap m_lastButtonAppearance;
+    // Set by the hosting applet: pin in-process (emit) instead of over D-Bus.
+    bool m_inProcessTaskManagerPin = false;
 #ifdef APPGRID_UNIVERSAL_BUILD
     mutable UpdateChecker *m_updateChecker = nullptr;
 #endif

@@ -7,9 +7,9 @@
     relevant configuration change. Lives here so both variant main.qml files
     stop duplicating the same sync wiring.
 
-    Dependencies are injected (configuration handle, updateChecker, the
-    PlasmoidBridge for the setters) rather than reached through Plasmoid.*, so
-    this stays consistent with the other controllers and can be stubbed.
+    Dependencies are injected (configuration handle, updateChecker, the bridge
+    object for the setters) rather than reached through Plasmoid.* directly, so
+    this stays consistent with the other controllers and can be stubbed in tests.
 */
 
 import QtQuick

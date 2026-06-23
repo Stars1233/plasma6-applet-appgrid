@@ -7,7 +7,7 @@
     and lets it fill the page.
 
     Deliberate exception to the cfg_ buffering restored on the other pages (#191):
-    hidden-app writes go straight to the live model (Plasmoid.appsModel), not a
+    hidden-app writes go straight to the live model (Plasmoid.controller.appsModel), not a
     buffer. This is an action list, not a form — the launcher's right-click
     "Unhide" mutates the same model, the live binding keeps the list in sync, and
     AppGridController persists every change to the shared LaunchStateStore
@@ -28,6 +28,6 @@ KCM.AbstractKCM {
     ConfigHiddenAppsContent {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.largeSpacing
-        appsModel: Plasmoid.appsModel
+        appsModel: Plasmoid.controller.appsModel
     }
 }

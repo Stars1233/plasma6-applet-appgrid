@@ -52,8 +52,10 @@ Kirigami.ShadowedRectangle {
     // hiddenApps).
     required property var configuration
 
-    // Single Plasmoid-callback surface; see PlasmoidBridge.qml. Tests
-    // inject a plain QtObject stub with the same method names.
+    // The plasmoid-callback surface (methods + favoritesGroupedModel / isWayland).
+    // Panel injects the applet (Plasmoid), standalone injects its controller; both
+    // implement the same Q_PROPERTY / Q_INVOKABLE interface. Tests inject a plain
+    // QtObject stub with the same names.
     required property var plasmoidBridge
 
     // Update-checker handle (null on distro packages); forwarded to HeaderActionStrip.

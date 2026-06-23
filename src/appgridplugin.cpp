@@ -19,13 +19,17 @@
 #include <QScreen>
 #include <QTimer>
 
-#include <Plasma/Containment>
 #include <PlasmaQuick/AppletQuickItem>
 
 AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
     : Plasma::Applet(parent, data, args)
     , m_controller(this)
 {
+    // A live applet hosts the controller, so the Task Manager pin runs in-process
+    // (Kicker's ContainmentInterface needs a corona); the controller emits a
+    // request the variant's QML handles. The standalone daemon leaves this off.
+    m_controller.setInProcessTaskManagerPin(true);
+
     // Do NOT prune/sync this applet's config here: config() is plasmashell's
     // appletsrc, and writing+syncing it from the constructor (before the shell
     // finishes restoring its containments) persists a partial file and resets
@@ -95,7 +99,9 @@ QVariantMap AppGridPlugin::buttonAppearance() const
 void AppGridPlugin::registerPlasmoidService()
 {
     m_plasmoidService = new AppGridPlasmoidService(this, this);
-    connect(m_plasmoidService, &AppGridPlasmoidService::addToTaskManagerRequested, this, &AppGridPlugin::addToTaskManagerRequested);
+    // The daemon's pin request reaches the controller, which (in-process) emits
+    // addToTaskManagerRequested for this center plasmoid's QML to run the real pin.
+    connect(m_plasmoidService, &AppGridPlasmoidService::addToTaskManagerRequested, &m_controller, &AppGridController::addToTaskManager);
     connect(m_plasmoidService, &AppGridPlasmoidService::setButtonAppearanceRequested, this, &AppGridPlugin::setButtonAppearanceRequested);
 
     auto bus = QDBusConnection::sessionBus();
@@ -111,77 +117,9 @@ void AppGridPlugin::registerPlasmoidService()
     bus.registerService(AppGrid::PlasmoidDbus::Service);
 }
 
-// --- Property forwarders ---
-
-AppFilterModel *AppGridPlugin::appsModel() const
+AppGridController *AppGridPlugin::controller()
 {
-    return m_controller.appsModel();
-}
-
-FavoritesGroupedModel *AppGridPlugin::favoritesGroupedModel() const
-{
-    return m_controller.favoritesGroupedModel();
-}
-
-QAbstractItemModel *AppGridPlugin::runnerModel() const
-{
-    return m_controller.runnerModel();
-}
-
-QObject *AppGridPlugin::runnerSourceModel() const
-{
-    return m_controller.runnerSourceModel();
-}
-
-UnifiedSearchModel *AppGridPlugin::searchModel() const
-{
-    return m_controller.searchModel();
-}
-
-bool AppGridPlugin::isWayland() const
-{
-    return m_controller.isWayland();
-}
-
-bool AppGridPlugin::isUniversalBuild() const
-{
-    return m_controller.isUniversalBuild();
-}
-
-#ifdef APPGRID_UNIVERSAL_BUILD
-UpdateChecker *AppGridPlugin::updateChecker() const
-{
-    return m_controller.updateChecker();
-}
-#endif
-
-void AppGridPlugin::notifyAppLaunched(const QString &storageId)
-{
-    m_controller.notifyAppLaunched(storageId);
-}
-
-void AppGridPlugin::addToTaskManager(const QString &desktopFile)
-{
-    // Run in-process: the variant's QML pins via Kicker's ContainmentInterface,
-    // which needs this live applet + its corona (activities included). The
-    // daemon reaches the same signal through AppGridPlasmoidService on D-Bus.
-    Q_EMIT addToTaskManagerRequested(desktopFile);
-}
-
-void AppGridPlugin::addToDesktop(const QString &desktopFile)
-{
-    m_controller.addToDesktop(desktopFile);
-}
-
-bool AppGridPlugin::canPinToTaskManager() const
-{
-    // The plasmoid runs the pin in-process (it has the applet + corona).
-    return true;
-}
-
-bool AppGridPlugin::canAddToDesktop() const
-{
-    return m_controller.canAddToDesktop();
+    return &m_controller;
 }
 
 QString AppGridPlugin::panelScreenName() const
@@ -195,90 +133,6 @@ QString AppGridPlugin::panelScreenName() const
     }
     return {};
 }
-
-void AppGridPlugin::setSearchUsesFrecency(bool enabled)
-{
-    m_controller.setSearchUsesFrecency(enabled);
-}
-
-void AppGridPlugin::setActivityScopingEnabled(bool enabled)
-{
-    m_controller.setActivityScopingEnabled(enabled);
-}
-
-void AppGridPlugin::setSearchShowsHidden(bool enabled)
-{
-    m_controller.setSearchShowsHidden(enabled);
-}
-
-// --- Prefix mode forwarders ---
-
-void AppGridPlugin::runInTerminal(const QString &command, const QString &shell)
-{
-    m_controller.runInTerminal(command, shell);
-}
-
-void AppGridPlugin::runCommand(const QString &command, const QString &shell)
-{
-    m_controller.runCommand(command, shell);
-}
-
-QStringList AppGridPlugin::availableShells()
-{
-    return m_controller.availableShells();
-}
-
-bool AppGridPlugin::runRunnerResult(int index)
-{
-    return m_controller.runRunnerResult(index);
-}
-
-bool AppGridPlugin::runRunnerAction(int index, int actionIndex)
-{
-    return m_controller.runRunnerAction(index, actionIndex);
-}
-
-QString AppGridPlugin::runnerSubstitutionText(int index)
-{
-    return m_controller.runnerSubstitutionText(index);
-}
-
-QString AppGridPlugin::runnerResultFavoriteId(int index) const
-{
-    return m_controller.runnerResultFavoriteId(index);
-}
-
-QVariantList AppGridPlugin::appActions(const QString &storageId)
-{
-    return m_controller.appActions(storageId);
-}
-
-void AppGridPlugin::launchAppAction(const QString &storageId, int actionIndex)
-{
-    m_controller.launchAppAction(storageId, actionIndex);
-}
-
-bool AppGridPlugin::isDiscoverAvailable() const
-{
-    return m_controller.isDiscoverAvailable();
-}
-
-bool AppGridPlugin::canManageInDiscover(const QString &storageId) const
-{
-    return m_controller.canManageInDiscover(storageId);
-}
-
-void AppGridPlugin::openInDiscover(const QString &storageId)
-{
-    m_controller.openInDiscover(storageId);
-}
-
-QVariantList AppGridPlugin::listDirectory(const QString &path)
-{
-    return m_controller.listDirectory(path);
-}
-
-// --- System info ---
 
 QVariantMap AppGridPlugin::systemInfo()
 {

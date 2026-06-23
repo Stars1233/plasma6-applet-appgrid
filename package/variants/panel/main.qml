@@ -31,15 +31,17 @@ PlasmoidItem {
     readonly property alias isDragInFlight: dragSourceImpl.isDragInFlight
     DragSource { id: dragSourceImpl }
 
-    PlasmoidBridge { id: bridge }
+    // GridPanel and the controllers are driven by the applet's controller — the
+    // single launcher surface the standalone injects too. No per-variant
+    // forwarder to drift out of sync (that lost runnerResultFavoriteId once, #200).
     PlasmoidConfigSync {
         configuration: Plasmoid.configuration
-        updateChecker: Plasmoid.updateChecker
-        bridge: bridge
+        updateChecker: Plasmoid.controller.updateChecker
+        bridge: Plasmoid.controller
     }
 
     // "Pin to Task Manager" runs in-process via Kicker (needs this applet/corona).
-    TaskManagerPinner { applet: appgrid }
+    TaskManagerPinner { applet: appgrid; controller: Plasmoid.controller }
 
     Component.onCompleted: {
         // Move this applet's old per-applet hidden/recent/launch-count
@@ -66,12 +68,12 @@ PlasmoidItem {
         Views.GridPanel {
             id: panel
             appletInterface: appgrid
-            appsModel: Plasmoid.appsModel
-            searchModel: Plasmoid.searchModel
-            runnerSourceModel: Plasmoid.runnerSourceModel
+            appsModel: Plasmoid.controller.appsModel
+            searchModel: Plasmoid.controller.searchModel
+            runnerSourceModel: Plasmoid.controller.runnerSourceModel
             configuration: Plasmoid.configuration
-            plasmoidBridge: bridge
-            updateChecker: Plasmoid.updateChecker
+            plasmoidBridge: Plasmoid.controller
+            updateChecker: Plasmoid.controller.updateChecker
             favoritesClientInstance: Const.FAVORITES_CLIENT_ID
             sysInfoProvider: () => Plasmoid.systemInfo()
             opacity: 1.0

@@ -6,7 +6,7 @@
     field, an "Unhide All" button and the scrollable list of hidden apps with a
     per-row unhide button. Hosts inject the live `appsModel` and size this
     ColumnLayout. The hidden list is read and written straight on the model
-    (appsModel.hiddenApps) — both the panel config dialog (Plasmoid.appsModel)
+    (appsModel.hiddenApps) — both the panel config dialog (Plasmoid.controller.appsModel)
     and the daemon settings window (the controller's model) carry the live model,
     and AppGridController persists every change to the shared LaunchStateStore.
     Value bindings depend on `revision` so a host can force a re-read.

@@ -34,6 +34,6 @@ KCM.SimpleKCM {
     ConfigHeaderActionsContent {
         width: page.width
         configuration: buffer
-        isUniversalBuild: Plasmoid.isUniversalBuild
+        isUniversalBuild: Plasmoid.controller.isUniversalBuild
     }
 }

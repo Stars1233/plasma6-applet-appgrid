@@ -349,15 +349,24 @@ void AppGridController::notifyAppLaunched(const QString &storageId)
     KActivities::ResourceInstance::notifyAccessed(QUrl(PluginHelpers::ApplicationsUrlPrefix + storageId), QString(AppGrid::ApplicationId));
 }
 
+void AppGridController::setInProcessTaskManagerPin(bool inProcess)
+{
+    m_inProcessTaskManagerPin = inProcess;
+}
+
 void AppGridController::addToTaskManager(const QString &desktopFile)
 {
     if (desktopFile.isEmpty()) {
         return;
     }
-    // Pinning to the Task Manager (with activities) is what Kicker does in-process
-    // via the corona + libtaskmanager — unreachable from this separate process.
-    // Delegate to the center plasmoid, which exports a helper on the session bus
-    // and runs the real ContainmentInterface (see AppGridPlugin).
+    // Pinning (with activities) is what Kicker does in-process via the corona +
+    // libtaskmanager. A live applet hosts us: hand it back to QML to run the real
+    // ContainmentInterface. The standalone daemon has no corona, so it delegates
+    // to the center plasmoid's D-Bus helper instead.
+    if (m_inProcessTaskManagerPin) {
+        Q_EMIT addToTaskManagerRequested(desktopFile);
+        return;
+    }
     auto msg = QDBusMessage::createMethodCall(AppGrid::PlasmoidDbus::Service,
                                               AppGrid::PlasmoidDbus::Path,
                                               AppGrid::PlasmoidDbus::Interface,
@@ -399,7 +408,9 @@ bool AppGridController::plasmoidServicePresent() const
 
 bool AppGridController::canPinToTaskManager() const
 {
-    return plasmoidServicePresent();
+    // In-process (applet host) can always pin; the daemon needs the center
+    // plasmoid's D-Bus helper up.
+    return m_inProcessTaskManagerPin || plasmoidServicePresent();
 }
 
 bool AppGridController::canConfigureButton() const

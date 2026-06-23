@@ -6,17 +6,10 @@
 #pragma once
 
 #include <Plasma/Applet>
-#include <QRect>
 #include <QVariantMap>
 
 #include "appgridcontroller.h"
 
-#ifdef APPGRID_UNIVERSAL_BUILD
-#include "updatechecker.h"
-#endif
-
-class QScreen;
-class QWindow;
 class AppGridPlugin;
 
 /**
@@ -55,85 +48,36 @@ private:
 /**
  * @brief Main Plasma applet plugin for the AppGrid application launcher.
  *
- * Thin Plasma::Applet wrapper around an AppGridController, which owns the
- * models and all of the applet-independent launcher logic. The applet keeps
- * the same Q_PROPERTY / Q_INVOKABLE surface QML already binds to and forwards
- * each call to the controller, so the two plasmoid variants need no QML change.
- * The pieces that genuinely need the applet stay here: the "Open in Compact
- * Mode" global shortcut, the activation-inversion that suppresses the native
- * popup in custom-window mode, and feeding the controller the containment's
- * screen for the "open on the panel's screen" path.
+ * Thin Plasma::Applet that owns an AppGridController and exposes it (the
+ * `controller` property). Both plasmoid variants drive GridPanel through that
+ * controller — the same object the standalone `appgrid` executable injects — so
+ * there is one implementation of the launcher surface, no per-variant forwarding.
  *
- * The same controller backs the standalone `appgrid` executable (a separate
- * process whose window KWin can animate with any open/close effect); see
- * src/standalone.
+ * The applet adds only the pieces that genuinely need a live applet + corona:
+ * the "Open in Compact Mode" global shortcut, the activation-inversion that
+ * suppresses the native popup in custom-window mode, the in-process Task Manager
+ * pin (it marks the controller and runs the pin from QML), the containment's
+ * screen for "open on the panel's screen", the panel-button appearance helper,
+ * and the one-shot config / launch-state migrations.
  */
 class AppGridPlugin : public Plasma::Applet
 {
     Q_OBJECT
-    Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
-    Q_PROPERTY(FavoritesGroupedModel *favoritesGroupedModel READ favoritesGroupedModel CONSTANT)
-    Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
-    Q_PROPERTY(QObject *runnerSourceModel READ runnerSourceModel CONSTANT)
-    Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
-    Q_PROPERTY(bool isWayland READ isWayland CONSTANT)
-    Q_PROPERTY(bool isUniversalBuild READ isUniversalBuild CONSTANT)
-#ifdef APPGRID_UNIVERSAL_BUILD
-    Q_PROPERTY(UpdateChecker *updateChecker READ updateChecker CONSTANT)
-#endif
+    Q_PROPERTY(AppGridController *controller READ controller CONSTANT)
 
 public:
     AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args);
     ~AppGridPlugin() override;
 
-    [[nodiscard]] AppFilterModel *appsModel() const;
-    [[nodiscard]] FavoritesGroupedModel *favoritesGroupedModel() const;
-    [[nodiscard]] QAbstractItemModel *runnerModel() const;
-    [[nodiscard]] QObject *runnerSourceModel() const;
-    [[nodiscard]] UnifiedSearchModel *searchModel() const;
-    [[nodiscard]] bool isUniversalBuild() const;
-#ifdef APPGRID_UNIVERSAL_BUILD
-    [[nodiscard]] UpdateChecker *updateChecker() const;
-#endif
-    [[nodiscard]] bool isWayland() const;
-
-    Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
-    // Pin to Task Manager runs in-process (Kicker's ContainmentInterface needs a
-    // live applet): emit addToTaskManagerRequested so the variant's QML does it.
-    // QML calls this for an in-process menu; the daemon reaches it over D-Bus via
-    // requestAddToTaskManager (center variant only — see registerPlasmoidService).
-    Q_INVOKABLE void addToTaskManager(const QString &desktopFile);
-    Q_INVOKABLE void addToDesktop(const QString &desktopFile);
-    // Always true for the plasmoid (it pins in-process); the daemon's controller
-    // gates on its D-Bus helper instead.
-    [[nodiscard]] Q_INVOKABLE bool canPinToTaskManager() const;
-    [[nodiscard]] Q_INVOKABLE bool canAddToDesktop() const;
+    /** The launcher controller QML drives (models + every Q_INVOKABLE). The applet
+     *  pins the Task Manager in-process, so it marks the controller on construction. */
+    [[nodiscard]] AppGridController *controller();
 
     /** Name of the screen this applet's containment (the panel) is on — the
      *  daemon's "open on the panel's screen" target. Empty if unknown. */
     [[nodiscard]] QString panelScreenName() const;
-    Q_INVOKABLE void setSearchUsesFrecency(bool enabled);
-    Q_INVOKABLE void setSearchShowsHidden(bool enabled);
-    Q_INVOKABLE void setActivityScopingEnabled(bool enabled);
 
-    // --- Prefix mode commands ---
-
-    Q_INVOKABLE void runInTerminal(const QString &command, const QString &shell = QString());
-    Q_INVOKABLE void runCommand(const QString &command, const QString &shell = QString());
-    Q_INVOKABLE QStringList availableShells();
-    Q_INVOKABLE bool runRunnerResult(int index);
-    Q_INVOKABLE bool runRunnerAction(int index, int actionIndex);
-    Q_INVOKABLE QString runnerSubstitutionText(int index);
-    [[nodiscard]] Q_INVOKABLE QString runnerResultFavoriteId(int index) const;
-    Q_INVOKABLE QVariantList appActions(const QString &storageId);
-    Q_INVOKABLE void launchAppAction(const QString &storageId, int actionIndex);
-    [[nodiscard]] Q_INVOKABLE bool isDiscoverAvailable() const;
-    [[nodiscard]] Q_INVOKABLE bool canManageInDiscover(const QString &storageId) const;
-    Q_INVOKABLE void openInDiscover(const QString &storageId);
-    Q_INVOKABLE QVariantList listDirectory(const QString &path);
-
-    // --- System info ---
-
+    /** System info for the i: view, tagged with this variant (Panel/Center). */
     Q_INVOKABLE QVariantMap systemInfo();
 
     /** Toggle the standalone `appgrid` daemon's window, launching the daemon if
@@ -169,10 +113,6 @@ public:
     [[nodiscard]] QVariantMap buttonAppearance() const;
 
 Q_SIGNALS:
-    /** Pin @p desktopFile to the Task Manager. Handled by the variant's QML
-     *  (Kicker ContainmentInterface, which needs this applet). */
-    void addToTaskManagerRequested(const QString &desktopFile);
-
     /** The daemon's settings window asked to change the panel button's
      *  appearance; the center variant QML writes it into Plasmoid.configuration. */
     void setButtonAppearanceRequested(const QVariantMap &values);
