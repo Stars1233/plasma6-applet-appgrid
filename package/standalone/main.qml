@@ -50,9 +50,13 @@ PlasmaCore.Window {
     // PlasmaWindow positions mainItem inside its theme-frame padding but does not
     // size the window itself from QML (KRunner does that in C++); size it to the
     // panel's implicit size plus the padding so the layer surface has a real
-    // width/height when it commits.
-    width: panel.implicitWidth + leftPadding + rightPadding
-    height: panel.implicitHeight + topPadding + bottomPadding
+    // width/height when it commits. Round to whole logical pixels: a fractional
+    // density scale makes the grid's cell size (and so the implicit width)
+    // fractional, and committing a fractional surface size leaves the centered
+    // content off the pixel grid — text renders blurry. The panel popup stays
+    // crisp because Plasma rounds its dialog geometry in C++; do the same here.
+    width: Math.round(panel.implicitWidth + leftPadding + rightPadding)
+    height: Math.round(panel.implicitHeight + topPadding + bottomPadding)
 
     ConfigCache { id: cfg; source: appGridConfig }
 
