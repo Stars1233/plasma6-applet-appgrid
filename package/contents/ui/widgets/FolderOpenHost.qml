@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import org.kde.ksvg as KSvg
 import org.kde.plasma.components as PlasmaComponents
 
 Item {
@@ -91,38 +92,32 @@ Item {
         }
     }
 
-    // Plain themed card: colour, radius and a hairline border all come from the
-    // theme's colour tokens, so it stays clean on every theme. View colour set =
-    // the popup/content surface, opaque so the grid can't show through.
-    Kirigami.ShadowedRectangle {
+    // Native themed card: the theme's "widgets/background" frame svg, the same
+    // raised surface Plasma uses for floating panels — so fill, rounded corners
+    // and the soft shadow all come from the active theme, no hand tinting.
+    KSvg.FrameSvgItem {
         id: card
 
-        Kirigami.Theme.colorSet: Kirigami.Theme.View
-        Kirigami.Theme.inherit: false
+        imagePath: "widgets/background"
 
-        // Hairline border tinted from the (View) text colour.
-        readonly property color _borderColor: Qt.rgba(Kirigami.Theme.textColor.r,
-                                                       Kirigami.Theme.textColor.g,
-                                                       Kirigami.Theme.textColor.b, 0.15)
+        // Content padding = the frame's own border/shadow margins plus a little
+        // breathing room, so the grid never sits under the rounded edge or shadow.
+        readonly property real _padLeft: margins.left + Kirigami.Units.largeSpacing
+        readonly property real _padRight: margins.right + Kirigami.Units.largeSpacing
+        readonly property real _padTop: margins.top + Kirigami.Units.largeSpacing
+        readonly property real _padBottom: margins.bottom + Kirigami.Units.largeSpacing
 
         // Centered, sized to the content (one column narrower than the grid, so it
         // already fits with a drag-out margin). Height caps so a big folder scrolls.
         readonly property real _overlayWidth: Math.min(parent.width * host._overlayMaxWidthFraction,
-                                                        contents.implicitWidth + Kirigami.Units.largeSpacing * 2)
+                                                        contents.implicitWidth + _padLeft + _padRight)
         readonly property real _overlayHeight: Math.min(parent.height * host._overlayFraction,
                                                          header.implicitHeight + contents.implicitHeight
-                                                         + Kirigami.Units.largeSpacing * 3)
+                                                         + _padTop + _padBottom + Kirigami.Units.largeSpacing)
 
         anchors.centerIn: parent
         width: _overlayWidth
         height: _overlayHeight
-
-        color: Kirigami.Theme.backgroundColor
-        radius: Kirigami.Units.cornerRadius
-        border.width: 1
-        border.color: _borderColor
-        shadow.size: Kirigami.Units.gridUnit
-        shadow.color: Qt.rgba(0, 0, 0, 0.4)
 
         // Absorb stray clicks on the card chrome (title, gaps) so they don't fall
         // through to the click-catcher behind and close the folder.
@@ -138,7 +133,10 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
+            anchors.leftMargin: card._padLeft
+            anchors.rightMargin: card._padRight
+            anchors.topMargin: card._padTop
+            anchors.bottomMargin: card._padBottom
             spacing: Kirigami.Units.largeSpacing
 
             Item {
