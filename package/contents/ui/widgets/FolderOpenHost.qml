@@ -28,6 +28,7 @@ Item {
     property bool reduceGridSpacing: false
     property int hoverAnimation: 0
     property bool hoverHighlight: true
+    property bool showScrollbars: false
     // Main grid's column count + cell size, passed in by the host (the default is
     // a placeholder). The folder uses one fewer column at the same cell size, so
     // it fits with a drag-out margin (#18).
@@ -69,6 +70,9 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         onClicked: host.closeRequested()
+        // Swallow wheel over the area outside the card so it can't scroll the
+        // favourites grid behind the open folder (#200).
+        onWheel: wheel => wheel.accepted = true
     }
 
     // Drop a member onto the area outside the card → remove it from the folder.
@@ -127,6 +131,9 @@ Item {
             acceptedButtons: Qt.AllButtons
             onClicked: {}
             onPressed: {}
+            // When the folder grid doesn't scroll (content fits), wheel events fall
+            // through to here; swallow them so they don't reach the grid behind.
+            onWheel: wheel => wheel.accepted = true
         }
 
         ColumnLayout {
@@ -177,6 +184,7 @@ Item {
                 reduceGridSpacing: host.reduceGridSpacing
                 hoverAnimation: host.hoverAnimation
                 hoverHighlight: host.hoverHighlight
+                showScrollbars: host.showScrollbars
                 onMemberLaunched: sid => host.memberLaunched(sid)
                 onMemberContextRequested: (sid, df) => host.memberContextRequested(sid, df)
                 onMemberReorderRequested: (from, to) => host.memberReorderRequested(from, to)

@@ -16,6 +16,7 @@
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
 
 import "../js/constants.js" as Const
 import "../js/favoritevisual.js" as FavoriteVisual
@@ -38,6 +39,7 @@ GridView {
     property bool reduceGridSpacing: false
     property int hoverAnimation: 0
     property bool hoverHighlight: true
+    property bool showScrollbars: false
     property int preferredColumns: 4
     // The main grid's cell size; when set the folder reuses it so cells line up
     // with the grid exactly. Falls back to icon-derived metrics otherwise.
@@ -66,6 +68,8 @@ GridView {
     clip: true
     focus: true
     keyNavigationEnabled: true
+
+    PlasmaComponents.ScrollBar.vertical: OverlayScrollBar { showScrollbars: root.showScrollbars }
 
     // Live reorder model: a mirror of `members` we mutate during a drag so the
     // grid animates. True while a member of this folder is being dragged here, to

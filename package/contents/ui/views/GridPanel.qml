@@ -1038,6 +1038,7 @@ Kirigami.ShadowedRectangle {
                     reduceGridSpacing: cfg.reduceGridSpacing
                     hoverAnimation: cfg.hoverAnimation
                     hoverHighlight: cfg.hoverHighlight
+                    showScrollbars: cfg.showScrollbars
                     onCloseRequested: panel.openFolderId = ""
                     onMemberRemoveRequested: sid => {
                         if (panel.favoritesGroupedModel)
