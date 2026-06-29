@@ -380,9 +380,14 @@ ListView {
                 PlasmaComponents.ToolButton {
                     id: favoriteButton
                     // Filled star when already favourited, outline otherwise. Shown on
-                    // every favouritable row, not just the selected one.
+                    // every favouritable row, not just the selected one. Uses the
+                    // rating star (emblems) rather than starred-symbolic: some themes
+                    // (Qogir) ship starred-symbolic in the places context too — the
+                    // "Starred folder" glyph — and the lookup can resolve to that wrong
+                    // icon (#200). rating/rating-unrated is an unambiguous plain star in
+                    // Breeze + Qogir, with the Breeze fallback covering other themes.
                     visible: resultDelegate.favoritable
-                    icon.name: resultDelegate.isFavorite ? "starred-symbolic" : "non-starred-symbolic"
+                    icon.name: resultDelegate.isFavorite ? "rating" : "rating-unrated"
                     PlasmaComponents.ToolTip.text: resultDelegate.isFavorite
                         ? i18nd("dev.xarbit.appgrid", "Remove from Favorites")
                         : i18nd("dev.xarbit.appgrid", "Add to Favorites")
