@@ -233,6 +233,7 @@ set(APPGRID_COMMON_SOURCES
     src/launchbookkeeping.h
     src/launchstatestore.cpp
     src/launchstatestore.h
+    src/keyvaluelist.h
     src/favoritesfolderlogic.cpp
     src/favoritesfolderlogic.h
     src/abstractgroupedmodel.cpp
