@@ -2,10 +2,10 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Reusable grid panel content. Always hosted inside a Plasma surface that
-    draws its own themed background, blur and shadow: a native Plasma popup
-    (Panel variant) or the standalone daemon's PlasmaWindow. The panel itself
-    is therefore transparent and chromeless.
+    Grid panel content shared by the two AppGrid hosts — the Panel applet and the
+    standalone daemon. Always hosted inside a Plasma surface that draws its own
+    themed background, blur and shadow, so the panel itself is a plain transparent,
+    chromeless Item.
 */
 
 import QtQuick
@@ -22,7 +22,7 @@ import "../js/gridmetrics.js" as GridMetrics
 import "../js/prefixmodes.js" as PrefixModes
 import "../js/scale.js" as Scale
 
-Kirigami.ShadowedRectangle {
+Item {
     id: panel
 
     signal closeRequested()
@@ -107,7 +107,6 @@ Kirigami.ShadowedRectangle {
 
     VisibilityState {
         id: visibility
-        nativePopup: true
         sizeToContent: panel.sizeToContent
         hideGridWhenEmpty: panel.effectiveHideGridWhenEmpty
         showCategoryBar: panel.cfgShowCategoryBar
@@ -281,14 +280,6 @@ Kirigami.ShadowedRectangle {
     Layout.preferredHeight: -1
     Layout.minimumWidth: Kirigami.Units.gridUnit * 12
     Layout.minimumHeight: Kirigami.Units.gridUnit * 12
-    // The launcher always renders inside a Plasma popup / PlasmaWindow, which draws
-    // the themed background, blur, contrast and shadow itself (the theme owns the
-    // corner), so the panel rect is transparent, chromeless and square.
-    radius: 0
-
-    color: "transparent"
-    border.width: 0
-    shadow.size: 0
 
     Kirigami.Theme.colorSet: Kirigami.Theme.View
     Kirigami.Theme.inherit: false
@@ -640,7 +631,6 @@ Kirigami.ShadowedRectangle {
         anchors.margins: panel.panelMargin
         spacing: Kirigami.Units.largeSpacing
 
-        // -- Header --
         RowLayout {
             id: headerRow
             Layout.fillWidth: true
@@ -814,7 +804,6 @@ Kirigami.ShadowedRectangle {
             }
         }
 
-        // -- Category bar --
         HorizontalDivider {
             Layout.fillWidth: true
             visible: panel.showCatBar
@@ -915,7 +904,6 @@ Kirigami.ShadowedRectangle {
             iconSize: panel.gridIconSize
         }
 
-        // -- Unified search results --
         SearchResultsList {
             id: searchResultsList
             Layout.fillWidth: true
@@ -952,7 +940,7 @@ Kirigami.ShadowedRectangle {
             }
         }
 
-        // -- Category grid (By Category sort) --
+        // Flat category sections (the By Category sort).
         CategoryGridView {
             id: categoryGridView
             Layout.fillWidth: true
@@ -1070,7 +1058,7 @@ Kirigami.ShadowedRectangle {
                 appsModel: panel.appsModel
                 sharedFavoritesModel: panel.sharedFavoritesModel
                 favoritesGroupedModel: panel.favoritesGroupedModel
-                // The grouped grid (favourites folders) is this model; editable.
+                // Editable here (unlike the read-only menu tree).
                 groupedModel: panel.favoritesGroupedModel
                 favoritesManager: favorites
                 // Folders drill in place; Esc climbs back out (the window Shortcut
@@ -1139,10 +1127,6 @@ Kirigami.ShadowedRectangle {
         }
     }
 
-
-    // -----------------------------------------------------------------------
-    // Context menu
-    // -----------------------------------------------------------------------
 
     LauncherActions {
         id: launcherActions

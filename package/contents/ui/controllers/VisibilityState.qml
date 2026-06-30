@@ -15,10 +15,8 @@ import QtQuick
 QtObject {
     // --- Inputs (set by GridPanel) ---
 
-    property bool nativePopup: false
-    // The daemon is a native popup that still sizes itself from the panel, so it
-    // supports compact collapse; a plain native popup (panel variant) is owned by
-    // Plasma's popup sizing and does not.
+    // The daemon sizes its window from the panel, so it supports compact collapse;
+    // the panel variant is owned by Plasma's popup sizing and does not.
     property bool sizeToContent: false
     property bool hideGridWhenEmpty: false
     property bool showCategoryBar: false
@@ -42,7 +40,7 @@ QtObject {
 
     // True while compact mode is hiding the grid and category bar —
     // user has not yet typed and has not popped the grid open.
-    readonly property bool emptyHidden: (!nativePopup || sizeToContent)
+    readonly property bool emptyHidden: sizeToContent
                                         && hideGridWhenEmpty
                                         && !isSearching
                                         && !isPrefixMode

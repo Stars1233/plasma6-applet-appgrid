@@ -97,7 +97,8 @@ TestCase {
     // --- hideGridWhenEmpty (compact mode) ---
 
     function test_compactModeHidesEverythingUntilRevealed() {
-        var v = make({ hideGridWhenEmpty: true, showCategoryBar: true })
+        // Compact collapse only applies to the daemon (sizeToContent).
+        var v = make({ sizeToContent: true, hideGridWhenEmpty: true, showCategoryBar: true })
         verify(v.emptyHidden)
         verify(!v.catBarVisible)
         verify(!v.appGridVisible)
@@ -107,6 +108,7 @@ TestCase {
 
     function test_compactModeRevealedShowsGrid() {
         var v = make({
+            sizeToContent: true,
             hideGridWhenEmpty: true,
             showCategoryBar: true,
             gridRevealed: true
@@ -116,11 +118,11 @@ TestCase {
         verify(v.catBarVisible)
     }
 
-    function test_compactModeIgnoredInNativePopup() {
-        // The popup variant of the plasmoid renders its own chrome —
-        // hide-when-empty stays off there even if the user toggled it.
+    function test_compactModeIgnoredInPanelVariant() {
+        // The panel variant is owned by Plasma's popup sizing (sizeToContent off),
+        // so hide-when-empty compact collapse stays off there even if toggled.
         var v = make({
-            nativePopup: true,
+            sizeToContent: false,
             hideGridWhenEmpty: true,
             showCategoryBar: true
         })
