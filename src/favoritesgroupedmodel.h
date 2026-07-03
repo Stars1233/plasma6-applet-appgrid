@@ -153,7 +153,7 @@ private:
     [[nodiscard]] int folderIndex(const QString &folderId) const;
     // Build an App leaf row for @p sid — the one place a favourite storageId
     // becomes a row, shared by the drilled-in, folded-out, and loose paths.
-    [[nodiscard]] Row appRow(const QString &sid) const;
+    [[nodiscard]] static Row appRow(const QString &sid);
 
     FavoritesFolderLogic::Layout m_state;
     QStringList m_flatFavorites;

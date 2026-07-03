@@ -307,7 +307,7 @@ QStringList FavoritesGroupedModel::shownMembers(const QStringList &members) cons
     return shown;
 }
 
-AbstractGroupedModel::Row FavoritesGroupedModel::appRow(const QString &sid) const
+AbstractGroupedModel::Row FavoritesGroupedModel::appRow(const QString &sid)
 {
     Row row;
     row.type = AbstractGroupedModel::App;
