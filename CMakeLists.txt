@@ -158,6 +158,23 @@ cmake_pop_check_state()
 if(HAVE_LAYERSHELLQT_SETSCREEN)
     add_compile_definitions(HAVE_LAYERSHELLQT_SETSCREEN)
 endif()
+# KLocalizedContext is deprecated since KI18n 6.8 in favour of
+# KLocalization::setupLocalizedContext() (KLocalizedQmlContext, KF6::I18nQml).
+# The KF6 floor is 6.0, so gate the standalone's use of it behind the same
+# compile-check pattern as the LayerShellQt::setScreen() API above, letting
+# older KF6 keep the deprecated class without failing the strict CI gate.
+include(CheckCXXSourceCompiles)
+include(CMakePushCheckState)
+cmake_push_check_state()
+set(CMAKE_REQUIRED_LIBRARIES KF6::I18nQml Qt6::Qml)
+check_cxx_source_compiles("
+#include <KLocalizedQmlContext>
+int main() { KLocalization::setupLocalizedContext(nullptr); return 0; }
+" HAVE_KLOCALIZEDQMLCONTEXT)
+cmake_pop_check_state()
+if(HAVE_KLOCALIZEDQMLCONTEXT)
+    add_compile_definitions(HAVE_KLOCALIZEDQMLCONTEXT)
+endif()
 find_package(Plasma ${PLASMA_MIN_VERSION} REQUIRED)
 find_package(PlasmaQuick ${PLASMA_MIN_VERSION} REQUIRED)
 # Write-side: KActivities::ResourceInstance::notifyAccessed broadcasts AppGrid

@@ -17,7 +17,11 @@
 
 #include <KAboutData>
 #include <KConfigSkeleton>
+#ifdef HAVE_KLOCALIZEDQMLCONTEXT
+#include <KLocalizedQmlContext>
+#else
 #include <KLocalizedContext>
+#endif
 #include <KLocalizedString>
 #include <PlasmaQuick/SharedQmlEngine>
 
@@ -116,7 +120,14 @@ private:
     void load()
     {
         m_engine = new QQmlApplicationEngine;
+#ifdef HAVE_KLOCALIZEDQMLCONTEXT
+        // KI18n >= 6.8: KLocalizedContext is deprecated; setupLocalizedContext
+        // sets it as the root context object (and honours the TRANSLATION_DOMAIN
+        // macro, which the standalone target defines).
+        KLocalization::setupLocalizedContext(m_engine);
+#else
         m_engine->rootContext()->setContextObject(new KLocalizedContext(m_engine));
+#endif
         // Fail-loud contract: ConfigWindow.qml declares these `required`, so a
         // missing injection errors at load instead of silently undefined (#6).
         m_engine->setInitialProperties({
